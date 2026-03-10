@@ -1,0 +1,13 @@
+# CMake
+cmake-build-*/
+_cmake_build/
+
+# JetBrains
+.idea/
+.DS_Store
+
+#VS Code
+.vscode/
+
+#temp files
+temp/*

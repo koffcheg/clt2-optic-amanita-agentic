@@ -1,0 +1,58 @@
+services:
+  build_manager:
+    image: clt2-optic-build
+    container_name: clt2-optic-build
+    volumes:
+      - .:/root/code
+    command: bash -c 'chmod +x /root/code/builder/* && /root/code/builder/build_manager.sh && /root/code/_cmake_build/manager/manager --help'
+    
+  build_camerapro:
+    image: clt2-optic-build
+    container_name: clt2-optic-build
+    volumes:
+      - .:/root/code
+    command: bash -c 'chmod +x /root/code/builder/* && /root/code/builder/build_camerapro.sh'
+
+  build_datapro1:
+    image: clt2-optic-build
+    container_name: clt2-optic-build
+    volumes:
+      - .:/root/code
+    command: bash -c 'chmod +x /root/code/builder/* && /root/code/builder/build_datapro1.sh'
+
+  build_datapro2:
+    image: clt2-optic-build
+    container_name: clt2-optic-build
+    volumes:
+      - .:/root/code
+    command: bash -c 'chmod +x /root/code/builder/* && /root/code/builder/build_datapro2.sh'
+
+  build_calibration:
+    image: clt2-optic-build
+    container_name: clt2-optic-build
+    volumes:
+      - .:/root/code
+    command: bash -c 'chmod +x /root/code/builder/* && /root/code/builder/build_calibration.sh'
+
+  build:
+    image: clt2-optic-build
+    container_name: clt2-optic-build
+    volumes:
+      - .:/root/code
+    command: bash -c 'chmod +x /root/code/builder/* && /root/code/builder/build_all.sh && /root/code/_cmake_build/manager/manager --help'
+
+  amanita_install:
+    image: clt2-optic-build
+    container_name: clt2-optic-build
+    volumes:
+      - .:/root/code
+    command: bash -c 'chmod +x /root/code/builder/* && /root/code/builder/build_all.sh && /root/code/builder/prepare_amanita_install.sh'
+
+  console:
+    image: clt2-optic-build
+    container_name: clt2-optic-build
+    volumes:
+      - .:/root/code
+    command: bash
+
+

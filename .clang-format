@@ -1,0 +1,8 @@
+#BasedOnStyle: Microsoft, Google
+Language:     Cpp
+BasedOnStyle: LLVM
+
+ColumnLimit:     120
+TabWidth:        4
+UseTab:          ForIndentation
+IndentWidth:     4

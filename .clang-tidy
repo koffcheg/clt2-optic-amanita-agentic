@@ -1,0 +1,12 @@
+---
+Checks: >
+    clang-analyzer-core*,
+    clang-analyzer-cplusplus*,
+    clang-analyzer-optin.performance.Padding,
+    clang-diagnostic-sign-conversion,
+    core*,
+    cplusplus*
+HeaderFilterRegex: "."
+UseColor: true
+ExcludeHeaderFilterRegex: opencv-4.9.0
+...

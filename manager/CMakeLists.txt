@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.18)
+
+project(manager LANGUAGES CXX C)
+
+set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (CMAKE_CXX_EXTENSIONS OFF)
+set (CMAKE_POSITION_INDEPENDENT_CODE ON)
+SET (BUILD_MODE Debug)
+SET (CMAKE_CXX_FLAGS "-Wall")
+SET (CMAKE_CXX_FLAGS_DEBUG "-g")
+SET (CMAKE_CXX_FLAGS_RELEASE "-O0")
+
+set (ROOT_SRC ${CMAKE_SOURCE_DIR}/manager/src)
+message(${ROOT_SRC})
+
+include (cmake/manager.cmake)

@@ -1,0 +1,43 @@
+{
+    "agents":
+    [
+        {
+            "name": "camerapro",
+            "path": "/usr/local/bin/camerapro",
+	    "work_dir": "/var/amanita/camerapro"
+        },
+        {
+            "name": "datapro1",
+            "path": "/usr/local/bin/datapro1",
+	    "work_dir": "/var/amanita/datapro1"
+        }
+    ],
+    "groups":
+    [
+        {
+            "name": "Group0",
+            "source":
+            {
+                "name": "camerapro",
+                "args":
+                    [
+                        "0",
+                        "/etc/amanita/camerapro.json",
+                        "/etc/amanita/camerapro-log.xml"
+                    ]
+            },
+            "destinations":
+            [
+                {
+                    "name": "datapro1",
+                    "args":
+                    [
+                        "0", 
+                        "/etc/amanita/datapro1.json", 
+                        "/etc/amanita/camerapro-log.xml"
+                    ]
+                }
+            ]
+        }
+    ]
+}

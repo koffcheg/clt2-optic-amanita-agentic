@@ -1,0 +1,55 @@
+{
+    "infoServer": {
+        "host": "0.0.0.0",
+        "port": "9552"
+    },
+    "controlServer": {
+        "host": "0.0.0.0",
+        "port": "9553"
+    },
+    "turret": {
+        "reconnectIntervalms": 500,
+        "type": "sitech",
+        "simulator": {
+            "maxSpeed": 100,
+            "maxAcceleration": 100
+        },
+        "sitech": {
+            "port": "/dev/ttyUSB0",
+            "baudRate": 19200,
+            "commandAdvancems": 100,
+            "connectionTimeoutms": 2000,
+            "reconnectIntevalms": 1000,
+            "cyclems": 55,
+            "trackTimeout": 1000,
+            "alpha": {
+                "PPR": 10000000,
+                "gotoSpeed": 10,
+                "setSpeedCorrectionCoefficient": 1,
+                "errVCoef": 0.5,
+                "tau": 0,
+                "pid.p": 1,
+                "pid.i": 0,
+                "pid.d": 0,
+                "pid.maxOut": 10,
+                "pid.maxAcceleration": 10,
+                "pid.minAccOutLimit": 1,
+                "pid.integralLimit": 0.1
+            },
+            "beta": {
+                "PPR": 10000000,
+                "gotoSpeed": 10,
+                "setSpeedCorrectionCoefficient": 1,
+                "errVCoef": 0.5,
+                "tau": 0,
+                "pid.p": 1,
+                "pid.i": 0,
+                "pid.d": 0,
+                "pid.maxOut": 10,
+                "pid.maxAcceleration": 10,
+                "pid.minAccOutLimit": 1,
+                "pid.integralLimit": 0.1
+            }
+        }
+    }
+}

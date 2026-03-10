@@ -1,0 +1,38 @@
+{
+    "ipc": {
+    "bufferCount": 4
+    },
+    "camera": {
+        "0": {
+            "camera": {
+
+            },
+            "type":"webcam",
+            "webcam": {
+                "id": 0,
+                "fourcc":"MJPG",
+                "fps": 10,
+                "width": 640,
+                "height": 480,
+                "readTimeoutms": 1,
+                "temporalBinning": false,
+                "customGray": false,
+                "grayScale.r": 1.0,
+                "grayScale.g": 1.0,
+                "grayScale.b": 1.0,
+                "flipV": false,
+                "flipH": false,
+                "delay": 0.0
+            }
+        }
+    },
+    "display":{
+        "display": false
+     },
+    "turret":{
+        "address":"localhost",
+        "port":"9552",
+        "reconnectIntervalms":1000,
+        "dataTimeotms": 2000
+    }
+}

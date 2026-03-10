@@ -1,0 +1,57 @@
+{
+    "server": {
+        "port": 11511
+    },
+    "number_cores": 1,
+    "id": 23,
+    "camera":{
+    	"focal_length_x": 6.5089787715935540e+02,
+    	"focal_length_y": 6.5034597406248258e+02,
+    	"optical_centers_x": 3.5393204699669531e+02,
+    	"optical_centers_y": 2.3521575254218098e+02
+    },
+    "strobe-method-par": {
+    	"linear_model": false,
+    	"k_std": 6,
+    	"std_measurement": 0.5,
+        "min_speed": 0.0,
+        "max_speed": 2.5,
+        "max_ptt_frames": 3,
+        "max_tracking_frames": 10,
+        "trajectory_drop_max_confirmed_frames": 10,
+        "trajectory_drop_min_confirmed_frames": 8,
+        "trajectory_drop_min_speed": 0.0,
+        "trajectory_drop_max_speed": 10.5,
+        "trajectory_drop_min_acceleration": 0.0,
+        "trajectory_drop_max_acceleration": 55.0,
+        "trajectory_drop_max_x_std_dev": 0.03,
+        "trajectory_drop_max_y_std_dev": 0.03,
+        "trajectory_drop_max_z_std_dev": 0.03,
+        "trajectory_drop_max_xyz_std_dev": 0.3,
+        "trajectory_show_max_confirmed_frames": 10,
+        "trajectory_show_min_confirmed_frames": 8,
+        "trajectory_show_min_speed": 0.0,
+        "trajectory_show_max_speed": 10.5,
+        "trajectory_show_min_acceleration": 0.0,
+        "trajectory_show_max_acceleration": 55.0,
+        "trajectory_show_max_x_std_dev": 0.03,
+        "trajectory_show_max_y_std_dev": 0.03,
+        "trajectory_show_max_z_std_dev": 0.03,
+        "trajectory_show_max_xyz_std_dev": 0.3,
+        "trajectory_show_min_frames": 3,
+        "noisy_region_bounding_box_filter_size": 300,
+        "noisy_region_bounding_box_max_objects_limit": 3000,
+        "dp1_out_folder": "/home/user/Videos/2024-09-19/SimpleVideo10Balls/dp1",
+        "dp2_out_folder": "/home/novazii/probing_2409XX/wide_field/dp1/Videos/2024-10-15/test1/dp2",
+        "create_text_file_results": false,
+        "create_binary_file_results": false,
+        "create_json_file_results": false
+    },
+    "turret_exch": {
+        "enabled": false,
+        "host": "127.0.0.1",
+        "port": 11512,
+        "tr_interval_ms": 300,
+        "reconnect_interval_s": 3
+    }
+}

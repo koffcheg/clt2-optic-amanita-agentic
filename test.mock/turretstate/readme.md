@@ -1,0 +1,1 @@
+Small cli utility to test turret info server

@@ -1,0 +1,10 @@
+//
+// Created by user on 04.07.24.
+//
+
+#ifndef CLT_OPTIC_DATAPROCONTOUROPERATIONS_H
+#define CLT_OPTIC_DATAPROCONTOUROPERATIONS_H
+#include "datarpoTypes.h"
+
+
+#endif //CLT_OPTIC_DATAPROCONTOUROPERATIONS_H

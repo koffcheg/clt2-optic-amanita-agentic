@@ -1,0 +1,2 @@
+SSH_KEY_PATH=~/.ssh/cp_rsa
+SSH_USERNAME="ubuntu"

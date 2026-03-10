@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+  <appender name="ConsoleAppender" class="org.apache.log4j.ConsoleAppender">
+    <param name="Target" value="System.out"/>
+    <layout class="org.apache.log4j.PatternLayout">
+      <param name="ConversionPattern" value="%d{HH:mm:ss.SSS} %Y%-5p%y %C::%M:%L - %m%n"/>
+    </layout>
+    <filter class="org.apache.log4j.varia.LevelRangeFilter">
+      <param name="LevelMin" value="INFO" />
+      <param name="LevelMax" value="FATAL" />
+      <param name="AcceptOnMatch" value="true" />
+    </filter>  
+  </appender>
+
+  <appender name="FileAppender" class="org.apache.log4j.FileAppender">
+    <param name="file" value="turret.log" />
+    <layout class="org.apache.log4j.PatternLayout">
+      <param name="ConversionPattern" value="%d{HH:mm:ss.SSS} %-5p %C::%M:%L - %m%n" />
+    </layout>
+  </appender>
+
+  <root>
+    <priority value="debug" />
+    <appender-ref ref="ConsoleAppender"/>
+    <appender-ref ref="FileAppender"/>
+  </root>
+
+  <logger name="turret.sitech">
+    <priority value="debug" />
+  </logger>
+
+</log4j:configuration>

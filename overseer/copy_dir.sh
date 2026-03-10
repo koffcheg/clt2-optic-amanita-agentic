@@ -1,0 +1,5 @@
+HOST=$1
+LPATH=$2
+RPATH=$3
+
+scp -i ${SSH_KEY_PATH} -r ${LPATH} ${SSH_USERNAME}@${HOST}:${RPATH}

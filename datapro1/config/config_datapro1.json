@@ -1,0 +1,131 @@
+{
+    "config": {
+        "binocular": {
+            "switched": false,
+            "file_camera_settings": "/home/user/projects/clt2-optic/datapro1/config/camera_data.xml",
+            "minHessian": 400,
+            "using_template": false,
+            "camera": {
+                "R_matrix": [
+                    0.99999620611593076,
+            	    0.00025245520490588833,
+                    0.0027429947347068703,
+                    -0.00025124733506727586,
+                    0.99999987133672141,
+                    -0.00044068278541503631,
+                    -0.0027431056344470644,
+                    0.00043999194339843802,
+                    0.99999614088183775
+                ],
+                "t_vector": [
+                    -739.42089262444438,
+                    139.35117996723397,
+                    1328.8993462704441
+                ]
+            }
+        },
+        "source": {
+            "_comment_source": "campro, webcam, ipcam, videofile, imagefile, /home/user/projects/frames/kalibr.mp4, /home/user/projects/frames/chayki2.mp4 http://vlasenko.vp:vp2R:_-KPdTseuix@192.168.0.101:4747/video, /home/user/projects/frames/102GOPROre/G028%04d.JPGб /home/user/Videos/dp1_in/frame_%04d.png /home/user/projects/frames/zakat_2.mp4 /home/user/projects/frames/su25.mp4 /home/user/projects/frames/kachky.mp4 /home/user/projects/frames/kalibr.mp4 /home/user/projects/frames/japan.mp4 /home/user/projects/frames/dron2.mp4 /home/user/projects/frames/7/G%04d.JPG resulting_video http://vlasenko.vp:vp2R:_-KPdTseuix@192.168.0.108:4747/video/force/720x480",
+            "source": "videofile",
+            "deviceID": 0,
+            "apiID": 0,
+            "link": "/home/user/Videos/SimpleVideo10Balls.mp4",
+            "frame_period": 50
+        },
+        "segment": {
+            "element_str_w": 3,
+            "element_str_h": 3,
+            "number_iter": 3,
+            "element_str_type": 2,
+            "level": 220,
+            "level_max": 255,
+            "threshold_type": 0,
+            "contour_retrieval": 1,
+            "contour_approximation": 2,
+            "min_segment_size": 2,
+            "max_segment_size": 45000,
+            "max_height_to_width_ratio": 3.0
+        },
+        "filter": {
+            "corr": {
+                "width": 5,
+                "height": 5,
+                "switched": false
+            },
+            "matched": {
+                "width": 3,
+                "height": 3,
+                "switched": false
+            },
+            "blur": {
+                "width": 3,
+                "height": 3,
+                "switched": false
+            },
+            "median": {
+                "window_1_size": 5,
+                "window_2_size": 21,
+                "rejection": false,
+                "switched": false
+            }
+        },
+        "test": {
+            "test": false,
+            "out_folder": "/home/user/Videos/2025-05-15/dp17/",
+            "display": {
+                "display_video": true,
+                "display_marks": true,
+                "rotayte_rec": true,
+                "scale": 0.5,
+                "video_save": true,
+                "fps": 10.0,
+                "video_name": "out2_SimpleVideo10Balls.mp4"
+            },
+            "save2file": {
+            	"switched": true,
+            	"one_file": false,
+            	"txt_file": true,            	
+            	"time_interval": 6.0
+            }
+        },
+        "median_bg": {
+            "num_frame": 7,
+            "sampling_period": 5,
+            "affine_transfor": false,
+            "switched": false
+        },
+        "subtractor": {
+            "subtractorKNN": true,
+            "detectShadows": false,
+            "historyKNN": 500,
+            "historyMOG2": 500,
+            "dist2ThresholdKNN": 40.0,
+            "varThresholdMOG2": 16.0
+        },
+        "calc_limits":{
+            "enable": false,
+            "ref_frame_proc_time_ms": 200,
+            "levels":[
+                [1.1, 0.9],
+                [1.2, 0.8],
+                [1.5, 0.6],
+                [2.0, 0.5],
+                [2.5, 0.4],
+                [3.0, 0.3],
+                [4.0, 0.2]
+            ]
+        },
+        "dp2conn": {
+            "host": "127.0.0.1",
+            "port": 11511,
+            "reconnect_interval_s": 3
+        },
+        "multiprocess" :{
+            "tiles_factor": 1,
+            "ocv_thread_comment": "0 - default value (is not changed by dp1)",
+            "ocv_num_thread": 0,
+            "dp1_num_thread": 4
+        },
+        "def_border": 10
+    }
+}

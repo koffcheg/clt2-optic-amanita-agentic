@@ -1,0 +1,63 @@
+{
+    "server": {
+        "port": 11511
+    },
+    "number_cores": 1,
+    "id": 23,
+    "binocular":{
+    	"enabled": false,
+    	"use_corners": false,
+    	"max_size_queue_frame": 200,
+    	"match_distance": 10.0,
+    	"test_point": false,
+    	"x0test": 90.0,
+    	"y0test": 60.0,
+    	"Rtest": 240.0,
+    	"period_sec": 60     	
+    },
+    "strobe-method-par": {
+    	"linear_model": false,
+    	"k_std": 2,
+    	"std_measurement": 0.1,
+        "min_speed": 0.0,
+        "max_speed": 6.5,
+        "max_ptt_frames": 3,
+        "max_tracking_frames": 10,
+        "k_dist": 3.5,
+        "trajectory_drop_max_confirmed_frames": 10,
+        "trajectory_drop_min_confirmed_frames": 8,
+        "trajectory_drop_min_speed": 0.0,
+        "trajectory_drop_max_speed": 6.5,
+        "trajectory_drop_min_acceleration": 0.0,
+        "trajectory_drop_max_acceleration": 5.5,
+        "trajectory_drop_max_x_std_dev": 0.05,
+        "trajectory_drop_max_y_std_dev": 0.05,
+        "trajectory_drop_max_z_std_dev": 0.05,
+        "trajectory_drop_max_xyz_std_dev": 0.5,
+        "trajectory_show_max_confirmed_frames": 10,
+        "trajectory_show_min_confirmed_frames": 8,
+        "trajectory_show_min_speed": 0.0,
+        "trajectory_show_max_speed": 6.5,
+        "trajectory_show_min_acceleration": 0.0,
+        "trajectory_show_max_acceleration": 5.5,
+        "trajectory_show_max_x_std_dev": 0.05,
+        "trajectory_show_max_y_std_dev": 0.05,
+        "trajectory_show_max_z_std_dev": 0.05,
+        "trajectory_show_max_xyz_std_dev": 0.5,
+        "trajectory_show_min_frames": 3,
+        "noisy_region_bounding_box_filter_size": 50,
+        "noisy_region_bounding_box_max_objects_limit": 3000,
+        "dp1_out_folder": "/home/user/Videos/2024-09-19/SimpleVideo10Balls/dp1",
+        "dp2_out_folder": "/home/user/Videos/2024-12-18/VID_01_v03/dp2",
+        "create_text_file_results": false,
+        "create_binary_file_results": false,
+        "create_json_file_results": false
+    },
+    "turret_exch": {
+        "enabled": true,
+        "host": "127.0.0.1",
+        "port": 11512,
+        "tr_interval_ms": 300,
+        "reconnect_interval_s": 3
+    }
+}

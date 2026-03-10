@@ -1,0 +1,16 @@
+{
+    "simulator":{
+        "deltaTms": 10
+    },
+    "target": {
+        "radius": 2
+    },
+    "field": {
+        "width": 80,
+        "height": 40
+    },
+    "flog": {
+        "enabled": true,
+        "filename": "targetsim.txt"
+    }
+}

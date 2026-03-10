@@ -1,0 +1,13 @@
+{
+    "infoServer": {
+        "host": "localhost",
+        "port": "9552"
+    },
+    "controlServer": {
+        "host": "localhost",
+        "port": "9553"
+    },
+    "dp_data_server": {
+        "port": 11512
+    }
+}

@@ -1,0 +1,2 @@
+echo "Runner on"
+echo $@
