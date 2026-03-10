@@ -1,13 +1,154 @@
-# CMake
+# --- OS files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Editors / IDEs ---
+.idea/
+.vscode/
+.vs/
+*.iml
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# --- CMake / build system ---
 cmake-build-*/
 _cmake_build/
+build/
+build-*/
+out/
+out-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+Testing/
+compile_commands.json
+compile_flags.txt
 
-# JetBrains
-.idea/
-.DS_Store
+# --- Generated binaries / libraries ---
+*.o
+*.obj
+*.lo
+*.la
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.out
+*.app
+*.pdb
+*.ilk
+*.idb
 
-#VS Code
-.vscode/
+# --- Qt / autogen / moc / ui artifacts ---
+autogen/
+*.moc
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+*.qmake.stash
 
-#temp files
-temp/*
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.venv/
+venv/
+env/
+.python-version
+
+# --- Logs / runtime diagnostics ---
+*.log
+*.log.*
+*.stackdump
+*.pid
+*.pid.lock
+
+# --- Temporary / cache directories ---
+tmp/
+temp/
+.cache/
+.cache-loader/
+
+# --- Archives / local packages ---
+*.7z
+*.gz
+*.zip
+*.tar
+*.tgz
+*.bz2
+*.rar
+
+# --- Coverage / test reports ---
+coverage/
+coverage-*/
+htmlcov/
+*.gcda
+*.gcno
+*.gcov
+
+# --- Local environment / secrets / machine-specific overrides ---
+.env
+.env.*
+*.local
+*.secret
+*.secrets
+
+# Keep shared configs in repo, but ignore local override variants.
+**/*.local.json
+**/*.local.yaml
+**/*.local.yml
+**/*.local.xml
+**/*.override.json
+**/*.override.yaml
+**/*.override.yml
+**/*.override.xml
+
+# Example: prefer storing private host mappings in a local file
+# instead of editing the tracked one.
+overseer/hosts.local.json
+
+# --- Project runtime outputs (recommended conventions) ---
+# Use one of these folders for generated data/results and keep them untracked.
+artifacts/
+runs/
+results/
+logs/
+
+# --- Optional domain-specific outputs ---
+# Uncomment these only if .blob/.json result files are always generated
+# and should never be versioned.
+# *.blob
+# *.bin
+# *.dat
+
+# --- Local AI-agent artifacts ---
+# Keep shared agent instructions tracked (AGENTS.md, PROJECT_INDEX.md, docs/**).
+# Ignore only local caches / transcripts / scratchpads.
+.ai-local/
+.agent-cache/
+.llm-cache/
+.prompts-local/
+.sessions/
+.transcripts/
+
+# Common optional tool folders (uncomment only if you actually use them locally)
+# .cursor/
+# .continue/
+# .claude/
+# .aider*
+# .windsurf/
+# .codeium/
