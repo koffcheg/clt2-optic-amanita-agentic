@@ -1,0 +1,234 @@
+DP1 LLM-first cards
+
+How to use: open card Markdown files in the 'dp1_llm_first_cards' folder.
+
+01 Data structures
+------------------
+
+- TDataCalibrationCamera - калібрування камери
+  id: dp1.types.TDataCalibrationCamera
+  link: dp1_llm_first_cards/dp1.types.TDataCalibrationCamera.md
+  src: datapro1/src/datarpoTypes.h:24-29
+  note: Калібрувальні параметри камери для перетворень “пікселі ↔ промені/простір” та для задач, де потрібні внутрішні параметри (intrinsics).
+
+- TDataCalibrationFrame - калібрування/поза на кадрі
+  id: dp1.types.TDataCalibrationFrame
+  link: dp1_llm_first_cards/dp1.types.TDataCalibrationFrame.md
+  src: datapro1/src/datarpoTypes.h:31-36
+  note: Калібрувальні/позові дані, обчислені **для конкретного кадра** (на відміну від параметрів камери, які сталі).
+
+- TDataCam - метадані камери
+  id: dp1.types.TDataCam
+  link: dp1_llm_first_cards/dp1.types.TDataCam.md
+  src: datapro1/src/datarpoTypes.h:38-41
+  note: Ідентифікація камери та (опційно) її положення у просторі в координатах системи/установки.
+
+- TDataFrame - метадані кадра
+  id: dp1.types.TDataFrame
+  link: dp1_llm_first_cards/dp1.types.TDataFrame.md
+  src: datapro1/src/datarpoTypes.h:7-22
+  note: C-структура метаданих одного кадра, яку DP1/DP2 використовує як “паспорт кадра”: індекси, час експозиції, геометрія кадра та (за наявності) дані турелі.
+
+- TDataRes - результат DP1 на кадрі
+  id: dp1.types.TDataRes
+  link: dp1_llm_first_cards/dp1.types.TDataRes.md
+  src: datapro1/src/datarpoTypes.h:66-72
+  note: Контейнер, який пакує всі виходи DP1 для одного кадра: метадані камери, метадані кадра, виміри об’єктів та (опційно) дані калібрування на кадрі.
+
+- TDataproConfig - параметри тайлінгу та обробки
+  id: dp1.types.TDataproConfig
+  link: dp1_llm_first_cards/dp1.types.TDataproConfig.md
+  src: datapro1/src/datarpoTypes.h:79-89
+  note: Параметри, які визначають як кадр ділиться на тайли та як обробка працює на межах тайлів.
+
+- TDataproVar - робочі буфери DP1
+  id: dp1.types.TDataproVar
+  link: dp1_llm_first_cards/dp1.types.TDataproVar.md
+  src: datapro1/src/datarpoTypes.h:91-95
+  note: Набір робочих буферів, що зберігають проміжні дані по тайлах і стан фонових віднімачів.
+
+- TDrawMeasurement - геометрія для відрисовки
+  id: dp1.types.TDrawMeasurement
+  link: dp1_llm_first_cards/dp1.types.TDrawMeasurement.md
+  src: datapro1/src/datarpoTypes.h:61-64
+  note: Структура для візуалізації одного об’єкта: axis-aligned bbox + rotated bbox.
+
+- TFolder - імена підпапок для дебагу/експорту
+  id: dp1.types.TFolder
+  link: dp1_llm_first_cards/dp1.types.TFolder.md
+  src: datapro1/src/datarpoTypes.h:97-105
+  note: Набір “канонічних” назв підпапок для збереження проміжних результатів/логів.
+
+- TOptionsMeasurement - виміри одного об’єкта
+  id: dp1.types.TOptionsMeasurement
+  link: dp1_llm_first_cards/dp1.types.TOptionsMeasurement.md
+  src: datapro1/src/datarpoTypes.h:43-59
+  note: Набір числових характеристик сегментованого об’єкта (контур/маска), який є виходом DP1 для подальшої обробки (DP2, трекінг, аналітика).
+
+
+
+02 Frame processing interface
+-----------------------------
+
+- frame_n_header - вхід кадра у frame_processor
+  id: dp1.frame.frame_n_header
+  link: dp1_llm_first_cards/dp1.frame.frame_n_header.md
+  src: datapro1/src/dp1_frame_proc.h:14-19
+  note: Легковаговий контейнер-посилання, який передається у `frame_processor::proc_next_frame` і містить: - вказівник на `cv::Mat` кадра, - (опційно) вказівник на `cam_pro::FrameHeader`, - часову мітку IPC (`ipc_start_time`).
+
+- frame_processor - інтерфейс обробника кадрів
+  id: dp1.frame.frame_processor
+  link: dp1_llm_first_cards/dp1.frame.frame_processor.md
+  src: datapro1/src/dp1_frame_proc.h:21-29
+  note: Абстрактний інтерфейс (polymorphic), який реалізує один метод: `proc_next_frame(frame_n_header rc_frame)`.
+
+
+
+03 Runtime buffers and threading
+--------------------------------
+
+- dp1_th_proc_par - параметри багатопотокової обробки тайлів
+  id: dp1.runtime.dp1_th_proc_par
+  link: dp1_llm_first_cards/dp1.runtime.dp1_th_proc_par.md
+  src: datapro1/src/datapro1.cpp:169-222 (локальна структура в .cpp)
+  note: Локальна структура, яка агрегує всі посилання/ресурси, потрібні робочим потокам DP1 для паралельної обробки тайлів одного кадра.
+
+- rc_ipc_raw_frame - елемент буфера кадрів IPC
+  id: dp1.runtime.rc_ipc_raw_frame
+  link: dp1_llm_first_cards/dp1.runtime.rc_ipc_raw_frame.md
+  src: datapro1/src/dp1_ipc_runner.cpp:12-19 (локальна структура в .cpp)
+  note: Локальна (translation-unit) структура, яку `dp1_ipc_runner.cpp` використовує як елемент черги `deque<rc_ipc_raw_frame>`.
+
+- rc_uri_raw_frame - елемент буфера кадрів URI
+  id: dp1.runtime.rc_uri_raw_frame
+  link: dp1_llm_first_cards/dp1.runtime.rc_uri_raw_frame.md
+  src: datapro1/src/dp1_uri_runner.cpp:10-15 (локальна структура в .cpp)
+  note: Локальна структура буфера для кадрів, які читаються через `cv::VideoCapture` (файл/камера/стрім).
+
+
+
+04 Input sources and IPC
+------------------------
+
+- ipc_data_rc - інтерфейс отримання кадрів через IPC
+  id: dp1.ipc.ipc_data_rc
+  link: dp1_llm_first_cards/dp1.ipc.ipc_data_rc.md
+  src: datapro1/src/dp1_ipc.h:7-20
+  note: Абстрактний receiver, який запускає окремий потік приймання даних і викликає callback при надходженні кадра.
+
+
+
+05 Tiling and scheduling
+------------------------
+
+- i_calc_tile_limit - інтерфейс ліміту обробки тайлів
+  id: dp1.tiles.i_calc_tile_limit
+  link: dp1_llm_first_cards/dp1.tiles.i_calc_tile_limit.md
+  src: datapro1/src/dp1_calc_limit.h:12-31
+  note: Інтерфейс, який вирішує: чи потрібно обробляти конкретний тайл у наступному кадрі, і дозволяє оновлювати статистику часу обробки.
+
+- snail_path - порядок обходу тайлів (спіраль/равлик)
+  id: dp1.tiles.snail_path
+  link: dp1_llm_first_cards/dp1.tiles.snail_path.md
+  src: datapro1/src/dp1_snail_path.h:12-55
+  note: Клас, який генерує послідовність (row,col) для обходу прямокутної сітки тайлів за “спіральною/равликовою” траєкторією.
+
+
+
+06 Configuration
+----------------
+
+- calc_tile_lim_cfg_t - конфіг обмеження тайлів за часом
+  id: dp1.config.calc_tile_lim_cfg_t
+  link: dp1_llm_first_cards/dp1.config.calc_tile_lim_cfg_t.md
+  src: datapro1/src/dp1_config.h:12-16
+  note: Конфіг для адаптивного пропуску/обмеження обробки тайлів (performance governor), щоб утримувати заданий time budget.
+
+- prg_config - конфіг DP1 (JSON → структури)
+  id: dp1.config.prg_config
+  link: dp1_llm_first_cards/dp1.config.prg_config.md
+  src: datapro1/src/dp1_config.h:17-170
+  note: Клас конфігурації програми DP1, який читає JSON (`config_datapro1.json`) і тримає типізовані секції конфігу.
+
+
+
+07 RPC serialization and primitives
+-----------------------------------
+
+- CMemStore - буфер байтів з курсором (black-box API)
+  id: dp1.rpc.CMemStore
+  link: dp1_llm_first_cards/dp1.rpc.CMemStore.md
+  src: datapro1/src/dp1_tr_res2dp2.cpp; datapro1/src/dp1_rpc_data_mrsh.cpp:dp1_tr_res2dp2.cpp:58-99; dp1_rpc_data_mrsh.cpp:8-156
+  note: `CMemStore` - зовнішня залежність (header `mem_store.h` не входить у архів DP1), яка використовується як: - буфер накопичення payload, - курсор для послідовного читання/запису, - джерело `data()`/`size()` для фреймінгу повідомлення.
+
+- rpc_data_former - фреймінг TCP повідомлень (black-box API)
+  id: dp1.rpc.rpc_data_former
+  link: dp1_llm_first_cards/dp1.rpc.rpc_data_former.md
+  src: datapro1/src/dp1_tr_res2dp2.cpp:17-70
+  note: `rpc_data_former` - зовнішня залежність (header `m_rpc_d_former.h` не входить у архів DP1), яка формує “raw TCP message bytes” з payload.
+
+- serialize_Mat / deserialize_Mat - двійковий формат cv::Mat для RPC
+  id: dp1.rpc.serialize_Mat
+  link: dp1_llm_first_cards/dp1.rpc.serialize_Mat.md
+  src: datapro1/src/dp1_rpc_data_mrsh.cpp:8-37
+  note: Пара функцій, що визначає **wire-format** для `cv::Mat` при передачі DP1 -> DP2 через `CMemStore`: 1) заголовок (cols, rows, elemSize, type), 2) байти пікселів (рядками або одним блоком).
+
+- serialize_camera_calibration_data - payload калібрування камери (K, distCoeffs)
+  id: dp1.rpc.serialize_camera_calibration_data
+  link: dp1_llm_first_cards/dp1.rpc.serialize_camera_calibration_data.md
+  src: datapro1/src/dp1_rpc_data_mrsh.cpp:39-57
+  note: Серiалiзацiя/десерiалiзацiя `TDataCalibrationCamera` для передачі DP1 -> DP2: матриця камери, дисторсія та параметри chessboard.
+
+- serialize_dp1_res / deserialize_dp1_res - payload результатів кадра DP1
+  id: dp1.rpc.serialize_dp1_res
+  link: dp1_llm_first_cards/dp1.rpc.serialize_dp1_res.md
+  src: datapro1/src/dp1_rpc_data_mrsh.cpp:89-156
+  note: Wire-format для `TDataRes` (результат одного кадра), який DP1 відправляє в DP2.
+
+- serialize_frame_calibration_data - payload калібрування кадра (R,t,rvec, features)
+  id: dp1.rpc.serialize_frame_calibration_data
+  link: dp1_llm_first_cards/dp1.rpc.serialize_frame_calibration_data.md
+  src: datapro1/src/dp1_rpc_data_mrsh.cpp:59-87
+  note: Серiалiзацiя/десерiалiзацiя `TDataCalibrationFrame` (кадрова калібровка/поза) для DP1 -> DP2.
+
+
+
+08 DP1 -> DP2 network protocol
+------------------------------
+
+- dp1_to_dp2_* - типи повідомлень DP1 -> DP2 (msg_type)
+  id: dp1.net.dp1_to_dp2_message_types
+  link: dp1_llm_first_cards/dp1.net.dp1_to_dp2_message_types.md
+  src: datapro1/src/dp1_tr_res2dp2.cpp:72-101
+  note: `msg_type` - перше поле payload у `CMemStore` перед даними. DP1 використовує щонайменше два типи:
+
+- send_res_to_dp2 / init_connect_to_dp2 - канал передачі DP1 -> DP2 (TCP)
+  id: dp1.net.dp1_tr_res2dp2_connection
+  link: dp1_llm_first_cards/dp1.net.dp1_tr_res2dp2_connection.md
+  src: datapro1/src/dp1_tr_res2dp2.cpp:31-112
+  note: Модуль, що відповідає за: - з’єднання з DP2 по TCP (`boost::asio`), - реконект з інтервалом, - відправку двох типів повідомлень: calibration та measurements.
+
+
+
+09 File outputs (.blob/.json)
+-----------------------------
+
+- Іменування вихідних файлів DP1 (.blob/.json)
+  id: dp1.io.dp1_output_filenames
+  link: dp1_llm_first_cards/dp1.io.dp1_output_filenames.md
+  src: datapro1/src/dataproSaveToFile.cpp:8-29, 98-115
+  note: Правила побудови імен файлів результатів DP1, які кодують `cam_index`, час (UTC) і/або `index_frame`.
+
+- save_res (.blob) - файловий формат збереження результатів DP1
+  id: dp1.io.save_res_blob
+  link: dp1_llm_first_cards/dp1.io.save_res_blob.md
+  src: datapro1/src/datapro1.cpp; datapro1/src/dataproSaveToFile.cpp:datapro1.cpp:371-505; dataproSaveToFile.cpp:31-96
+  note: `.blob` - бінарний файл результатів DP1. Існують два режими: - **rolling** (append у файл з інтервалом по часу), - **single-frame** (один файл на кадр з заданим `file_name`).
+
+- seva_res_json (.json) - схема JSON-виводу результатів DP1
+  id: dp1.io.save_res_json
+  link: dp1_llm_first_cards/dp1.io.save_res_json.md
+  src: datapro1/src/datapro1.cpp:400-505
+  note: JSON “вітрина” результатів DP1 (читабельний артефакт), який записується поруч із `.blob`, якщо `txt_file == true`.
+
+
