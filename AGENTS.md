@@ -121,14 +121,17 @@ Task cards не вважаються доменними knowledge cards і не 
 
 ### 3. DP1: ingest, frame processing, tile pipeline, output
 Читати:
-- `project-knowledge/02-dp1/cards/DP1_LLMfirst_Cards_Index.md`
-- `project-knowledge/02-dp1/cards/dp1_llm_first_cards/*.md`
+- `project-knowledge/02-dp1/DP1_INDEX.md`
+- `project-knowledge/02-dp1/DP1_CARDS_INDEX.md`
+- `project-knowledge/02-dp1/cards/*.md`
 - `datapro1/src/*`
 - `datapro1/config/*`
 
 ### 4. DP2: receiving, aggregation, post-processing, tracking
 Читати:
 - `project-knowledge/03-dp2/DP2_INDEX.md`
+- `project-knowledge/03-dp2/DP2_CARDS_INDEX.md`
+- `project-knowledge/03-dp2/cards/*.md`
 - `datapro2/src/*`
 - `datapro2/config/*`
 - спільні протокольні файли з `project-knowledge/04-protocols/`
