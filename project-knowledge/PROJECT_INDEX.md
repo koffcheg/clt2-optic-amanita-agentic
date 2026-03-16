@@ -66,11 +66,13 @@ project-knowledge/
   01-project/
     PROJECT_ECOSYSTEM.md
   02-dp1/
-    cards/
-      DP1_LLMfirst_Cards_Index.md
-      dp1_llm_first_cards/*.md
+    DP1_INDEX.md
+    DP1_CARDS_INDEX.md
+    cards/*.md
   03-dp2/
     DP2_INDEX.md
+    DP2_CARDS_INDEX.md
+    cards/*.md
   04-protocols/
     PROTOCOLS_INDEX.md
   05-validation/
@@ -102,13 +104,16 @@ project-knowledge/
 
 ### 5.2. Якщо задача про DP1
 Читати:
-- `02-dp1/cards/DP1_LLMfirst_Cards_Index.md`
-- картки з `02-dp1/cards/dp1_llm_first_cards/`
+- `02-dp1/DP1_INDEX.md`
+- `02-dp1/DP1_CARDS_INDEX.md`
+- картки з `02-dp1/cards/`
 - код `datapro1/src/*`
 
 ### 5.3. Якщо задача про DP2
 Читати:
 - `03-dp2/DP2_INDEX.md`
+- `03-dp2/DP2_CARDS_INDEX.md`
+- картки з `03-dp2/cards/`
 - код `datapro2/src/*`
 - конфіг `datapro2/config/*`
 
@@ -145,15 +150,16 @@ DP1 наразі є найкраще описаною підсистемою. В
 
 ## 7. DP2: поточний статус
 
-DP2 ще не описаний на робочому рівні деталізації. На найближчому етапі тут потрібно зафіксувати:
-- точки входу модуля
-- основні типи даних
-- receive path від DP1
-- життєвий цикл кадру/об'єкта в DP2
-- основні результати та file outputs
-- зв'язок із загальним pipeline
+Для DP2 сформовано стартовий набір структурних карток і окремий індекс:
+- `03-dp2/DP2_CARDS_INDEX.md`
+- `03-dp2/cards/*.md`
 
-Для цього в knowledge base зарезервовано розділ `03-dp2/`.
+Поточне покриття фокусується на:
+- core структурах трекінгу (`Measurement`, `PTPoint`, `TStrobe`, `Trajectory`)
+- конфігураційних структурах (`binocular_cfg`, `dp2strobe_mth_cfg`, `dp2_cfg`, `turret_exch_cfg`)
+- фіксації перетинів із DP1-типами через `Connections`
+
+Наступний крок розвитку розділу - картки для runtime boundaries (session/server/rpc sink) і, за потреби, виділення shared contract facts у `04-protocols/`.
 
 ---
 
@@ -169,6 +175,6 @@ DP2 ще не описаний на робочому рівні деталіза
 ## 9. Найближчі пріоритети розвитку knowledge base
 
 1. Уточнити й нормалізувати поточні DP1-картки.
-2. Створити робочий індекс для DP2.
+2. Розширити DP2-картки з структурного рівня до runtime boundary і network contracts.
 3. Винести shared wire/file contracts у `04-protocols/`.
 4. Додати validation layer з тестовими сценаріями і посиланнями на mock-и.

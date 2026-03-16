@@ -18,3 +18,4 @@ Task cards не є authoritative source для архітектури, конт�
 ## Реєстр задач
 
 - `AMNT-0001` - Універсалізація knowledge base по збірці - completed
+- `AMNT-0002` - DP2 knowledge cards і нормалізація layout DP1 cards - completed
