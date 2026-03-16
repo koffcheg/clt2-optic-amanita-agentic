@@ -17,5 +17,4 @@ Task cards не є authoritative source для архітектури, конт�
 
 ## Реєстр задач
 
-- `AMNT-0001` - Коротка назва задачі - status
-- `AMNT-0002` - Коротка назва задачі - status
+- `AMNT-0001` - Універсалізація knowledge base по збірці - completed

@@ -87,6 +87,134 @@
 ### Локальна manual build path
 Описана в кореневому `README.md`.
 
+### Універсальний build-playbook для AI-агента
+
+Мета цього блоку: дати відтворюваний алгоритм збірки без прив'язки до конкретного користувача або машини.
+
+#### Правило підтвердження команд
+
+**Перед кожною командою, що змінює стан системи або файлової системи, агент зобов'язаний явно запитати підтвердження у користувача.**
+
+Це стосується без винятків:
+- встановлення або оновлення системних пакетів (`apt-get install`, `apt-get upgrade`, ...)
+- збірки та встановлення бібліотек зі сирців
+- `cmake` configure (перший запуск або перезапуск з іншими параметрами)
+- `cmake --build` (або будь-яка команда build)
+- будь-яких операцій запису у файлову систему поза директорією репозиторію
+
+Команди **тільки для читання** (пошук, перевірка версій, `dpkg -l`, `find`, `cat`, `cmake --debug-find-pkg`) можна виконувати без запиту — вони безпечні та оборотні.
+
+Заборонено виконувати кілька кроків підряд між двома підтвердженнями. Одне підтвердження = один крок.
+
+---
+
+#### Крок 1. Перевірка наявності залежностей (read-only, без підтвердження)
+
+Системні пакети (наявність):
+```
+dpkg -l | grep -E 'libeigen3|libopenexr|libjansson'
+```
+
+Бібліотеки з custom prefix — пошук cmake config-файлів:
+```
+find / -name "OpenCVConfig.cmake" 2>/dev/null
+find / -name "log4cxxConfig.cmake" 2>/dev/null
+find / -name "Clipper2Config.cmake" 2>/dev/null
+find / -name "fmtConfig.cmake" 2>/dev/null
+find / -name "boost_filesystem-config.cmake" -o -name "BoostConfig.cmake" 2>/dev/null
+```
+
+За результатами зафіксувати знайдені prefix-и або відзначити відсутність.
+
+---
+
+#### Крок 2. Перевірка версій знайдених бібліотек
+
+Мінімальні вимоги проєкту:
+| Бібліотека | Мінімальна версія |
+|---|---|
+| Boost | 1.85.0 |
+| OpenCV | 4.9.0 (рекомендовано static `opencv_world`) |
+| log4cxx | 1.3.1 |
+| Clipper2 | не задана, перевірити `ClipperVersion.h` |
+| fmt | 11.0.2 (приблизно) |
+| jansson | ≥ 2.x (системний пакет) |
+
+Визначити версію знайденого cmake-пакету:
+```
+grep -r "version" <FOUND_PREFIX>/lib/cmake/<Pkg>/<Pkg>ConfigVersion.cmake 2>/dev/null
+```
+
+---
+
+#### Крок 3. Встановлення відсутніх системних пакетів (з підтвердженням)
+
+Якщо системні залежності відсутні, виконувати **тільки після підтвердження від користувача**:
+```
+sudo apt-get update
+sudo apt-get install -y libeigen3-dev libopenexr-dev libjansson-dev
+```
+
+---
+
+#### Крок 4. Збірка відсутніх custom-prefix бібліотек (з підтвердженням)
+
+Якщо бібліотеки (Boost, OpenCV, log4cxx, Clipper2, fmt) не знайдені:
+1. Ознайомитися з інструкцією збірки в `README.md` проєкту — там є canonical build steps.
+2. Підготувати і показати команди для підтвердження.
+3. Виконувати **по одному кроку** з підтвердженням перед кожним.
+
+**Не виконувати** кілька кроків без проміжних підтверджень.
+
+---
+
+#### Крок 5. Configure (з підтвердженням)
+
+Перед кожним запуском cmake configure показати команду користувачу і дочекатися підтвердження.
+
+Якщо OpenCV (static `opencv_world`) вимагає транзитивні CMake-targets `Eigen3::Eigen` або `OpenEXR::OpenEXR`, а вони не визначені, застосувати non-invasive workaround — до cmake configure створити тимчасовий cmake-файл і передати через `-DCMAKE_PROJECT_INCLUDE=`:
+```cmake
+# /tmp/opencv_deps.cmake
+find_package(Eigen3 CONFIG REQUIRED)
+find_package(OpenEXR CONFIG REQUIRED)
+```
+
+Шаблон configure (узагальнений):
+```
+cmake -S <SRC_DIR> -B <BUILD_DIR> \
+  -DBoost_NO_SYSTEM_PATHS=ON \
+  -DBOOST_ROOT=<BOOST_PREFIX> \
+  -Dlog4cxx_DIR=<LOG4CXX_PREFIX>/lib/cmake/log4cxx \
+  -DOpenCV_DIR=<OPENCV_PREFIX>/lib/cmake/opencv4 \
+  -DClipper2_DIR=<CLIPPER2_PREFIX>/lib/cmake/clipper2 \
+  [-DCMAKE_PROJECT_INCLUDE=<opencv_deps.cmake>]
+```
+
+---
+
+#### Крок 6. Build (з підтвердженням)
+
+Показати команду, дочекатися підтвердження:
+```
+cmake --build <BUILD_DIR> -j<N> --target camerapro datapro1 datapro2 turretpro manager
+```
+
+`<N>` — кількість паралельних потоків, рекомендовано 4–8.
+
+---
+
+### Типові точки відмови для агентів
+
+- Boost версія: у системі може бути старіша версія, ніж вимагає проєкт. Агент має явно обмежувати пошук Boost до потрібного prefix.
+- OpenCV (static `opencv_world`): можливі транзитивні CMake-target залежності (`Eigen3::Eigen`, `OpenEXR::OpenEXR`) у середовищі, де вони не створені автоматично.
+- Для таких випадків без зміни коду проєкту дозволений non-invasive workaround на рівні configure: `-DCMAKE_PROJECT_INCLUDE=<temporary.cmake>` з pre-load `find_package(Eigen3 CONFIG REQUIRED)` та `find_package(OpenEXR CONFIG REQUIRED)`.
+- Якщо збірка відтворюється тільки з workaround, агент має зафіксувати це в task card і не змінювати кодову базу без окремого узгодження.
+
+### Правило універсальності
+
+Будь-які приклади з конкретними шляхами (`/home/<user>/...`) розглядати лише як локальні приклади.
+Authoritative практика для knowledge base: формулювати команди через placeholders та крок пошуку конфігів через `find`/`cmake --debug-find-pkg=<Pkg>`.
+
 ---
 
 ## 5. Підсистеми репозиторію

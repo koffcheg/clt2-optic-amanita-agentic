@@ -1,7 +1,15 @@
 # TASK_CARD_TEMPLATE.md
 
+<!-- AGENT INSTRUCTIONS: Before creating a new task card:
+  1. Open project-knowledge/06-tasks/TASKS_INDEX.md
+  2. Find the highest existing AMNT-XXXX number
+  3. Increment it by 1 to get the new id
+  4. Use that id in the filename (e.g. AMNT-0002.md) and in the `id` field below
+  Never use placeholder ids like AMNT-0000.
+-->
+
 ---
-id: AMNT-0000
+id: AMNT-XXXX
 title: Коротка назва задачі
 status: draft
 type: task-card
