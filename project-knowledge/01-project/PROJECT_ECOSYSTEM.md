@@ -217,6 +217,54 @@ Authoritative практика для knowledge base: формулювати к�
 
 ---
 
+## 4.1. DP1/DP2 development pipeline (командний стандарт)
+
+Цей підрозділ фіксує стандартний цикл для задач, де основний фокус - `datapro1` (DP1) та `datapro2` (DP2).
+
+### Цілі
+
+- відтворювана збірка в `Debug` і `Release`;
+- portable config paths без прив'язки до конкретного користувача;
+- швидкий запуск/дебаг після handoff від агента.
+
+### Стандартні build-артефакти
+
+- `build-dp1dp2-debug`
+- `build-dp1dp2-release`
+
+Базовий скрипт збірки:
+- `builder/build_dp1_dp2.sh`
+
+### Політика шляхів ресурсів
+
+У default configs DP1/DP2 використовувати плейсхолдер:
+- `${AMANITA_RESOURCES_DIR}/...`
+
+Резолв виконується в такому пріоритеті:
+1. env override `AMANITA_RESOURCES_DIR` (optional)
+2. `amanita_resources.local.conf` (machine-specific, не обов'язковий)
+3. `amanita_resources.conf` (repo-level)
+4. fallback `<repo_root>/AmanitaResources`
+
+Це дає repo-first onboarding без обов'язкової ручної настройки env.
+
+### Рекомендована структура ресурсів
+
+Єдиний root каталог для datasets і run outputs:
+
+`AmanitaResources/datasets`, `AmanitaResources/runs/dp1`, `AmanitaResources/runs/dp2`, `AmanitaResources/archives`.
+
+### Стандарт handoff після змін агента
+
+Після кожної задачі агент передає:
+- що змінено;
+- який профіль зібрано (`Debug`/`Release`);
+- команди запуску DP1/DP2;
+- який config використано;
+- звідки читати datasets і куди пишуться outputs.
+
+---
+
 ## 5. Підсистеми репозиторію
 
 ### Основні production-like модулі

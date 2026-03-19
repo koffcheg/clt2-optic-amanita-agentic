@@ -1,10 +1,106 @@
 #include "dp1_config.h"
 #include <stdexcept>
+#include <filesystem>
+#include <fstream>
+#include <cstdlib>
+#include <cstring>
+#include <limits.h>
+#include <unistd.h>
 #include <m_json_unique_ptr.h>
 #include <map>
 #include "m_json_cfg_reader.h"
 
 using std::string;
+
+namespace {
+    std::string trim_copy(std::string value) {
+        const auto begin = value.find_first_not_of(" \t\r\n");
+        if (begin == std::string::npos)
+            return {};
+        const auto end = value.find_last_not_of(" \t\r\n");
+        return value.substr(begin, end - begin + 1);
+    }
+
+    std::filesystem::path get_executable_path() {
+        char buffer[PATH_MAX]{};
+        const auto length = ::readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+        if (length <= 0)
+            return std::filesystem::current_path();
+        buffer[length] = '\0';
+        return std::filesystem::path(buffer);
+    }
+
+    std::filesystem::path find_repo_root() {
+        auto current = get_executable_path().parent_path();
+        while (!current.empty()) {
+            if (std::filesystem::exists(current / "AGENTS.md") &&
+                std::filesystem::exists(current / "CMakeLists.txt")) {
+                return current;
+            }
+            if (current == current.root_path())
+                break;
+            current = current.parent_path();
+        }
+        return std::filesystem::current_path();
+    }
+
+    bool try_read_resources_root(const std::filesystem::path &cfg_file, std::filesystem::path &result, const std::filesystem::path &repo_root) {
+        std::ifstream input(cfg_file);
+        if (!input)
+            return false;
+
+        std::string line;
+        while (std::getline(input, line)) {
+            line = trim_copy(line);
+            if (line.empty() || line[0] == '#')
+                continue;
+
+            const auto sep_pos = line.find('=');
+            if (sep_pos == std::string::npos)
+                continue;
+
+            const auto key = trim_copy(line.substr(0, sep_pos));
+            const auto value = trim_copy(line.substr(sep_pos + 1));
+            if (key != "resources_root" || value.empty())
+                continue;
+
+            std::filesystem::path candidate(value);
+            if (candidate.is_relative())
+                candidate = repo_root / candidate;
+            result = candidate.lexically_normal();
+            return true;
+        }
+
+        return false;
+    }
+
+    std::filesystem::path get_resources_root() {
+        if (const char *env_root = std::getenv("AMANITA_RESOURCES_DIR"); env_root && *env_root) {
+            return std::filesystem::path(env_root);
+        }
+
+        const auto repo_root = find_repo_root();
+        std::filesystem::path from_cfg;
+        if (try_read_resources_root(repo_root / "amanita_resources.local.conf", from_cfg, repo_root))
+            return from_cfg;
+        if (try_read_resources_root(repo_root / "amanita_resources.conf", from_cfg, repo_root))
+            return from_cfg;
+
+        return (repo_root / "AmanitaResources").lexically_normal();
+    }
+
+    std::string resolve_resource_path(const std::string &raw_path) {
+        static const std::string token{"${AMANITA_RESOURCES_DIR}"};
+        if (!raw_path.starts_with(token))
+            return raw_path;
+
+        auto suffix = raw_path.substr(token.size());
+        while (!suffix.empty() && suffix.front() == '/')
+            suffix.erase(suffix.begin());
+
+        return (get_resources_root() / suffix).lexically_normal().string();
+    }
+}
 
 namespace ns_datapro1 {
 	prg_config::prg_config(const char *cfg_fname, int camera_index) : ipc_cfg{camera_index} {
@@ -52,7 +148,7 @@ namespace ns_datapro1 {
         jansson_cfg_obj_reader cfg_reader(json_upper, "binocular");
 
         binocular.switched = cfg_reader.read_bool_param("switched");
-        binocular.file_camera_settings = cfg_reader.read_string_param("file_camera_settings");
+        binocular.file_camera_settings = resolve_resource_path(cfg_reader.read_string_param("file_camera_settings"));
         binocular.minHessian = cfg_reader.read_int_param("minHessian");
         binocular.using_template = cfg_reader.read_bool_param("using_template");
 
@@ -153,7 +249,7 @@ namespace ns_datapro1 {
         source.source = cfg_reader.read_string_param("source");
         source.deviceID = cfg_reader.read_int_param("deviceID");
         source.apiID = cfg_reader.read_int_param("apiID");
-        source.link = cfg_reader.read_string_param("link");
+        source.link = resolve_resource_path(cfg_reader.read_string_param("link"));
         source.frame_period = cfg_reader.read_int_param("frame_period");
     }
 
@@ -212,7 +308,7 @@ namespace ns_datapro1 {
         jansson_cfg_obj_reader cfg_reader(json_upper, "test");
 
         test.debug = cfg_reader.read_bool_param("test");
-        test.out_folder = cfg_reader.read_string_param("out_folder");
+        test.out_folder = resolve_resource_path(cfg_reader.read_string_param("out_folder"));
 
         json_t *section_cfg = json_object_get(json_upper, "test");
         load_test_display(section_cfg, "display", test.display);

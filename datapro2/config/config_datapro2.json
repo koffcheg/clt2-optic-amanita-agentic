@@ -40,8 +40,8 @@
         "trajectory_show_min_frames": 3,
         "noisy_region_bounding_box_filter_size": 300,
         "noisy_region_bounding_box_max_objects_limit": 3000,
-        "dp1_out_folder": "/home/user/Videos/2024-09-19/SimpleVideo10Balls/dp1",
-        "dp2_out_folder": "/home/user/Videos/2024-10-02/test12/dp2",
+        "dp1_out_folder": "${AMANITA_RESOURCES_DIR}/runs/dp1/default",
+        "dp2_out_folder": "${AMANITA_RESOURCES_DIR}/runs/dp2/default",
         "create_text_file_results": true,
         "create_binary_file_results": true,
         "create_json_file_results": true
