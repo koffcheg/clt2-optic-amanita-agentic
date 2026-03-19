@@ -2,7 +2,7 @@
     "config": {
         "binocular": {
             "switched": false,
-            "file_camera_settings": "/home/user/projects/clt2-optic/datapro1/config/camera_data.xml",
+            "file_camera_settings": "${AMANITA_RESOURCES_DIR}/datasets/calibration/camera_data.xml",
             "minHessian": 400,
             "using_template": false,
             "camera": {
@@ -29,7 +29,7 @@
             "source": "videofile",
             "deviceID": 0,
             "apiID": 0,
-            "link": "/home/user/Videos/SimpleVideo10Balls.mp4",
+            "link": "${AMANITA_RESOURCES_DIR}/datasets/raw/SimpleVideo10Balls.mp4",
             "frame_period": 50
         },
         "segment": {
@@ -71,7 +71,7 @@
         },
         "test": {
             "test": false,
-            "out_folder": "/home/user/Videos/2025-05-15/dp17/",
+            "out_folder": "${AMANITA_RESOURCES_DIR}/runs/dp1/default/",
             "display": {
                 "display_video": true,
                 "display_marks": true,
