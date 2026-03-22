@@ -21,9 +21,11 @@ status: "draft"
 ## Theorem / Contract
 - Реалізація повинна бути exception-safe: помилка обробки кадра не повинна “валити” процес без контрольованого логування/stop.
 - Реалізація не повинна блокувати надовго, якщо upstream вимагає realtime.
+- Якщо preprocessing-фіча увімкнена (через конфіг), вона застосовується перед основним DP1 pipeline.
+- Якщо preprocessing змінює scale кадра, координати вимірів мають бути повернуті в СК початкового кадра до експорту/передачі далі.
 
 ## Interpretation
-Це основна “точка розширення” DP1: новий CV-конвеєр = нова реалізація frame_processor.
+Це основна “точка розширення” DP1: новий CV-конвеєр або preprocessing-фіча реалізуються в межах цього boundary з керуванням через конфіг.
 
 ## Failure cases
 - Довгі блокування → переповнення буфера кадрів у runner.
@@ -37,3 +39,5 @@ status: "draft"
 - factory: dp1.frame.get_fr_processor
 - input: dp1.frame.frame_n_header
 - uses: dp1.config.prg_config, dp1.types.TDataproConfig/TDataproVar
+- preprocessing: dp1.preproc.binning_sum
+- validated_by: validation.amnt0004.dp1_binning

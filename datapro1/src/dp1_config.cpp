@@ -8,11 +8,16 @@
 #include <unistd.h>
 #include <m_json_unique_ptr.h>
 #include <map>
+#include <array>
+#include <algorithm>
 #include "m_json_cfg_reader.h"
 
 using std::string;
 
 namespace {
+    constexpr std::array<int, 3> kAllowedBinningFactors{1, 2, 4};
+    constexpr const char *kBinningModeSum = "sum";
+
     std::string trim_copy(std::string value) {
         const auto begin = value.find_first_not_of(" \t\r\n");
         if (begin == std::string::npos)
@@ -91,7 +96,7 @@ namespace {
 
     std::string resolve_resource_path(const std::string &raw_path) {
         static const std::string token{"${AMANITA_RESOURCES_DIR}"};
-        if (!raw_path.starts_with(token))
+        if (raw_path.compare(0, token.size(), token) != 0)
             return raw_path;
 
         auto suffix = raw_path.substr(token.size());
@@ -119,6 +124,7 @@ namespace ns_datapro1 {
         load_cfg_median_bg(json_cfg);
         load_cfg_subtractor(json_cfg);
         load_cfg_source(json_cfg);
+        load_cfg_binning(json_cfg);
 		load_dp2_conn_cfg(json_cfg);
         load_cfg_test(json_cfg);
 		load_cfg_calc_limits(json_cfg);
@@ -251,6 +257,22 @@ namespace ns_datapro1 {
         source.apiID = cfg_reader.read_int_param("apiID");
         source.link = resolve_resource_path(cfg_reader.read_string_param("link"));
         source.frame_period = cfg_reader.read_int_param("frame_period");
+    }
+
+    void prg_config::load_cfg_binning(json_t *json_upper) {
+        jansson_cfg_obj_reader cfg_reader(json_upper, "binning");
+
+        binning.switched = cfg_reader.read_bool_param("switched");
+        binning.factor = cfg_reader.read_int_param("factor");
+        binning.mode = cfg_reader.read_string_param("mode");
+
+        if (std::find(kAllowedBinningFactors.begin(), kAllowedBinningFactors.end(), binning.factor) == kAllowedBinningFactors.end()) {
+            throw std::logic_error("error on config file, unsupported 'binning.factor': " + std::to_string(binning.factor));
+        }
+
+        if (binning.mode != kBinningModeSum) {
+            throw std::logic_error("error on config file, unsupported 'binning.mode': " + binning.mode);
+        }
     }
 
     void prg_config::check_cfg(prg_config &cfg) {

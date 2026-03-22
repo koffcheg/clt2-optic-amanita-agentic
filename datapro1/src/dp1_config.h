@@ -75,6 +75,8 @@ namespace ns_datapro1 {
 
         void load_cfg_binocular(json_t *);
 
+        void load_cfg_binning(json_t *);
+
 	public:
 		prg_config(const char *cfg_fname, int camera_index);
         static void check_cfg(prg_config &cfg);
@@ -116,6 +118,12 @@ namespace ns_datapro1 {
 			cfg_one_filter blur;
             cfg_median_filter median;
 		};
+
+        struct cfg_binning {
+            bool switched;
+            int factor;
+            std::string mode;
+        };
 
         struct cfg_median {
             bool switched;
@@ -163,6 +171,7 @@ namespace ns_datapro1 {
 		dp2_conn_cfg dp2_conn;
         cfg_test test;
 		cfg_multiproc multiproc;
+        cfg_binning binning;
 		int def_border;
 		size_t num_frame_to_keep{16};
         cfg_binocular binocular;

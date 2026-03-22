@@ -32,6 +32,11 @@
             "link": "${AMANITA_RESOURCES_DIR}/datasets/raw/SimpleVideo10Balls.mp4",
             "frame_period": 50
         },
+        "binning": {
+            "switched": false,
+            "factor": 1,
+            "mode": "sum"
+        },
         "segment": {
             "element_str_w": 3,
             "element_str_h": 3,

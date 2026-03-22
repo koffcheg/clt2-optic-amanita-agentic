@@ -150,6 +150,12 @@ How to use: open card Markdown files in the 'cards' folder.
   src: datapro1/src/dp1_config.h:17-170
   note: Клас конфігурації програми DP1, який читає JSON (`config_datapro1.json`) і тримає типізовані секції конфігу.
 
+- sum-binning preprocessing у DP1
+  id: dp1.preproc.binning_sum
+  link: cards/dp1.preproc.binning_sum.md
+  src: datapro1/src/dp1_frame_proc.cpp:17-420
+  note: Опційний preprocessing етап до тайлінгу, керований через `config.binning`, із масштабуванням вимірів назад у СК початкового кадра.
+
 
 
 07 RPC serialization and primitives
