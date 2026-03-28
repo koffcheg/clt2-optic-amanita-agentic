@@ -235,6 +235,16 @@ Authoritative практика для knowledge base: формулювати к�
 Базовий скрипт збірки:
 - `builder/build_dp1_dp2.sh`
 
+Базове правило для агентів:
+- якщо користувач просить "пересобрати Amanita" або підготувати Amanita до тестування, за замовчуванням використовувати саме `builder/build_dp1_dp2.sh`;
+- типовий порядок: спочатку `Debug`, потім `Release`, якщо користувач явно не задав інший профіль.
+
+Стандартні команди:
+```bash
+./builder/build_dp1_dp2.sh Debug
+./builder/build_dp1_dp2.sh Release
+```
+
 ### Політика шляхів ресурсів
 
 У default configs DP1/DP2 використовувати плейсхолдер:
@@ -339,3 +349,15 @@ Authoritative практика для knowledge base: формулювати к�
 - важливі конфігураційні формати
 
 Не слід дублювати сюди алгоритмічний опис DP1/DP2. Для цього існують `PROJECT_INDEX.md` і тематичні картки.
+
+---
+
+## 9. AI-agent testing workflow (Amanita + Comparator)
+
+Алгоритм і правила AI-agent тестування винесені в окремий validation-розділ knowledge base.
+
+Canonical source:
+- `project-knowledge/05-validation/AI_AGENT_TESTING_WORKFLOW.md`
+
+Точка входу розділу:
+- `project-knowledge/05-validation/VALIDATION_INDEX.md`

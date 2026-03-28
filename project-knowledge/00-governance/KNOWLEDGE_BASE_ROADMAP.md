@@ -27,37 +27,27 @@ Knowledge base вважається робочою для AI-агента, як�
 ## Пріоритети
 
 ### P0. Інтеграція knowledge base в репозиторій
-- покласти `project-knowledge/` у корінь робочого репозиторію
-- додати `AGENTS.md` у корінь
-- закомітити це як окремий логічний change set
+- статус: completed
 
 ### P1. Нормалізація верхнього рівня документації
-- оновити `PROJECT_INDEX.md`
-- додати `PROJECT_ECOSYSTEM.md`
-- додати `CARD_TEMPLATE.md`
-- зафіксувати правила ID, `status`, `source`, `Open questions`
+- статус: completed (підтримується і актуалізується)
 
 ### P2. Полірування DP1
-- пройтися по існуючих DP1-картках
-- уніфікувати стиль `Connections`
-- перевірити source file/line ranges
-- додати `Open questions`, де є непідтверджені припущення
-- відокремити truly shared protocol knowledge від суто DP1-логіки
+- статус: in progress
+- фокус: верифікація source ranges і синхронізація з shared protocol cards
 
 ### P3. DP2 як наступний великий блок
-- створити `03-dp2/DP2_INDEX.md`
-- описати entry points і data flow
-- завести стартовий набір карток по типах, receive path і результатах
+- статус: completed (базове покриття)
+- фокус: runtime/failure деталізація і turret exchange lifecycle
 
 ### P4. Shared contracts
-- створити `04-protocols/PROTOCOLS_INDEX.md`
-- перенести або продублювати canonical knowledge про message types, wire format, serialization contracts, file exchange boundaries
-- залишити у DP1/DP2-картках лише локальний контекст і посилання на shared layer
+- статус: in progress
+- фокус: додавання окремих protocol cards з canonical wire/file contracts
 
 ### P5. Validation layer
-- описати, які mock-и перевіряють які частини системи
-- зібрати regression scenarios
-- зафіксувати мінімальні тестові артефакти і маршрути запуску
+- статус: in progress
+- виконано: створено `05-validation/VALIDATION_INDEX.md` і canonical workflow
+- фокус: regression scenarios і mapping dataset -> expected checks
 
 ---
 

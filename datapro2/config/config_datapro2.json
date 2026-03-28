@@ -4,6 +4,18 @@
     },
     "number_cores": 1,
     "id": 23,
+    "binocular": {
+        "enabled": false,
+        "use_corners": false,
+        "min_size_queue_frame": 10,
+        "max_size_queue_frame": 200,
+        "match_distance": 10.0,
+        "test_point": false,
+        "x0test": 90.0,
+        "y0test": 60.0,
+        "Rtest": 240.0,
+        "period_sec": 60
+    },
     "camera":{
     	"focal_length_x": 1.7754558962424419e+03,
     	"focal_length_y": 1.7774826297767709e+03,
@@ -12,11 +24,14 @@
     },
     "strobe-method-par": {
     	"linear_model": false,
+	    "k_std": 6,
+	    "std_measurement": 0.5,
     	"k_sigma": 0.02,
         "min_speed": 0.0,
         "max_speed": 0.5,
         "max_ptt_frames": 3,
         "max_tracking_frames": 10,
+        "k_dist": 1.5,
         "trajectory_drop_max_confirmed_frames": 10,
         "trajectory_drop_min_confirmed_frames": 8,
         "trajectory_drop_min_speed": 0.0,
