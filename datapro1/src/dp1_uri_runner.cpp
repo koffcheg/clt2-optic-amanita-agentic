@@ -40,6 +40,10 @@ namespace ns_datapro1 {
 		while (!need_stop()) {
 			cap >> frame;
 			if (frame.empty()) {
+				if (cgf.source.source == "videofile" || cgf.source.source == "imagefile") {
+					LOG4CXX_INFO(logger, "input stream is finished");
+					break;
+				}
 				LOG4CXX_ERROR(logger, "can not read data from the source");
 				return -1;
 			}

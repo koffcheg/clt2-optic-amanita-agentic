@@ -26,10 +26,10 @@
         },
         "source": {
             "_comment_source": "campro, webcam, ipcam, videofile, imagefile, /home/user/projects/frames/kalibr.mp4, /home/user/projects/frames/chayki2.mp4 http://vlasenko.vp:vp2R:_-KPdTseuix@192.168.0.101:4747/video, /home/user/projects/frames/102GOPROre/G028%04d.JPGб /home/user/Videos/dp1_in/frame_%04d.png /home/user/projects/frames/zakat_2.mp4 /home/user/projects/frames/su25.mp4 /home/user/projects/frames/kachky.mp4 /home/user/projects/frames/kalibr.mp4 /home/user/projects/frames/japan.mp4 /home/user/projects/frames/dron2.mp4 /home/user/projects/frames/7/G%04d.JPG resulting_video http://vlasenko.vp:vp2R:_-KPdTseuix@192.168.0.108:4747/video/force/720x480",
-            "source": "videofile",
+            "source": "imagefile",
             "deviceID": 0,
             "apiID": 0,
-            "link": "${AMANITA_RESOURCES_DIR}/datasets/raw/SimpleVideo10Balls.mp4",
+            "link": "${AMANITA_RESOURCES_DIR}/datasets/raw/frames/SWIR_Camera/C001_F%06d.tiff",
             "frame_period": 50
         },
         "binning": {
@@ -40,16 +40,16 @@
         "segment": {
             "element_str_w": 3,
             "element_str_h": 3,
-            "number_iter": 3,
+            "number_iter": 2,
             "element_str_type": 2,
-            "level": 220,
+            "level": 100,
             "level_max": 255,
             "threshold_type": 0,
             "contour_retrieval": 1,
             "contour_approximation": 2,
-            "min_segment_size": 2,
-            "max_segment_size": 45000,
-            "max_height_to_width_ratio": 3.0
+            "min_segment_size": 3,
+            "max_segment_size": 10000,
+            "max_height_to_width_ratio": 4.0
         },
         "filter": {
             "corr": {

@@ -49,7 +49,11 @@
 - serialization primitives і DP1 -> DP2 handoff
 - файловий вивід `.blob` / `.json`
 
-DP2 поки що описаний лише на рівні заготовки. Спільні протоколи та validation layer теж потребують окремого розвитку.
+DP2 покриває не лише базові типи, а й runtime boundaries та receive path DP1 -> DP2.
+
+Validation layer має окремий розділ `05-validation/` з canonical workflow для AI-agent test runs.
+
+Спільні протоколи винесені в `04-protocols/PROTOCOLS_INDEX.md` як окремий вхідний індекс.
 
 ---
 
@@ -76,6 +80,8 @@ project-knowledge/
   04-protocols/
     PROTOCOLS_INDEX.md
   05-validation/
+    VALIDATION_INDEX.md
+    AI_AGENT_TESTING_WORKFLOW.md
   06-tasks/
 	cards/
 	TASKS_INDEX.md
@@ -131,6 +137,13 @@ project-knowledge/
 - `builder/*.sh`
 - `README.md`
 
+### 5.6. Якщо задача про тестування, еталонні прогони або аналіз результатів
+Читати:
+- `05-validation/VALIDATION_INDEX.md`
+- `05-validation/AI_AGENT_TESTING_WORKFLOW.md`
+- `00-governance/TESTING_POLICY.md`
+- `06-tasks/TASKS_INDEX.md`
+
 ---
 
 ## 6. DP1: поточний обсяг знань
@@ -150,16 +163,18 @@ DP1 наразі є найкраще описаною підсистемою. В
 
 ## 7. DP2: поточний статус
 
-Для DP2 сформовано стартовий набір структурних карток і окремий індекс:
+Для DP2 сформовано робочий набір карток і окремий індекс:
 - `03-dp2/DP2_CARDS_INDEX.md`
 - `03-dp2/cards/*.md`
 
 Поточне покриття фокусується на:
 - core структурах трекінгу (`Measurement`, `PTPoint`, `TStrobe`, `Trajectory`)
 - конфігураційних структурах (`binocular_cfg`, `dp2strobe_mth_cfg`, `dp2_cfg`, `turret_exch_cfg`)
+- runtime boundaries (`server`, `session`, `dp2_rpc_cl`)
+- receive path DP1 -> DP2
 - фіксації перетинів із DP1-типами через `Connections`
 
-Наступний крок розвитку розділу - картки для runtime boundaries (session/server/rpc sink) і, за потреби, виділення shared contract facts у `04-protocols/`.
+Наступний крок розвитку розділу - деталізація turret exchange lifecycle, reconnect/failure сценаріїв і подальша синхронізація з `04-protocols/`.
 
 ---
 
@@ -175,6 +190,6 @@ DP1 наразі є найкраще описаною підсистемою. В
 ## 9. Найближчі пріоритети розвитку knowledge base
 
 1. Уточнити й нормалізувати поточні DP1-картки.
-2. Розширити DP2-картки з структурного рівня до runtime boundary і network contracts.
-3. Винести shared wire/file contracts у `04-protocols/`.
-4. Додати validation layer з тестовими сценаріями і посиланнями на mock-и.
+2. Поглибити DP2-картки по turret exchange lifecycle і failure handling.
+3. Розширити `04-protocols/` конкретними shared wire/file contract cards.
+4. Розвивати `05-validation/`: test cards, regression scenarios, mapping на datasets.
