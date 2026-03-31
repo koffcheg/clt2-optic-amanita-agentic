@@ -13,11 +13,98 @@
 #include "dp1_calc_limit.h"
 #include "dataproCameraCalibration.h"
 #include "datetime.h"
+#include <stdexcept>
+#include <array>
+#include <algorithm>
 
 static log4cxx::LoggerPtr logger;
 using namespace std::chrono;
 using namespace std::chrono_literals;
 namespace ns_datapro1 {
+    namespace {
+        constexpr std::array<int, 3> kAllowedBinningFactors{1, 2, 4};
+        constexpr const char *kBinningModeSum = "sum";
+
+        bool is_valid_binning_factor(const int factor) {
+            return std::find(kAllowedBinningFactors.begin(), kAllowedBinningFactors.end(), factor) != kAllowedBinningFactors.end();
+        }
+
+        cv::Mat to_gray_if_needed(const cv::Mat &src) {
+            if (src.channels() == 1)
+                return src;
+            cv::Mat gray;
+            cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
+            return gray;
+        }
+
+        cv::Mat apply_sum_binning(const cv::Mat &src_gray, const int factor) {
+            if (factor == 1)
+                return src_gray;
+
+            if (src_gray.empty())
+                throw std::logic_error("binning failed: empty frame");
+
+            if (src_gray.channels() != 1)
+                throw std::logic_error("binning failed: only single-channel frame is supported");
+
+            if (src_gray.cols % factor != 0 || src_gray.rows % factor != 0)
+                throw std::logic_error("binning failed: frame size is not divisible by factor");
+
+            const int out_width = src_gray.cols / factor;
+            const int out_height = src_gray.rows / factor;
+
+            cv::Mat src_i32;
+            src_gray.convertTo(src_i32, CV_32SC1);
+            cv::Mat binned_i32(out_height, out_width, CV_32SC1, cv::Scalar(0));
+
+            for (int out_y = 0; out_y < out_height; ++out_y) {
+                const int in_y = out_y * factor;
+                for (int out_x = 0; out_x < out_width; ++out_x) {
+                    const int in_x = out_x * factor;
+                    int sum_value = 0;
+                    for (int dy = 0; dy < factor; ++dy) {
+                        const int *row_ptr = src_i32.ptr<int>(in_y + dy) + in_x;
+                        for (int dx = 0; dx < factor; ++dx)
+                            sum_value += row_ptr[dx];
+                    }
+                    binned_i32.at<int>(out_y, out_x) = sum_value;
+                }
+            }
+
+            return binned_i32;
+        }
+
+        void scale_measurements_to_original_frame(std::vector<TOptionsMeasurement> &meas, const int factor) {
+            if (factor == 1)
+                return;
+
+            for (auto &value: meas) {
+                value.x_weight *= factor;
+                value.y_weight *= factor;
+                value.x_rec *= factor;
+                value.y_rec *= factor;
+                value.rec_width *= factor;
+                value.rec_height *= factor;
+            }
+        }
+
+        void scale_draw_data_to_original_frame(std::vector<TDrawMeasurement> &draw_data, const int factor) {
+            if (factor == 1)
+                return;
+
+            for (auto &value: draw_data) {
+                value.rect.x *= factor;
+                value.rect.y *= factor;
+                value.rect.width *= factor;
+                value.rect.height *= factor;
+
+                value.box.center.x *= factor;
+                value.box.center.y *= factor;
+                value.box.size.width *= factor;
+                value.box.size.height *= factor;
+            }
+        }
+    }
 
 	void init_fr_proc_logger(int cam_index) {
 		logger = log4cxx::Logger::getLogger("dp1-" + std::to_string(cam_index) + ".fr-proc");
@@ -29,6 +116,9 @@ namespace ns_datapro1 {
 		//bool update_bg_model = false;//true  false
 		int frame_width_;
 		int frame_height_;
+        int proc_frame_width_;
+        int proc_frame_height_;
+        int binning_factor_;
 
 		TDataproConfig data_param_;
 		TDataproVar var_;
@@ -69,8 +159,11 @@ namespace ns_datapro1 {
 		void init_params();
 
 	public:
-		fr_proc_impl(const prg_config &cfg, const TDataCalibrationCamera &cam_cfg, int frame_width, int frame_height, int cam_index) : frame_width_(frame_width),
+        fr_proc_impl(const prg_config &cfg, const TDataCalibrationCamera &cam_cfg, int frame_width, int frame_height, int cam_index) : frame_width_(frame_width),
 																				 frame_height_(frame_height),
+                                                                                                     proc_frame_width_(frame_width),
+                                                                                                     proc_frame_height_(frame_height),
+                                                                                                     binning_factor_(1),
 																				 cfg_(cfg),
                                                                                  filter(cfg_.median_bg.num_frame * cfg_.median_bg.sampling_period),
                                                                                  filter2(cfg_.median_bg.num_frame, cfg_.median_bg.sampling_period, true, false, MedianFilter2::OutputMode::DIFFERENCE),
@@ -138,8 +231,26 @@ namespace ns_datapro1 {
             }
         }
 
+        if (!is_valid_binning_factor(cfg_.binning.factor)) {
+            throw std::logic_error("unsupported binning.factor in runtime: " + std::to_string(cfg_.binning.factor));
+        }
+
+        if (cfg_.binning.mode != kBinningModeSum) {
+            throw std::logic_error("unsupported binning.mode in runtime: " + cfg_.binning.mode);
+        }
+
+        binning_factor_ = (cfg_.binning.switched) ? cfg_.binning.factor : 1;
+        if (binning_factor_ > 1) {
+            if (frame_width_ % binning_factor_ != 0 || frame_height_ % binning_factor_ != 0) {
+                throw std::logic_error("frame size must be divisible by binning.factor");
+            }
+            proc_frame_width_ = frame_width_ / binning_factor_;
+            proc_frame_height_ = frame_height_ / binning_factor_;
+            LOG4CXX_INFO(logger, "Binning enabled, factor=" << binning_factor_ << ", mode=" << cfg_.binning.mode);
+        }
+
 		LOG4CXX_INFO(logger, "Calculation of DataPro1 parameters.");
-		initializingParamDatapro1(cfg_.subtractor, cfg_.multiproc.tiles_factor, cfg_.def_border, frame_width_, frame_height_,
+        initializingParamDatapro1(cfg_.subtractor, cfg_.multiproc.tiles_factor, cfg_.def_border, proc_frame_width_, proc_frame_height_,
 								  cfg_.filters.corr, cfg_.filters.matched, cfg_.filters.blur, data_param_, var_);
 		calc_limiter = get_tile_calc_limiter(cfg_.calc_tile_lim_cfg, data_param_.numFragX, data_param_.numFragY);
 		t0_ = cv::getTickCount();
@@ -221,9 +332,17 @@ namespace ns_datapro1 {
             }
         }
 
-		datapro1(*(rc_frames_.front().mat), var_, data_param_,
+        cv::Mat frame_to_process = *(rc_frames_.front().mat);
+        if (binning_factor_ > 1) {
+            const cv::Mat gray_frame = to_gray_if_needed(frame_to_process);
+            frame_to_process = apply_sum_binning(gray_frame, binning_factor_);
+        }
+
+        datapro1(frame_to_process, var_, data_param_,
                  cfg_.segment, file_name, cfg_.test, folder_name_dp1, //cfg_.frame,
                  cfg_.filters, KernelGauss, out_meas_, calc_limiter.get(), cfg_.multiproc.dp1_num_thread);
+        scale_measurements_to_original_frame(out_meas_, binning_factor_);
+        scale_draw_data_to_original_frame(var_.data_draw, binning_factor_);
         processingTime_ += cv::getTickCount() - tp0_;
 
         bool median = false;

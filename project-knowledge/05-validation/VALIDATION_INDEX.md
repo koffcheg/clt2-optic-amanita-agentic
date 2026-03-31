@@ -4,12 +4,19 @@
 
 Цей індекс є точкою входу в знання про тестування, валідацію і regression-сценарії.
 
+Цей розділ також фіксує практичні сценарії валідації для змін у DP1/DP2, коли automated tests не створюються в межах задачі.
+
 Для задач AI-agent тестування canonical source:
 - `AI_AGENT_TESTING_WORKFLOW.md`
 
 ## Документи розділу
 
 - `AI_AGENT_TESTING_WORKFLOW.md` - обов'язковий алгоритм виконання test run для Amanita + Comparator.
+
+## Поточні картки
+
+- `validation.amnt0004.dp1_binning` - валідація фічі сумуючого бінування в DP1 (OFF/ON, sweep, негативні кейси)
+  link: `cards/validation.amnt0004.dp1_binning.md`
 
 ## Пов'язані документи
 

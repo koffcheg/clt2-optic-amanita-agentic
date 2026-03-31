@@ -16,9 +16,11 @@
 2. Frame processing boundary (`frame_n_header`, `frame_processor`).
 3. Runtime буфери/локальні структури ingest і multithreading.
 4. Конфігураційний шар DP1.
-5. RPC serialization primitives і DP1 -> DP2 transport.
-6. File output contracts (`.blob`, `.json`, naming).
-7. Runtime lifecycle/orchestration contracts (`ipc_data_rc_impl`, `run_ipc_src`, `run_uri_src`, `dp1_main`).
+5. Preprocessing stage (sum-binning feature toggle).
+6. RPC serialization primitives і DP1 -> DP2 transport.
+7. File output contracts (`.blob`, `.json`, naming).
+8. Runtime lifecycle/orchestration contracts (`ipc_data_rc_impl`, `run_ipc_src`, `run_uri_src`, `dp1_main`).
+9. Manual validation сценарій для AMNT-0004 у `project-knowledge/05-validation/`.
 
 ## Що лишається додати далі
 

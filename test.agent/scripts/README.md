@@ -75,7 +75,7 @@ Reusing run artifacts or staged configs from previous tests is forbidden.
 - Amanita stage configs are copied under `<TestRun>/Configs/Amanita/DP1/<StageId>` and `<TestRun>/Configs/Amanita/DP2/<StageId>`.
 - Comparator stage configs are copied under `<TestRun>/Configs/Comparator/<StageId>`.
 - For multi-run scenarios each stage must have its own `<StageId>` subdirectory in `Configs/Amanita/*`, `Configs/Comparator/*`, and `Logs/*`.
-- Before starting a run, agree the Summary structure with the user.
+- Summary is auto-generated with the default structure; agree fields with the user only when a custom Summary is required.
 - On failure, stop, record reason in run artifacts, and wait for user instructions.
 - For unknown non-zero exit codes, use stop-and-wait by default.
 - Do not perform autonomous recovery actions after a failed stage unless user explicitly approves.

@@ -91,7 +91,7 @@ namespace {
 
 	std::string resolve_resource_path(const std::string &raw_path) {
 		static const std::string token{"${AMANITA_RESOURCES_DIR}"};
-		if (!raw_path.starts_with(token))
+		if (raw_path.compare(0, token.size(), token) != 0)
 			return raw_path;
 
 		auto suffix = raw_path.substr(token.size());

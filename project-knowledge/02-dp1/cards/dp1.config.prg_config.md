@@ -19,6 +19,7 @@ status: "draft"
 - `cfg_median` (median background)
 - `cfg_subtractor` (KNN/MOG2)
 - `cfg_source_frame` (IPC/URI)
+- `cfg_binning` (preprocessing, feature toggle)
 - `cfg_display`, `cfg_save2file`, `cfg_test`
 - `cfg_multiproc` (threads/tiles)
 - `cfg_binocular`
@@ -33,9 +34,11 @@ status: "draft"
 - `get_frame_src_type()` визначає тип джерела кадра (IPC/URI) на основі `cfg_source_frame`.
 - `multiproc.tiles_factor` впливає на `numFragX/numFragY` через `calcNumberFrag`.
 - `def_border` використовується як fallback для border_x/y.
+- Нові preprocessing-фічі мають вмикатися через конфіг (feature toggle), а дефолт має зберігати legacy-поведінку.
+- Для `cfg_binning` у поточній реалізації підтримується `mode = sum` і контрольований набір `factor`.
 
 ## Interpretation
-Це “єдиний вхід” для параметрів конвеєра: фільтри, сегментація, субтрактор, тестовий режим, візуалізація, продуктивність.
+Це “єдиний вхід” для параметрів конвеєра: фільтри, preprocessing, сегментація, субтрактор, тестовий режим, візуалізація, продуктивність.
 
 ## Failure cases
 - Погані дефолти в полях (0 або 1) маскують помилки конфігу, але дають некоректний результат.
@@ -49,3 +52,4 @@ status: "draft"
 - used_by: dp1.runner.run_ipc_src / dp1.runner.run_uri_src
 - controls: dp1.types.TDataproConfig initialization, dp1.methods.datapro1 parameters
 - includes: dp1.config.calc_tile_lim_cfg_t
+- includes: dp1.preproc.binning_sum
