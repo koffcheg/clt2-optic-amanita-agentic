@@ -73,6 +73,11 @@ project-knowledge/
     DP1_INDEX.md
     DP1_CARDS_INDEX.md
     cards/*.md
+    dp1_v2/
+      DP1_V2_PLAN_MONO8_MONO16.md
+      DP1_V2_PERF_MEMORY_BOTTLENECKS.md
+      PHASE_TRACKER.md
+      CHANGE_LOG.md
   03-dp2/
     DP2_INDEX.md
     DP2_CARDS_INDEX.md
@@ -113,6 +118,7 @@ project-knowledge/
 - `02-dp1/DP1_INDEX.md`
 - `02-dp1/DP1_CARDS_INDEX.md`
 - картки з `02-dp1/cards/`
+- документи DP1_v2 з `02-dp1/dp1_v2/` (якщо задача про нову версію DP1)
 - код `datapro1/src/*`
 
 ### 5.3. Якщо задача про DP2

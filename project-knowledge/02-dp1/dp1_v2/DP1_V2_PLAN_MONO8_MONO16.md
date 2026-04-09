@@ -1,21 +1,65 @@
-# DP1-v2 Plan (new implementation, no legacy refactor)
+# DP1-v2 / datapro1_v2 Refactoring Plan
 
 ## 1. Task framing and hard constraints
 
-This document defines a **new DP1 implementation (DP1-v2)** that runs in parallel to legacy DP1 and supports:
+This document defines a **new DP1 implementation (DP1_v2, executable/module naming candidate: datapro1_v2)** that runs in parallel to legacy DP1 and supports:
 - Input formats: mono8..mono16
 - Compute backends: CPU baseline, GPU-capable design (NVIDIA/AMD/Intel)
 - Concurrency: multithreading + optional multiprocessing
 - Reuse: maximal reuse of current OpenCV stack and stable transport contracts
 - Runtime objective: realtime with adaptive load control under variable load
 - Mandatory preprocessing feature: inter-frame per-pixel temporal median filter (from `materials/`) behind feature-toggle
-- Target operating point: up to 125 FPS per camera with deterministic latency controls
+- Target operating point for current iteration:
+  - stable realtime on FullHD at 30 FPS
+  - allowed non-stable operation up to 130 FPS (best-effort ceiling, not SLA)
 
 User constraints embedded in this plan:
 - Do not rewrite legacy DP1 in place.
+- Build DP1_v2 as a deep refactoring of proven legacy ideas and code schemes, while removing weak architecture and performance bottlenecks.
 - Keep DP1->DP2 integration stable at first migration stages.
 - Add automatic parameter adaptation to maintain realtime behavior.
 - Keep binning and temporal median as independently switchable feature-toggles.
+- In the first iteration, deliver functional parity with legacy DP1 for external behavior (inputs, outputs, artifacts, integration points) without reusing legacy code as runtime core.
+- Use existing project solutions and existing libraries first; do not add new external libraries in this task.
+- Enforce clean-code constraints: no magic numbers/strings in hot logic, configuration-driven knobs, extension-ready module boundaries.
+
+## 1.1 Naming convention
+
+- Working product name: `DP1_v2`.
+- Runtime artifact/module name candidate: `datapro1_v2`.
+- During implementation and documentation, both labels are acceptable, but each document must explicitly state which name is used in that context.
+
+## 1.2 AI-agent operational contract
+
+- Agent scope is strict execution of this DP1_v2 plan, not generic "improve codebase" activity.
+- If implementation convenience conflicts with plan decisions, plan decisions always win.
+- If a decision is not explicitly defined in this plan, the agent must choose the narrowest safe and reversible option.
+- Any narrow fallback decision must be documented immediately (see Section 16 decision-note rule).
+- Agent must not silently perform broad architectural steps outside active phase/subtask scope.
+
+## 1.3 Scope boundaries and change limits
+
+- Legacy DP1 may be read freely for analysis and extraction references.
+- Legacy DP1 must not be rewritten in place.
+- Small verified helper-level extraction/adaptation from legacy is allowed when it does not carry legacy runtime architecture into v2.
+- Copying legacy pipeline into a new folder and calling it v2 is forbidden.
+- On early phases, do not change DP1->DP2 payload schema, message id, serializer layout, or transport semantics.
+- Avoid mass rename/move, broad cleanup-refactor, and edits outside active phase scope.
+- Do not enable heavy debug/display/save/blocking diagnostics by default in runtime path.
+
+## 1.4 Allowed reuse vs forbidden reuse
+
+Allowed reuse:
+- Reuse proven algorithmic ideas from legacy DP1.
+- Reuse small helper functions or narrow fragments with mandatory documentation.
+- Reuse stable transport and serialization boundaries.
+- Reuse existing configs, build logic, and integration contracts.
+
+Forbidden reuse:
+- Using legacy DP1 as runtime core of DP1_v2.
+- Porting legacy bottlenecks into v2 (blocking behavior, busy-wait loops, excessive copying, debug-heavy runtime defaults).
+- Introducing hidden compatibility drift under "refactoring" wording.
+- Replacing deterministic behavior with more abstract but less predictable code in hot/realtime path.
 
 ## 2. Current-state anchors (code schemes + exact lines)
 
@@ -147,6 +191,12 @@ Implication for roadmap:
 - Separate **compute representation** from **display/export representation**.
 - Keep transport contract to DP2 unchanged in initial phases.
 
+Engineering quality bar:
+- Prefer simple, explicit, measurable code over generic/clever abstractions.
+- When SLA is violated, deterministic behavior has priority over maximum throughput.
+- Prefer reversible migration steps over aggressive one-shot optimization.
+- Stable CPU-first correctness has priority over premature GPU expansion.
+
 ## 5.2 Proposed module map
 - `dp1v2_ingest`
   - Inputs from camerapro/URI runner.
@@ -213,6 +263,32 @@ Implication for roadmap:
 - `ProcTelemetry`
   - stage latencies, queue depth, drop rate, mask fill ratio, detections/frame, CPU/GPU utilization proxy.
 
+## 5.5 Realtime C++ hot-path engineering rules
+
+- No dynamic allocations in hot per-frame path.
+- No blocking I/O in hot path.
+- No heavy logging in hot path.
+- No hidden deep copies of frame buffers.
+- No implicit data-depth conversion without explicit boundary function and documented reason.
+- No exceptions crossing hot paths unless explicitly allowed by local project conventions.
+- Avoid virtual dispatch in hottest loops unless justified and measured.
+- Ring buffers, work buffers, and queue nodes should be preallocated when feasible.
+- Ownership and lifetime of frame/work buffers must be explicit.
+- Prefer predictable data flow and controlled memory layout over excessive abstraction.
+- Each backend transition must be explicit, measurable, and easy to disable.
+
+## 5.6 Memory ownership model requirements
+
+Before implementing any large processing stage, explicitly define and document:
+- who owns input frame buffers;
+- which stages may mutate buffers in place;
+- where copies are allowed and where copies are forbidden;
+- which buffers are reused between frames;
+- who owns queue nodes and payloads;
+- where handoff is move/reference/view/copy.
+
+Implicit ownership models are not allowed.
+
 ## 6. Compute backend strategy (CPU/GPU)
 
 ## 6.1 Backend abstraction
@@ -257,9 +333,9 @@ Additional rules for temporal median:
 - Backpressure policy:
   - bounded queues + frame skipping policy by age/SLA.
 
-125 FPS requirement impact:
-- Frame period at 125 FPS is 8.0 ms.
-- DP1-v2 must be engineered for predictable per-frame deadline handling under this budget.
+Iteration requirement impact:
+- Stable mode target: FullHD 30 FPS (frame period 33.3 ms).
+- Stress mode target: best-effort up to 130 FPS (non-SLA, allowed instability).
 - Temporal median stage and segmentation stage must expose separate latency metrics and queue depth counters.
 
 ## 7.2 Multiprocessing model (optional)
@@ -336,23 +412,60 @@ Temporal median specific actuators:
 - Preserve `TOptionsMeasurement` binary size and ordering.
 - Any schema extension must be versioned and negotiated after side-by-side validation.
 
+Compatibility guardrail for early phases:
+- Any planned change that touches payload schema/message id/serializer layout/transport semantics requires separate explicit approval before implementation.
+
 ## 10.2 camerapro interface impact
 - Existing IPC contract (`cp_ipc_cam2dp1_if.h`) is frame-buffer oriented and agnostic to internal DP1 stages.
 - DP1-v2 should consume frames through existing interface and avoid upstream contract changes in first stages.
 
 ## 11. Migration plan (phased rollout)
 
-### Phase A. Skeleton and dual-run infrastructure
-- Add DP1-v2 executable/module path alongside legacy DP1.
-- Implement ingest + temporal-median stage + preprocess + minimal measure passthrough.
-- Keep DP2 contract untouched.
-- Deliverable: DP1-v2 compiles, runs, sends structurally valid outputs.
+### Phase A (Iteration 1). Functional parity + bottleneck-first refactor
+- Build DP1_v2/datapro1_v2 executable/module path alongside legacy DP1.
+- Implement mono pipeline in Iteration 1 scope (mono8..mono16 ingest and processing boundaries).
+- Keep DP2 contract untouched (`dp1_to_dp2_rpc_msg_new_measure`, payload schema, serializer layout).
+- Preserve legacy-compatible external behavior:
+  - startup/runner expectations,
+  - artifact I/O behavior and formats,
+  - interoperability with other modules.
+- Immediately address major bottlenecks from `DP1_V2_PERF_MEMORY_BOTTLENECKS.md` in this phase:
+  - B01 (blocking send in hot path),
+  - B02 (busy-wait completion loop),
+  - B03 (excessive tile copying),
+  - B05 (expensive per-pixel polygon loops),
+  - B08/B16 (heavy debug/display/save defaults in runtime path).
+- Deliverable: DP1_v2 runs with legacy-level functionality and improved performance stability on FullHD 30 FPS.
 
-### Phase B. Depth-correct core pipeline
-- Implement 16U-preserving preprocess/filters.
-- Implement mandatory `FixedK3`/`FixedK5` temporal median kernels with preallocated ring buffers.
-- Add explicit 16U->8U mask boundary only where required (contours/CC/bg subtractor policy).
-- Deliverable: functional equivalence on mono8 inputs, better precision retention on mono16.
+Implementation-complete criteria (agent-executable):
+- `datapro1_v2` builds and starts in agent-accessible mode as parallel implementation.
+- Input path is implemented and smoke-checkable in current environment.
+- Results are packed through existing transport compatibility boundary in implementation.
+- No intentional wire/schema drift is introduced.
+- Initial bottleneck fixes are implemented or explicitly deferred with reason.
+- Baseline validation checklist against legacy is prepared.
+
+External validation required for acceptance:
+- Functional parity against legacy on target scenarios.
+- Real integration behavior confirmation with neighboring modules.
+- Runtime behavior confirmation in target execution environment.
+
+### Phase B. Temporal median integration
+- Keep and implement temporal median scope in this phase (`FixedK3`/`FixedK5`, preallocated buffers, no hot-path allocations).
+- Temporal median remains feature-toggle controlled and independent from binning toggle.
+- Validate that temporal median does not break parity/integration constraints from Phase A.
+
+Implementation-complete criteria (agent-executable):
+- K3 and K5 temporal median modes exist in code.
+- Ring/work buffers are preallocated by implementation.
+- Temporal median stage does not introduce intentional hot-path allocations.
+- Toggle behavior is documented.
+- External latency/functional check list is prepared.
+
+External validation required for acceptance:
+- Real latency impact on target data streams.
+- Real functional-output impact.
+- Behavior under target stream conditions.
 
 ### Phase C. QoS/autotune and backend selection
 - Implement telemetry + controller state machine.
@@ -360,12 +473,66 @@ Temporal median specific actuators:
 - Add processing-mode selector (`CPU_ONLY|GPU_PREFERRED|GPU_ONLY`) and per-stage fallback rules.
 - Deliverable: stable p95 latency under variable load without catastrophic quality collapse.
 
+Implementation-complete criteria (agent-executable):
+- Stage telemetry hooks are implemented.
+- Controller states and actuators are explicitly described and implemented.
+- Fallback rules are deterministic and implemented.
+- Processing mode policy is implemented and documented.
+- Overload/realtime validation checklist is prepared.
+
+External validation required for acceptance:
+- Stable behavior under real load.
+- Correctness of QoS decisions under target conditions.
+- Latency target conformance in real environment.
+
 ### Phase D. Side-by-side validation and cutover
 - Run legacy and v2 in parallel on same streams.
 - Compare output consistency metrics and realtime metrics.
 - Controlled cutover by camera/group with rollback switch.
 
+Agent restriction for this phase:
+- Agent must not claim full Phase D completion if full side-by-side execution is not executable in current environment.
+- In that case, agent prepares code/artifacts/procedure/metrics for side-by-side and sets status to `Ready for external validation`.
+
+### Mandatory checkpoint after each phase
+- After every phase (A/B/C/D), execute comparative validation against legacy DP1 where current environment allows; otherwise prepare and document external comparative validation steps.
+- Record differences in:
+  - functional behavior,
+  - performance metrics,
+  - integration compatibility,
+  - artifact compatibility.
+- No transition to next phase without documented phase checkpoint.
+
+Phase status vocabulary:
+- `Implemented`
+- `Build-verified`
+- `Smoke-checked`
+- `Ready for external validation`
+- `Externally validation-pending`
+- `Blocked`
+
+`Accepted` status is allowed only when external validation is explicitly recorded as executed.
+
+Agent wording restriction:
+- Agent must not state `Phase completed`, `Acceptance passed`, or equivalent claims when only build/static/smoke checks were available.
+
 ## 12. Validation plan (without adding new test infrastructure automatically)
+
+Operational validation split:
+- Agent-executable checks: build, compile-time checks, startup checks, and limited smoke checks available in current environment.
+- External validation checks: functional/integration/realtime/performance/side-by-side checks that require external setup, bench, target streams, or manual validation.
+
+General completion rule:
+- A phase may be marked implementation-complete by agent only if:
+  - code builds,
+  - required code path is implemented,
+  - available compile-time/startup/smoke checks are executed,
+  - phase documentation is updated,
+  - compatibility assumptions are checked as far as environment allows,
+  - known deviations are explicitly documented,
+  - external validation steps for final acceptance are listed,
+  - no undocumented broad-risk issue remains.
+- A phase must not be marked accepted until project acceptance checks are externally executed.
 
 ### 12.1 Runtime validation scenarios
 - mono8 baseline parity (legacy vs v2).
@@ -373,7 +540,8 @@ Temporal median specific actuators:
 - overload scenarios for controller (burst motion/noise).
 - multi-camera synchronization and queue stress.
 - temporal median scenarios: `FixedK3`, `FixedK5`, `stride=1/2/3`, `HoldLastMedian` behavior.
-- high-FPS scenarios up to 125 FPS per camera for CPU_ONLY and GPU_PREFERRED profiles.
+- stable FullHD 30 FPS scenarios for CPU_ONLY and GPU_PREFERRED profiles.
+- stress scenarios up to 130 FPS in best-effort mode (explicitly marked as non-SLA).
 
 ### 12.2 Metrics to track
 - Latency: p50/p95/p99 end-to-end.
@@ -381,19 +549,37 @@ Temporal median specific actuators:
 - Drops: frame drop rate and reasons.
 - Detection quality proxies: count stability, track continuity, false-positive spikes.
 - Stage latencies: temporal median, preprocess, segment, measure, pack/send.
-- Deadline miss ratio vs 8.0 ms frame period at 125 FPS.
+- Deadline miss ratio vs 33.3 ms frame period in stable 30 FPS mode.
+- Separate deadline miss ratio for stress 130 FPS exploratory mode.
 - Toggle state timeline (binning/temporal median mode/stride/backend) for postmortem analysis.
 
 ### 12.3 Acceptance gates
 - Gate 1: no transport/schema regressions with DP2.
-- Gate 2: realtime SLA met in target profiles including 125 FPS/camera scenarios.
-- Gate 3: mono16 path shows non-inferior detection robustness vs forced 8-bit collapse.
+- Gate 2: realtime SLA met in stable target profile (FullHD 30 FPS).
+- Gate 3: stress profile up to 130 FPS is measurable and controlled (allowed non-stable behavior).
+- Gate 4: mono16 path shows non-inferior detection robustness vs forced 8-bit collapse.
 
-## 12.4 Realtime budget for 125 FPS/camera
-- Frame period: 8.0 ms.
+## 12.5 Parity comparison contract
+
+Avoid non-verifiable wording such as "looks similar" or "works".
+For each validation checkpoint, explicitly record:
+- scenario executed;
+- outputs/artifacts compared;
+- detected differences;
+- difference classification: acceptable / unknown / regression;
+- realtime behavior classification: improved / neutral / regressed.
+
+If a check is not executable in current environment, record explicitly:
+- `not executable in current environment`;
+- why unavailable;
+- required external execution steps;
+- expected result that must be externally confirmed.
+
+## 12.4 Realtime budget for stable FullHD 30 FPS
+- Frame period: 33.3 ms.
 - Recommended engineering target:
-  - p95(DP1 end-to-end) <= 6.0 ms
-  - p99(DP1 end-to-end) <= 7.0 ms
+  - p95(DP1 end-to-end) <= 25.0 ms
+  - p99(DP1 end-to-end) <= 30.0 ms
   - queue age bounded below one frame period in steady state
 - If p95 exceeds budget, QoS controller applies degradations in this order:
   - increase temporal stride
@@ -424,6 +610,31 @@ Temporal median specific actuators:
 7. GPU mode instability or backend unavailability
 - Mitigation: explicit processing mode selector with startup capability checks and deterministic CPU fallback.
 
+8. Required compatibility cannot be preserved without contract change
+- Mitigation: hard stop, document blocking issue, request direction before broad modifications.
+
+9. High uncertainty on architecture decision not fixed by plan
+- Mitigation: choose conservative reversible option, create decision note, and defer broad step.
+
+## 13.1 Failure and uncertainty handling rules
+
+- If backend is unavailable, use safe fallback according to policy.
+- If required compatibility cannot be preserved, stop and document blocking issue before broad changes.
+- If a change touches transport/schema in early phases, do not implement without separate approval.
+- If a feature misses latency budget without quality collapse path, use degradation order from Section 12.4 (do not invent a new policy ad hoc).
+- Under high uncertainty, choose conservative and reversible option.
+
+Soft stop:
+- If external validation is unavailable, continue only within safe scope and set `Ready for external validation` or `Externally validation-pending`.
+
+Hard stop:
+- Stop and request direction if:
+  - DP1->DP2 compatibility cannot be preserved without contract change,
+  - required behavior is ambiguous and narrow option is still high-risk,
+  - change requires new external dependencies,
+  - change forces large unplanned legacy rewrite,
+  - work no longer fits phased order.
+
 ## 14. Concrete implementation checklist
 
 1. Create DP1-v2 module skeleton and config section.
@@ -438,7 +649,37 @@ Temporal median specific actuators:
 10. Run side-by-side validation and cutover by rollout plan.
 11. Add temporal median module with K3/K5 kernels and preallocated ring buffers.
 12. Add feature toggles for temporal median, binning, and processing mode.
-13. Implement 125 FPS profiling suite and enforce per-stage deadlines.
+13. Implement profiling suite for stable 30 FPS SLA and separate 130 FPS stress mode.
+
+## 14.1 Mandatory task slicing before coding
+
+Before any coding, agent must map work to phase and subtask; mixing multiple phases in one uncontrolled patch is forbidden.
+
+Recommended subtask skeleton:
+1. skeleton/build integration
+2. ingest/frame contract
+3. pack/send compatibility boundary
+4. preprocess baseline
+5. segmentation baseline
+6. telemetry hooks
+7. temporal median K3
+8. temporal median K5
+9. QoS controller
+10. backend policy
+11. side-by-side validation support
+
+For each subtask, agent must explicitly record:
+- goal;
+- files to modify;
+- files to read only;
+- expected output;
+- compatibility risks;
+- validation step;
+- documentation update required.
+
+Small-step rule:
+- Prefer small vertical slices that can be built and smoke-checked.
+- If prerequisite is missing, implement the narrowest prerequisite first and document why.
 
 ## 15. Final recommendation
 
@@ -449,3 +690,60 @@ Temporal median specific actuators:
 - Make adaptive load control mandatory for realtime stability, with explicit quality floors and telemetry-driven decisions.
 - Treat inter-frame temporal median (K3/K5) as first-class mandatory stage with feature-toggle and strict no-allocation hot path.
 - Keep CPU implementation as authoritative reference; enable GPU mode as selectable profile with deterministic fallback.
+
+## 16. Documentation and traceability rules for AMNT-0006
+
+All implementation documentation for this task must be stored in:
+- `project-knowledge/02-dp1/dp1_v2/`
+
+Mandatory documentation constraints:
+- Every completed step must be documented.
+- For each change, document:
+  - code scheme name,
+  - what was reused from legacy,
+  - what was implemented new,
+  - why the decision was made,
+  - expected effect (functional/performance/maintainability).
+- Track contract-sensitive decisions separately (DP1->DP2 transport, serialization, artifact formats).
+- Keep implementation notes concise but sufficient for reproducibility and audit.
+
+Per-step implementation note is mandatory in `project-knowledge/02-dp1/dp1_v2/` and must include:
+- phase / subtask id;
+- changed files;
+- code scheme name;
+- what was reused from legacy;
+- what was implemented new;
+- why the decision was made;
+- expected functional effect;
+- expected performance effect;
+- compatibility impact;
+- validation executed;
+- result / next step.
+
+Open-question handling rule:
+- If an architectural decision is not fixed by plan, do not silently expand scope.
+- Create a short decision note:
+  - question,
+  - options considered,
+  - chosen narrow option,
+  - why safest,
+  - future revisit point.
+
+Iteration report format (agent):
+- Iteration start:
+  - current phase,
+  - current subtask,
+  - planned file changes,
+  - risks,
+  - checks executable by agent,
+  - checks requiring external validation.
+- Iteration end:
+  - files changed,
+  - what was implemented,
+  - what was intentionally not changed,
+  - build result,
+  - smoke checks run,
+  - checks not executable in current environment,
+  - external validation still required,
+  - docs updated,
+  - next safe step.
