@@ -22,6 +22,7 @@ This directory is the canonical place for implementation documentation for DP1_v
 - DP1_V2_PERF_MEMORY_BOTTLENECKS.md - performance and memory bottleneck audit baseline.
 - PHASE_TRACKER.md - phase status and mandatory legacy comparison checkpoints.
 - CHANGE_LOG.md - chronological implementation notes and decisions.
+- AGENT_EXECUTION_QUICKSTART.md - compact execution layer for AI-agent iteration discipline and context safety.
 
 ## Naming
 

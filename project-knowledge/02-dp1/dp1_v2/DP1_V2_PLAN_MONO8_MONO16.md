@@ -696,6 +696,10 @@ Small-step rule:
 All implementation documentation for this task must be stored in:
 - `project-knowledge/02-dp1/dp1_v2/`
 
+Execution note:
+- Use `AGENT_EXECUTION_QUICKSTART.md` as mandatory iteration wrapper for agent runs.
+- Keep this file as execution-oriented checklist only; normative technical decisions remain in this plan.
+
 Mandatory documentation constraints:
 - Every completed step must be documented.
 - For each change, document:

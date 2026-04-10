@@ -15,6 +15,21 @@
 
 ---
 
+## 2026-04-10 - Agent execution quickstart layer
+
+- Code scheme: docs.agent.quickstart.execution_layer
+- Reused from legacy: Existing phase model, constraints, and validation split from DP1_v2 main plan.
+- New implementation: Added a compact execution wrapper with iteration start block, context budget rules, invariant list, phase completion checklists, and iteration-end reporting format.
+- Why: Reduce context drift and phase mixing risk during long AI-agent sessions without duplicating the main plan.
+- Expected effect: More stable step-by-step execution, fewer oversized patches, and clearer implementation-complete signaling.
+- Contracts touched: none
+- Related files:
+  - project-knowledge/02-dp1/dp1_v2/AGENT_EXECUTION_QUICKSTART.md
+  - project-knowledge/02-dp1/dp1_v2/README.md
+  - project-knowledge/02-dp1/dp1_v2/DP1_V2_PLAN_MONO8_MONO16.md
+  - project-knowledge/02-dp1/dp1_v2/CHANGE_LOG.md
+- Notes: This is an operational documentation layer; technical authority stays in DP1_V2_PLAN_MONO8_MONO16.md.
+
 ## 2026-04-08 - Documentation workspace initialization
 
 - Code scheme: docs.workspace.bootstrap
