@@ -9,6 +9,11 @@
 
 - `DP1_CARDS_INDEX.md` - індекс DP1-карток
 - `cards/*.md` - атомарні картки структур та інтерфейсів DP1
+- `dp1_v2/` - робоча документація по новій версії DP1 (AMNT-0006)
+	- `dp1_v2/DP1_V2_PLAN_MONO8_MONO16.md`
+	- `dp1_v2/DP1_V2_PERF_MEMORY_BOTTLENECKS.md`
+	- `dp1_v2/PHASE_TRACKER.md`
+	- `dp1_v2/CHANGE_LOG.md`
 
 ## Що вже покрито
 
@@ -31,5 +36,7 @@
 
 1. `DP1_CARDS_INDEX.md`
 2. `cards/*.md`
-3. `datapro1/src/*`
-4. `datapro1/config/*`
+3. `dp1_v2/DP1_V2_PLAN_MONO8_MONO16.md` (для задач DP1_v2)
+4. `dp1_v2/DP1_V2_PERF_MEMORY_BOTTLENECKS.md` (для performance-driven ітерацій)
+5. `datapro1/src/*`
+6. `datapro1/config/*`
