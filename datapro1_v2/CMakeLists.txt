@@ -13,4 +13,19 @@ target_include_directories(
         ${PROJECT_NAME}
         PRIVATE
         include
+        ${OpenCV_INCLUDE_DIRS}
 )
+
+if (TARGET opencv_world)
+    target_link_libraries(
+            ${PROJECT_NAME}
+            PRIVATE
+            opencv_world
+    )
+else ()
+    target_link_libraries(
+            ${PROJECT_NAME}
+            PRIVATE
+            ${OpenCV_LIBS}
+    )
+endif ()
