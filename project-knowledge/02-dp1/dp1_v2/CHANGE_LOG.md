@@ -15,6 +15,27 @@
 
 ---
 
+## 2026-04-13 - Phase A subtask A.2 ingest/frame contract implemented (build-verified)
+
+- Code scheme: dp1v2.phaseA.a2.ingest_frame_contract
+- Reused from legacy: Ingest split concept (URI source vs campro/IPC source) and mono depth domain constraints from existing DP1 flow.
+- New implementation: Added explicit DP1_v2 `FramePacket` contract with frame payload + metadata hints, deterministic pixel type resolver (header-first, Mat-depth fallback), and `make_frame_packet` validation boundary.
+- Why: Establish a single internal ingest contract before adding source adapters and processing stages.
+- Expected effect: Narrow and deterministic frame intake boundary for DP1_v2, reducing source-specific branching in downstream pipeline stages.
+- Contracts touched: none (DP1->DP2 message id/payload/schema/serializer unchanged)
+- Related files:
+  - datapro1_v2/include/dp1v2/frame_packet.hpp
+  - datapro1_v2/src/main.cpp
+  - datapro1_v2/CMakeLists.txt
+  - project-knowledge/02-dp1/dp1_v2/PHASE_TRACKER.md
+- Notes: Build verified with `cmake --preset host-debug-full` + `cmake --build --preset host-debug-datapro1v2`. `host-debug-datapro1v2` is a build preset (not configure preset); previous command form in tracker was corrected.
+
+Update (same date):
+- Added explicit `FramePacketBuildError` + `FramePacketBuildResult` API for deterministic ingest error signaling (`empty_frame`, `invalid_channel_count`, `unsupported_bit_depth_hint`, `unsupported_mat_depth`, `header_mat_conflict`).
+- Added zero-allocation helper `frame_packet_error_to_cstr(...)` for diagnostics without per-frame string construction.
+- Added target-based OpenCV linking for `datapro1_v2` (`opencv_world` with fallback to `${OpenCV_LIBS}`) to keep `cv::Mat` smoke path link-stable on host.
+- Restored `main.cpp` smoke to validate `make_frame_packet(...)` on success + representative error paths (`HeaderMatConflict`, `EmptyFrame`).
+
 ## 2026-04-13 - Repository build entrypoints aligned to preset flow
 
 - Code scheme: build.system.preset_flow_alignment
