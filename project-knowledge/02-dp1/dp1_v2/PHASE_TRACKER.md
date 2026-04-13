@@ -2,10 +2,16 @@
 
 ## Phase status
 
-- Phase A (Iteration 1): planned
+- Phase A (Iteration 1): in progress (subtask A.1 scaffold-build integration)
 - Phase B (Temporal median): planned
 - Phase C (QoS/autotune + backend policy): planned
 - Phase D (Side-by-side cutover): planned
+
+## Current iteration focus
+
+- Active phase: A
+- Active subtask: none (A.1-skeleton-build-integration completed)
+- Scope guard: scaffold/build only, no DP1->DP2 contract drift.
 
 ## Mandatory per-phase checkpoint template
 

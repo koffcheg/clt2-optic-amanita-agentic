@@ -89,6 +89,28 @@ AmanitaResources/
 Цільовий скрипт:
 - `builder/build_dp1_dp2.sh`
 
+Canonical build flow (source of truth): `CMakePresets.json`.
+
+Preset-профілі розділено за середовищем:
+- host: `host-*`, `dp1dp2-*`
+- docker: `docker-*`
+
+Wrapper-скрипти `builder/*.sh` виконують auto-select профілю:
+- якщо доступний `/build_libs` -> docker presets;
+- інакше -> host presets.
+
+Рекомендовані команди через presets:
+```bash
+cmake --preset dp1dp2-debug
+cmake --build --preset dp1dp2-debug --parallel "$(nproc)"
+
+cmake --preset dp1dp2-release
+cmake --build --preset dp1dp2-release --parallel "$(nproc)"
+```
+
+Сумісність зі старим workflow збережена через wrapper-скрипт:
+- `builder/build_dp1_dp2.sh` (викликає preset flow)
+
 Команди:
 ```bash
 ./builder/build_dp1_dp2.sh Debug
@@ -141,6 +163,23 @@ OPENCV_DIR=/path/to/opencv/lib/cmake/opencv4 \
 - `test.out_folder = "${AMANITA_RESOURCES_DIR}/runs/dp1/<run_name>/"`
 
 ## 8. Docker-збірка
+
+Docker build entrypoints у `builder/*.sh` переведено на preset flow через `docker-debug` configure preset і відповідні build presets (`docker-all`, `docker-datapro1`, `docker-datapro2`, тощо).
+
+Canonical docker configure/build:
+```bash
+cmake --preset docker-debug
+cmake --build --preset docker-all --parallel "$(nproc)"
+```
+
+Перевірка скелета DP1_v2 окремим таргетом (host):
+```bash
+cmake --preset host-debug-full \
+  -DOpenCV_DIR=<OPENCV_PREFIX>/lib/cmake/opencv4 \
+  -Dlog4cxx_DIR=<LOG4CXX_PREFIX>/lib/cmake/log4cxx \
+  -DBoost_ROOT=<BOOST_PREFIX>
+cmake --build --preset host-debug-datapro1v2 --parallel "$(nproc)"
+```
 
 Підготувати контейнер:
 ```bash

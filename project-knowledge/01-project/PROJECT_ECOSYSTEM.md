@@ -170,6 +170,16 @@ sudo apt-get install -y libeigen3-dev libopenexr-dev libjansson-dev
 
 #### Крок 5. Configure (з підтвердженням)
 
+Canonical configure flow для репозиторію: через `CMakePresets.json`.
+
+Приклади:
+```
+cmake --preset dp1dp2-debug
+cmake --preset dp1dp2-release
+```
+
+Wrapper scripts у `builder/*.sh` допускаються як сумісний шар, але мають делегувати виконання в preset flow.
+
 Перед кожним запуском cmake configure показати команду користувачу і дочекатися підтвердження.
 
 Якщо OpenCV (static `opencv_world`) вимагає транзитивні CMake-targets `Eigen3::Eigen` або `OpenEXR::OpenEXR`, а вони не визначені, застосувати non-invasive workaround — до cmake configure створити тимчасовий cmake-файл і передати через `-DCMAKE_PROJECT_INCLUDE=`:
@@ -193,6 +203,18 @@ cmake -S <SRC_DIR> -B <BUILD_DIR> \
 ---
 
 #### Крок 6. Build (з підтвердженням)
+
+Canonical build flow:
+```
+cmake --build --preset dp1dp2-debug --parallel "$(nproc)"
+cmake --build --preset dp1dp2-release --parallel "$(nproc)"
+```
+
+Для Docker/CI-подібного середовища:
+```
+cmake --preset docker-debug
+cmake --build --preset docker-all --parallel "$(nproc)"
+```
 
 Показати команду, дочекатися підтвердження:
 ```

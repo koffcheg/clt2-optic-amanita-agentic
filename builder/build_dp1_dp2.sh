@@ -13,32 +13,26 @@ case "${BUILD_TYPE}" in
     ;;
 esac
 
-BUILD_DIR="${PROJECT_ROOT}/build-dp1dp2-${BUILD_TYPE,,}"
-DEPS_PRELOAD_FILE="${BUILD_DIR}/opencv_deps_preload.cmake"
+if [[ "${BUILD_TYPE}" == "Debug" ]]; then
+  CONFIGURE_PRESET="dp1dp2-debug"
+  BUILD_PRESET="dp1dp2-debug"
+else
+  CONFIGURE_PRESET="dp1dp2-release"
+  BUILD_PRESET="dp1dp2-release"
+fi
 
-mkdir -p "${BUILD_DIR}"
-cat > "${DEPS_PRELOAD_FILE}" <<'EOF'
-find_package(Eigen3 CONFIG REQUIRED)
-find_package(OpenEXR CONFIG REQUIRED)
-EOF
-
-CMAKE_ARGS=(
-  -S "${PROJECT_ROOT}"
-  -B "${BUILD_DIR}"
-  -DCMAKE_BUILD_TYPE="${BUILD_TYPE}"
-  -DCMAKE_PROJECT_INCLUDE="${DEPS_PRELOAD_FILE}"
-)
+declare -a EXTRA_CONFIGURE_ARGS=()
 
 if [[ -n "${LOG4CXX_DIR:-}" ]]; then
-  CMAKE_ARGS+=("-Dlog4cxx_DIR=${LOG4CXX_DIR}")
+  EXTRA_CONFIGURE_ARGS+=("-Dlog4cxx_DIR=${LOG4CXX_DIR}")
 fi
 
 if [[ -n "${OPENCV_DIR:-}" ]]; then
-  CMAKE_ARGS+=("-DOpenCV_DIR=${OPENCV_DIR}")
+  EXTRA_CONFIGURE_ARGS+=("-DOpenCV_DIR=${OPENCV_DIR}")
 fi
 
 if [[ -n "${BOOST_ROOT:-}" ]]; then
-  CMAKE_ARGS+=(
+  EXTRA_CONFIGURE_ARGS+=(
     "-DBoost_NO_SYSTEM_PATHS=ON"
     "-DBOOST_INCLUDEDIR=${BOOST_ROOT}/include"
     "-DBOOST_LIBRARYDIR=${BOOST_ROOT}/lib"
@@ -48,7 +42,7 @@ if [[ -n "${BOOST_ROOT:-}" ]]; then
   )
 fi
 
-cmake "${CMAKE_ARGS[@]}"
-cmake --build "${BUILD_DIR}" --target datapro1 datapro2 -j"$(nproc)"
+cmake --preset "${CONFIGURE_PRESET}" "${EXTRA_CONFIGURE_ARGS[@]}"
+cmake --build --preset "${BUILD_PRESET}" --parallel "$(nproc)"
 
-echo "Build completed: ${BUILD_DIR} (${BUILD_TYPE})"
+echo "Build completed via presets: ${BUILD_PRESET} (${BUILD_TYPE})"
