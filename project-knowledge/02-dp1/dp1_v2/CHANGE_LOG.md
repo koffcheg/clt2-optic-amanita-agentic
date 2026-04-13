@@ -15,6 +15,48 @@
 
 ---
 
+## 2026-04-13 - Repository build entrypoints aligned to preset flow
+
+- Code scheme: build.system.preset_flow_alignment
+- Reused from legacy: Existing `builder/*.sh` entrypoints and docker-compose command surface.
+- New implementation: Added `CMakePresets.json` as canonical flow; migrated build scripts to wrapper-mode over presets; documented preset flow in README and PROJECT_ECOSYSTEM.
+- Why: Avoid environment-specific drift and establish a single repository-level build source of truth.
+- Expected effect: Consistent configure/build commands across local, docker, and automation entrypoints without `.vscode`/machine-specific repo edits.
+- Contracts touched: none
+- Related files:
+  - CMakePresets.json
+  - cmake/opencv_deps_preload.cmake
+  - builder/build_dp1_dp2.sh
+  - builder/build_all.sh
+  - builder/build_datapro1.sh
+  - builder/build_datapro2.sh
+  - builder/build_camerapro.sh
+  - builder/build_manager.sh
+  - builder/build_calibration.sh
+  - README.md
+  - project-knowledge/01-project/PROJECT_ECOSYSTEM.md
+- Notes: Functional verification remains environment-dependent; unresolved dependency/toolchain issues are treated as external blockers.
+
+Update (same date):
+- Added host/docker preset split and wrapper auto-select logic to avoid using docker preset on host accidentally.
+- Verified `datapro1_v2` build via `host-debug-datapro1v2` preset.
+- Verified `build_all.sh` on host with dependency hints (`OPENCV_DIR`, `BOOST_ROOT`) through canonical wrapper flow.
+
+## 2026-04-13 - Phase A subtask A.1 scaffold-build integration build-verified
+
+- Code scheme: dp1v2.phaseA.a1.scaffold_build
+- Reused from legacy: Top-level CMake submodule wiring pattern.
+- New implementation: Added minimal `datapro1_v2` module scaffold with target-level CMake, `main.cpp`, and initial `FramePacket` header.
+- Why: Start parallel DP1_v2 implementation path with minimal and reversible scope.
+- Expected effect: Independent `datapro1_v2` target becomes available for next subtasks.
+- Contracts touched: none
+- Related files:
+  - CMakeLists.txt
+  - datapro1_v2/CMakeLists.txt
+  - datapro1_v2/src/main.cpp
+  - datapro1_v2/include/dp1v2/frame_packet.hpp
+- Notes: Build verification executed via repository-approved flow; environment blockers must be reported without repo-level environment hacks.
+
 ## 2026-04-10 - Agent execution quickstart layer
 
 - Code scheme: docs.agent.quickstart.execution_layer

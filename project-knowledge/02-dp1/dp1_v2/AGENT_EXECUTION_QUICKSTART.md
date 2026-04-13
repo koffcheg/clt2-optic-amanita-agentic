@@ -94,3 +94,46 @@ Record concise end-of-iteration status:
 - Blocked
 
 Do not use accepted/completed wording without external validation record.
+
+## Strict execution rules (mandatory)
+
+### Task authority
+- Stay strictly within the currently assigned task card.
+- Do not create new task cards, sub-cards, phases, or iterations unless explicitly requested.
+- If further decomposition is needed, propose it first and wait for approval.
+
+### Build authority
+- Use only repository-approved build paths.
+- Do not treat IDE-specific tooling as authoritative.
+- Do not introduce alternative build flows unless explicitly requested.
+
+### Environment handling
+- Missing dependencies, toolchain issues, or unresolved package paths must be treated as environment issues first.
+- Do not fix environment issues by modifying tracked repository files.
+- Do not create or modify:
+  - .vscode/settings.json
+  - local presets
+  - cache files
+  - tracked files containing absolute machine-specific paths
+
+### Change approval
+Before modifying:
+- build configuration
+- task structure
+- hot-path data structures
+- contract-sensitive code or documentation
+
+first return:
+- exact files to change
+- exact validation command(s)
+- reasoning for the change
+
+and wait for approval.
+
+### Runtime assumptions
+- Do not assume production-grade, long-running, or uninterrupted runtime unless explicitly specified.
+- Do not generalize beyond the current iteration scope and validation mode.
+
+### Data structure changes
+- Avoid unnecessary widening of fields in hot-path structures.
+- Any increase in field size must be justified by current runtime, lifecycle, and memory constraints.
