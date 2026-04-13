@@ -445,6 +445,9 @@ Implementation-complete criteria (agent-executable):
 - Initial bottleneck fixes are implemented or explicitly deferred with reason.
 - Baseline validation checklist against legacy is prepared.
 
+Phase-A parity clarification:
+- Legacy-functional parity baseline is expected after Phase A scope implementation; temporal median remains Phase B scope and is not a prerequisite for declaring Phase A implementation-complete.
+
 External validation required for acceptance:
 - Functional parity against legacy on target scenarios.
 - Real integration behavior confirmation with neighboring modules.
@@ -637,19 +640,22 @@ Hard stop:
 
 ## 14. Concrete implementation checklist
 
-1. Create DP1-v2 module skeleton and config section.
-2. Introduce `FramePacket`, `ProcContext`, `ProcTelemetry` types.
-3. Implement ingest adapter from existing frame sources.
-4. Implement preprocess path with 16U-preserving operations.
-5. Implement segmentation with explicit type-boundary adapters.
-6. Map measurements to existing `TDataRes` and reuse send boundary.
-7. Add telemetry collection per stage.
-8. Implement QoS state machine and knob application.
-9. Add backend policy selection (CPU/OpenCL now, CUDA profile hook).
-10. Run side-by-side validation and cutover by rollout plan.
-11. Add temporal median module with K3/K5 kernels and preallocated ring buffers.
-12. Add feature toggles for temporal median, binning, and processing mode.
-13. Implement profiling suite for stable 30 FPS SLA and separate 130 FPS stress mode.
+1. [Phase A] Create DP1-v2 module skeleton and config section.
+2. [Phase A] Introduce `FramePacket`, `ProcContext`, `ProcTelemetry` types.
+3. [Phase A] Implement ingest adapter from existing frame sources.
+4. [Phase A] Implement preprocess path with 16U-preserving operations.
+5. [Phase A] Implement segmentation with explicit type-boundary adapters.
+6. [Phase A] Map measurements to existing `TDataRes` and reuse send boundary.
+7. [Phase B prep] Add feature toggles for temporal median, binning, and processing mode.
+8. [Phase B] Add temporal median module with K3/K5 kernels and preallocated ring buffers.
+9. [Phase C] Add telemetry collection per stage.
+10. [Phase C] Implement QoS state machine and knob application.
+11. [Phase C] Add backend policy selection (CPU/OpenCL now, CUDA profile hook).
+12. [Phase D] Run side-by-side validation and cutover by rollout plan.
+13. [Cross-phase] Implement profiling suite for stable 30 FPS SLA and separate 130 FPS stress mode (incremental rollout across A/B/C, final evidence in D).
+
+Temporal median rollout rule:
+- Temporal median must be introduced behind feature toggles; direct always-on insertion is forbidden for initial rollout.
 
 ## 14.1 Mandatory task slicing before coding
 
@@ -668,6 +674,12 @@ Recommended subtask skeleton:
 10. backend policy
 11. side-by-side validation support
 
+Recommended phase grouping for subtask skeleton:
+- Phase A: items 1-5
+- Phase B: items 7-8
+- Phase C: items 6, 9, 10
+- Phase D: item 11
+
 For each subtask, agent must explicitly record:
 - goal;
 - files to modify;
@@ -680,6 +692,7 @@ For each subtask, agent must explicitly record:
 Small-step rule:
 - Prefer small vertical slices that can be built and smoke-checked.
 - If prerequisite is missing, implement the narrowest prerequisite first and document why.
+- Checklist order is informative; phase boundaries and active-subtask constraints are authoritative.
 
 ## 15. Final recommendation
 
