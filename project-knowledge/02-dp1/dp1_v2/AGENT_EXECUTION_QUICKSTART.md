@@ -9,7 +9,7 @@ It does not replace the main plan. It enforces short-cycle execution and context
 
 Fill this block before code edits:
 
-- phase: A | B | C | D
+- phase: 0 | A | B | C | D
 - subtask id: one item from plan task slicing
 - goal: one sentence
 - files_to_modify: explicit list
@@ -38,12 +38,21 @@ If phase/subtask is not explicit, stop and define it first.
 - No broad legacy rewrite in place.
 - No new external dependencies unless explicitly approved.
 - No hidden hot-path allocations for temporal median stage.
+- No algorithmic migration work before Phase 0 bootstrap/config foundation is Build-verified + Smoke-checked.
 
 ## Implementation-complete checklist by phase
 
+### Phase 0
+
+- `datapro1_v2` launch path exists and is documented
+- startup CLI/entrypoint behavior is deterministic
+- config read + validation + normalized runtime config path exists
+- invalid config fail-fast behavior is explicit
+- dry-run/smoke startup path is available
+
 ### Phase A
 
-- parallel DP1_v2/datapro1_v2 path exists and builds
+- Phase 0 checklist is satisfied
 - mono input path is implemented in scope
 - pack/send compatibility boundary preserved
 - planned bottleneck items for this subtask are fixed or explicitly deferred with reason

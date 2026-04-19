@@ -15,6 +15,41 @@
 
 ---
 
+## 2026-04-13 - Phase 0.2 config foundation implemented (build-verified)
+
+- Code scheme: dp1v2.phase0.2.config_foundation
+- Reused from legacy: Legacy config shape (`config.source`, `config.dp2conn`) and jansson-based read/validation approach.
+- New implementation: Added minimal typed runtime config layer for `datapro1_v2` (`SourceConfig`, `Dp2ConnConfig`, `RuntimeConfig`), extracted startup module (`startup.hpp/.cpp`), and switched startup contract to CLI-only config path (`datapro1_v2 <cam_index> <config_path>`).
+- Why: Establish strict config-first prerequisite for Phase 0 before algorithm migration.
+- Expected effect: Deterministic startup + config validation base that can be extended incrementally while porting algorithms.
+- Contracts touched: none (DP1->DP2 message id/payload/schema/serializer unchanged)
+- Related files:
+  - datapro1_v2/include/dp1v2/config.hpp
+  - datapro1_v2/src/config.cpp
+  - datapro1_v2/include/dp1v2/startup.hpp
+  - datapro1_v2/src/startup.cpp
+  - datapro1_v2/src/main.cpp
+  - datapro1_v2/CMakeLists.txt
+  - datapro1_v2/config/config_datapro1_v2.json
+- Notes: Verified with `cmake --preset host-debug-full`, `cmake --build --preset host-debug-datapro1v2`, `./build-host-debug-full/datapro1_v2/datapro1_v2 0 datapro1_v2/config/config_datapro1_v2.json`.
+
+## 2026-04-13 - Plan resequenced to prerequisite-first execution (Phase 0)
+
+- Code scheme: docs.plan.phase0_prerequisites_first
+- Reused from legacy: Existing phased model, compatibility freeze, and previously implemented A.1/A.2 artifacts.
+- New implementation: Added mandatory Phase 0 (runnable bootstrap + configuration foundation), reordered checklist/subtask skeleton to general -> specific flow, and marked early A.1/A.2 artifacts as parked until Phase 0 completion.
+- Why: Enforce strict execution order requested by user: launch and proper config first, then algorithm migration/expansion.
+- Expected effect: Reduced sequencing risk, clearer gating before algorithm transfer, and safer reintegration of already-started out-of-order work.
+- Contracts touched: none (DP1->DP2 message id/payload/schema/serializer unchanged)
+- Related files:
+  - project-knowledge/02-dp1/dp1_v2/DP1_V2_PLAN_MONO8_MONO16.md
+  - project-knowledge/02-dp1/dp1_v2/AGENT_EXECUTION_QUICKSTART.md
+  - project-knowledge/02-dp1/dp1_v2/PHASE_TRACKER.md
+  - project-knowledge/02-dp1/dp1_v2/CHANGE_LOG.md
+  - project-knowledge/06-tasks/TASKS_INDEX.md
+  - project-knowledge/06-tasks/cards/AMNT-0009.md
+- Notes: This is a planning/order correction iteration and does not modify runtime code.
+
 ## 2026-04-13 - Phase A subtask A.2 ingest/frame contract implemented (build-verified)
 
 - Code scheme: dp1v2.phaseA.a2.ingest_frame_contract

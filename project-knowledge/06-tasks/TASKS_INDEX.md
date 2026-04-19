@@ -25,3 +25,4 @@ Task cards не є authoritative source для архітектури, конт�
 - `AMNT-0006` - План рефакторингу DP1-v2 на базі поточного plan+bottlenecks knowledge - completed
 - `AMNT-0007` - Реалізація Phase A / A.1 scaffold-build для DP1_v2 - completed
 - `AMNT-0008` - Реалізація Phase A / A.2 ingest-frame contract та явного статусу помилок - completed
+- `AMNT-0009` - Перебудова плану DP1_v2 на prerequisite-first порядок (Phase 0 bootstrap+config перед алгоритмами) - in_progress

@@ -266,4 +266,9 @@ How to use: open card Markdown files in the 'cards' folder.
   src: datapro1/src/dp1_main.cpp:59-120
   note: Top-level orchestration запуску DP1: config/log/signal/network init і вибір runner path.
 
+- Legacy DP1 pipeline - повний runtime-конвеєр кадра
+  id: dp1.runtime.legacy_pipeline
+  link: cards/dp1.runtime.legacy_pipeline.md
+  src: datapro1/src/dp1_main.cpp; datapro1/src/dp1_ipc_runner.cpp; datapro1/src/dp1_uri_runner.cpp; datapro1/src/dp1_frame_proc.cpp; datapro1/src/datapro1.cpp
+  note: Canonical high-level картка legacy pipeline від bootstrap і ingest до `TDataRes`, DP1 -> DP2 handoff та файлових артефактів.
 

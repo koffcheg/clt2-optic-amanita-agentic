@@ -61,6 +61,18 @@ Forbidden reuse:
 - Introducing hidden compatibility drift under "refactoring" wording.
 - Replacing deterministic behavior with more abstract but less predictable code in hot/realtime path.
 
+## 1.5 Mandatory execution order (general -> specific)
+
+Execution order is strict:
+1. Bootstrap and launchability of the new DP1_v2 runtime path.
+2. Correct configuration layer (read/validate/normalize/effective config logging).
+3. Algorithmic migration and parity steps.
+
+Rules:
+- Algorithmic transfer from legacy DP1 must not start before steps 1-2 are implementation-complete.
+- If any algorithmic subtask was started earlier, it is treated as parked work and must be reintegrated only after bootstrap/config foundation is complete.
+- Feature growth is allowed only through config-driven expansion; ad-hoc runtime knobs are forbidden.
+
 ## 2. Current-state anchors (code schemes + exact lines)
 
 ### CS-01. Legacy background subtraction bootstrap (tile-level)
@@ -421,7 +433,30 @@ Compatibility guardrail for early phases:
 
 ## 11. Migration plan (phased rollout)
 
-### Phase A (Iteration 1). Functional parity + bottleneck-first refactor
+### Phase 0 (Prerequisite). Runnable bootstrap + configuration foundation
+- Ensure `datapro1_v2` is launchable as a standalone runtime entrypoint (no algorithm parity required at this stage).
+- Introduce startup contract and CLI/startup expectations for the new binary.
+- Implement configuration foundation first:
+  - config source loading,
+  - strict validation of required fields and ranges,
+  - normalized/resolved runtime config representation,
+  - clear startup diagnostics on invalid config.
+- Provide dry-run/smoke mode that verifies startup + config path without full processing pipeline.
+- Keep DP1->DP2 contract untouched.
+- Deliverable: reproducible launch flow and configuration contract that all later phases extend.
+
+Implementation-complete criteria (agent-executable):
+- `datapro1_v2` starts via documented command path.
+- Config file is read and validated with deterministic diagnostics.
+- Invalid config produces explicit fail-fast errors.
+- Dry-run/smoke startup check is available and documented.
+- No intentional wire/schema drift is introduced.
+
+External validation required for acceptance:
+- Startup behavior confirmation in target environment.
+- Configuration-operability confirmation on target deployment profiles.
+
+### Phase A (Iteration 1, after Phase 0). Functional parity + bottleneck-first refactor
 - Build DP1_v2/datapro1_v2 executable/module path alongside legacy DP1.
 - Implement mono pipeline in Iteration 1 scope (mono8..mono16 ingest and processing boundaries).
 - Keep DP2 contract untouched (`dp1_to_dp2_rpc_msg_new_measure`, payload schema, serializer layout).
@@ -429,6 +464,7 @@ Compatibility guardrail for early phases:
   - startup/runner expectations,
   - artifact I/O behavior and formats,
   - interoperability with other modules.
+- Reintegrate already implemented early artifacts (for example A.1/A.2) only after Phase 0 checkpoints are satisfied.
 - Immediately address major bottlenecks from `DP1_V2_PERF_MEMORY_BOTTLENECKS.md` in this phase:
   - B01 (blocking send in hot path),
   - B02 (busy-wait completion loop),
@@ -446,7 +482,7 @@ Implementation-complete criteria (agent-executable):
 - Baseline validation checklist against legacy is prepared.
 
 Phase-A parity clarification:
-- Legacy-functional parity baseline is expected after Phase A scope implementation; temporal median remains Phase B scope and is not a prerequisite for declaring Phase A implementation-complete.
+- Legacy-functional parity baseline is expected after Phase 0 + Phase A scope implementation; temporal median remains Phase B scope and is not a prerequisite for declaring Phase A implementation-complete.
 
 External validation required for acceptance:
 - Functional parity against legacy on target scenarios.
@@ -498,7 +534,7 @@ Agent restriction for this phase:
 - In that case, agent prepares code/artifacts/procedure/metrics for side-by-side and sets status to `Ready for external validation`.
 
 ### Mandatory checkpoint after each phase
-- After every phase (A/B/C/D), execute comparative validation against legacy DP1 where current environment allows; otherwise prepare and document external comparative validation steps.
+- After every phase (0/A/B/C/D), execute comparative validation against legacy DP1 where current environment allows; otherwise prepare and document external comparative validation steps.
 - Record differences in:
   - functional behavior,
   - performance metrics,
@@ -640,19 +676,21 @@ Hard stop:
 
 ## 14. Concrete implementation checklist
 
-1. [Phase A] Create DP1-v2 module skeleton and config section.
-2. [Phase A] Introduce `FramePacket`, `ProcContext`, `ProcTelemetry` types.
-3. [Phase A] Implement ingest adapter from existing frame sources.
-4. [Phase A] Implement preprocess path with 16U-preserving operations.
-5. [Phase A] Implement segmentation with explicit type-boundary adapters.
-6. [Phase A] Map measurements to existing `TDataRes` and reuse send boundary.
-7. [Phase B prep] Add feature toggles for temporal median, binning, and processing mode.
-8. [Phase B] Add temporal median module with K3/K5 kernels and preallocated ring buffers.
-9. [Phase C] Add telemetry collection per stage.
-10. [Phase C] Implement QoS state machine and knob application.
-11. [Phase C] Add backend policy selection (CPU/OpenCL now, CUDA profile hook).
-12. [Phase D] Run side-by-side validation and cutover by rollout plan.
-13. [Cross-phase] Implement profiling suite for stable 30 FPS SLA and separate 130 FPS stress mode (incremental rollout across A/B/C, final evidence in D).
+1. [Phase 0] Ensure runnable `datapro1_v2` entrypoint and startup contract.
+2. [Phase 0] Implement configuration loading + strict validation + normalized runtime config representation.
+3. [Phase 0] Add dry-run/smoke startup mode and document launch flow.
+4. [Phase A] Introduce `FramePacket`, `ProcContext`, `ProcTelemetry` types (reuse already implemented parts after Phase 0 completion).
+5. [Phase A] Implement ingest adapter from existing frame sources.
+6. [Phase A] Implement preprocess path with 16U-preserving operations.
+7. [Phase A] Implement segmentation with explicit type-boundary adapters.
+8. [Phase A] Map measurements to existing `TDataRes` and reuse send boundary.
+9. [Phase B prep] Add feature toggles for temporal median, binning, and processing mode through config foundation.
+10. [Phase B] Add temporal median module with K3/K5 kernels and preallocated ring buffers.
+11. [Phase C] Add telemetry collection per stage.
+12. [Phase C] Implement QoS state machine and knob application.
+13. [Phase C] Add backend policy selection (CPU/OpenCL now, CUDA profile hook).
+14. [Phase D] Run side-by-side validation and cutover by rollout plan.
+15. [Cross-phase] Implement profiling suite for stable 30 FPS SLA and separate 130 FPS stress mode (incremental rollout across 0/A/B/C, final evidence in D).
 
 Temporal median rollout rule:
 - Temporal median must be introduced behind feature toggles; direct always-on insertion is forbidden for initial rollout.
@@ -662,23 +700,26 @@ Temporal median rollout rule:
 Before any coding, agent must map work to phase and subtask; mixing multiple phases in one uncontrolled patch is forbidden.
 
 Recommended subtask skeleton:
-1. skeleton/build integration
-2. ingest/frame contract
-3. pack/send compatibility boundary
-4. preprocess baseline
-5. segmentation baseline
-6. telemetry hooks
-7. temporal median K3
-8. temporal median K5
-9. QoS controller
-10. backend policy
-11. side-by-side validation support
+1. runnable bootstrap entrypoint
+2. config loading/validation/normalization contract
+3. dry-run/smoke startup path
+4. ingest/frame contract
+5. pack/send compatibility boundary
+6. preprocess baseline
+7. segmentation baseline
+8. telemetry hooks
+9. temporal median K3
+10. temporal median K5
+11. QoS controller
+12. backend policy
+13. side-by-side validation support
 
 Recommended phase grouping for subtask skeleton:
-- Phase A: items 1-5
-- Phase B: items 7-8
-- Phase C: items 6, 9, 10
-- Phase D: item 11
+- Phase 0: items 1-3
+- Phase A: items 4-7
+- Phase B: items 9-10
+- Phase C: items 8, 11, 12
+- Phase D: item 13
 
 For each subtask, agent must explicitly record:
 - goal;
