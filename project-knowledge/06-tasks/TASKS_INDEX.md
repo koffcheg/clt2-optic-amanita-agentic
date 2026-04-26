@@ -15,6 +15,12 @@ Task cards використовуються для фіксації:
 Task cards не є authoritative source для архітектури, контрактів або екосередовища.
 Для цього слід використовувати domain knowledge files.
 
+## Обмеження доступу до історичних task cards
+
+Історичні task cards є audit trail.
+Вони не є джерелом для реалізації, не входять у card-driven route і не повинні
+читатися агентом без прямого запиту користувача.
+
 ## Реєстр задач
 
 - `AMNT-0001` - Універсалізація knowledge base по збірці - completed
@@ -22,7 +28,7 @@ Task cards не є authoritative source для архітектури, конт�
 - `AMNT-0003` - DP1/DP2 pipeline розробки та стандартизація шляхів ресурсів - completed
 - `AMNT-0004` - Реалізація бінування в DP1 з feature toggle через конфіг і правилами extensibility - completed
 - `AMNT-0005` - Стандартизація AI-agent тестового workflow, скриптів запуску та підготовки dataset pool - completed
-- `AMNT-0006` - План рефакторингу DP1-v2 на базі поточного plan+bottlenecks knowledge - completed
-- `AMNT-0007` - Реалізація Phase A / A.1 scaffold-build для DP1_v2 - completed
-- `AMNT-0008` - Реалізація Phase A / A.2 ingest-frame contract та явного статусу помилок - completed
-- `AMNT-0009` - Перебудова плану DP1_v2 на prerequisite-first порядок (Phase 0 bootstrap+config перед алгоритмами) - in_progress
+- `AMNT-0006` - історична task card, читати лише за прямим запитом користувача - completed
+- `AMNT-0007` - історична task card, читати лише за прямим запитом користувача - completed
+- `AMNT-0008` - історична task card, читати лише за прямим запитом користувача - completed
+- `AMNT-0009` - історична task card, читати лише за прямим запитом користувача - in_progress

@@ -8,6 +8,21 @@
       "host": "127.0.0.1",
       "port": 11511,
       "reconnect_interval_s": 3
+    },
+    "artifacts": {
+      "enabled": false,
+      "json_enabled": false,
+      "binocular_enabled": false,
+      "out_folder": "datapro1_v2_output",
+      "data_bin_folder": "data_bin"
+    },
+    "runtime_loop": {
+      "max_frames": 1,
+      "max_empty_reads": 1
+    },
+    "calibration": {
+      "required": false,
+      "camera_settings_file": ""
     }
   }
 }
