@@ -278,3 +278,101 @@ Task cards використовують окремий формат ID: `AMNT-00
 - оновлено індекси, якщо змінилася навігація
 - оновлено `PROJECT_ECOSYSTEM.md`, якщо торкнулися середовища
 - у knowledge base немає тихих конфліктів між кодом і текстом
+
+## Жорсткі правила виконання для агентів
+
+Цей блок уточнює правила виконання задач агентом і застосовується до всіх нетривіальних agent runs.
+
+### Межі задачі
+
+Якщо поточна task card уже визначена:
+
+- працювати строго в межах призначеної task card;
+- не створювати нові task cards, sub-cards, фази або ітерації без явної вказівки користувача;
+- якщо потрібна додаткова декомпозиція, спочатку запропонувати її і дочекатися підтвердження;
+- створювати нову task card лише якщо поточна task card не визначена і задача є нетривіальною, або якщо користувач явно попросив це зробити.
+
+### Build та інструменти
+
+- використовувати тільки погоджені в репозиторії build paths, скрипти та команди;
+- не вважати IDE-specific tooling авторитетним джерелом збірки;
+- не вводити альтернативні build flows без явної вказівки.
+
+### Середовище виконання
+
+- відсутні залежності, toolchain issues або unresolved package paths вважати environment blockers;
+- не виправляти environment blockers через зміни tracked repository files;
+- не створювати і не змінювати:
+  - `.vscode/settings.json`;
+  - local presets;
+  - cache files;
+  - tracked files з абсолютними machine-specific paths.
+
+### Зміни, що потребують підтвердження
+
+Перед зміною:
+
+- build configuration;
+- task structure;
+- hot-path data structures;
+- contract-sensitive code або documentation;
+
+агент має спочатку надати:
+
+- точні файли для зміни;
+- точні команди перевірки;
+- причину зміни;
+
+і дочекатися підтвердження.
+
+### Runtime assumptions
+
+- не припускати production-grade, long-running або uninterrupted runtime без явної вимоги;
+- не узагальнювати runtime-поведінку за межі поточної task card і validation mode.
+
+### Структури даних
+
+- уникати необґрунтованого розширення полів у hot-path structures;
+- будь-яке збільшення розміру поля має бути обґрунтоване поточними runtime, lifecycle і memory constraints.
+
+## Обов'язковий формат iteration report
+
+Після кожної спроби виконання агент має надати короткий структурований звіт.
+
+Звіт має містити тільки такі розділи:
+
+### 1. Scope
+
+- поточна task card;
+- фактично виконуваний subtask.
+
+### 2. Files changed
+
+- точний список змінених файлів;
+- якщо файли не змінювались, явно вказати це.
+
+### 3. Validation
+
+- точна build / run / validation команда;
+- статус: passed / failed / blocked / not run.
+
+### 4. Result
+
+- що завершено;
+- що залишилось незавершеним.
+
+### 5. Blockers
+
+- environment blockers;
+- dependency/toolchain blockers;
+- approval blockers.
+
+### 6. Assumptions
+
+- припущення, зроблені під час виконання.
+
+### 7. Next minimal step
+
+- один найменший розумний наступний крок.
+
+Не включати unrelated chat history, широкі retrospective notes або логи з інших задач, якщо користувач явно цього не просив.
