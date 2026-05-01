@@ -266,4 +266,12 @@ How to use: open card Markdown files in the 'cards' folder.
   src: datapro1/src/dp1_main.cpp:59-120
   note: Top-level orchestration запуску DP1: config/log/signal/network init і вибір runner path.
 
+11 Stage interfaces
+-------------------
+
+- IMeasurementStage - canonical stage interface для measurement boundary
+  id: dp1.stage.IMeasurementStage
+  link: cards/dp1.stage.imeasurementstage.md
+  src: project-knowledge/06-tasks/cards/AMNT-0007.md; project-knowledge/06-tasks/cards/AMNT-0008.md
+  note: Формалізує логічний input/output, compatibility constraints з `TDataRes`/`serialize_dp1_res` і boundary очікування для DP1 -> DP2.
 
