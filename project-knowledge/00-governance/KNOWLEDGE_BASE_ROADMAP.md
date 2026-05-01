@@ -1,111 +1,117 @@
 # KNOWLEDGE_BASE_ROADMAP
 
-## Мета
+## Purpose
 
-Довести knowledge base до стану, у якому AI-агент може:
-- швидко зрозуміти структуру проєкту
-- орієнтуватися в доменних знаннях без зайвого пошуку
-- синхронізувати код і документацію
-- створювати нові картки за єдиним шаблоном
-- не змішувати архітектуру, екосередовище і дрібні локальні факти в одному файлі
+Bring Project Knowledge to a state where an AI agent can:
+- understand the project structure quickly;
+- find domain knowledge without excessive searching;
+- keep code and documentation synchronized;
+- create new cards from one template;
+- avoid mixing architecture, ecosystem facts, and local details in one file.
 
----
+## Agent-Ready Definition
 
-## Definition of ready для agent-ready knowledge base
+Project Knowledge is agent-ready when:
+- the repository has `AGENTS.md`;
+- `PROJECT_INDEX.md` exists as the project map;
+- `PROJECT_ECOSYSTEM.md` is the single place for environment knowledge;
+- key subsystems have indexes and canonical reading routes;
+- new cards can be created from a single template;
+- shared contracts are not hidden inside one subsystem;
+- Project Knowledge does not contradict code on critical paths;
+- canonical and legacy knowledge are clearly separated.
 
-Knowledge base вважається робочою для AI-агента, якщо:
-- у корені репозиторію є `AGENTS.md`
-- є `PROJECT_INDEX.md` як карта проєкту
-- є `PROJECT_ECOSYSTEM.md` як єдине місце для environment knowledge
-- для ключових підсистем існують індекси та канонічні маршрути читання
-- нові картки можна створювати з єдиного шаблону
-- shared contracts не заховані випадково всередині лише однієї підсистеми
-- knowledge base не суперечить коду на критичних маршрутах
+## Priorities
 
----
+### P0. Integrate Project Knowledge Into The Repository
 
-## Пріоритети
+Status: completed.
 
-### P0. Інтеграція knowledge base в репозиторій
-- статус: completed
+### P1. Normalize Top-Level Documentation
 
-### P1. Нормалізація верхнього рівня документації
-- статус: completed (підтримується і актуалізується)
+Status: completed and maintained.
 
-### P2. Полірування DP1
-- статус: in progress
-- фокус: верифікація source ranges і синхронізація з shared protocol cards
+### P2. DP1 Knowledge
 
-### P3. DP2 як наступний великий блок
-- статус: completed (базове покриття)
-- фокус: runtime/failure деталізація і turret exchange lifecycle
+Status: in progress.
 
-### P4. Shared contracts
-- статус: in progress
-- фокус: додавання окремих protocol cards з canonical wire/file contracts
+Focus: canonical/legacy split, canonical DP1 cards, validation route, and synchronization with shared protocol cards.
 
-### P5. Validation layer
-- статус: in progress
-- виконано: створено `05-validation/VALIDATION_INDEX.md` і canonical workflow
-- фокус: regression scenarios і mapping dataset -> expected checks
+### P3. DP2 Knowledge
 
----
+Status: in progress.
 
-## Рекомендовані покращення поточного конспекту
+Focus: canonical placeholders, legacy-reference isolation, and future canonical DP2 detail.
 
-### 1. Розвести ролі файлів
-- `AGENTS.md` - правила для агента
-- `PROJECT_INDEX.md` - карта проєкту
-- `PROJECT_ECOSYSTEM.md` - стек і середовище
-- картки - атомарні технічні факти
+### P4. Shared Contracts
 
-### 2. Не перевантажувати `AGENTS.md`
-Він має бути коротким operational layer, а не повним описом проєкту. Довгі описи треба тримати в індексах та тематичних файлах.
+Status: in progress.
 
-### 3. Додати canonical місце для environment knowledge
-Зараз інформація про стек розмазана між `README.md`, `CMakeLists.txt`, `Dockerfile` і `builder/`. Для агента це незручно. Потрібне єдине дзеркало цих фактів.
+Focus: canonical protocol boundary cards, including DP1 -> DP2 Measurement handoff.
 
-### 4. Винести shared протоколи в окремий шар
-Частина поточних DP1-карток фактично описує не лише DP1, а й спільні межі DP1 -> DP2. Для довгострокової підтримки краще мати окремий протокольний розділ.
+### P5. Validation Layer
 
-### 5. Підсилити шаблон картки
-Добре мати обов'язкові поля:
+Status: in progress.
+
+Completed: `05-validation/VALIDATION_INDEX.md` and canonical AI-agent testing workflow.
+
+Focus: regression scenarios and dataset -> expected check mapping.
+
+## Recommended Improvements
+
+### Separate File Roles
+
+- `AGENTS.md` - agent rules.
+- `PROJECT_INDEX.md` - project map.
+- `PROJECT_ECOSYSTEM.md` - stack and environment.
+- Cards - atomic technical facts.
+
+### Keep `AGENTS.md` Operational
+
+`AGENTS.md` should remain an operational layer, not a full project description. Long descriptions belong in indexes and topic files.
+
+### Keep Environment Knowledge Canonical
+
+Stack, build, Docker, OS, and dependency facts belong in `01-project/PROJECT_ECOSYSTEM.md`.
+
+### Keep Shared Protocols In A Shared Layer
+
+Shared modules boundaries (e.g. DP1 <-> DP2) belong in `04-protocols/`, not only in DP1 or DP2.
+
+### Strengthen Card Metadata
+
+Required fields:
 - `id`
 - `source.file`
 - `source.lines`
 - `status`
 - `tags`
 
-І бажані:
+Useful fields:
+- `kind`
+- `source_role`
 - `last_verified`
 - `verified_against`
 - `review_notes`
 
-### 6. Додати індекси замість хаотичного росту карток
-Кожен великий розділ має мати індекс. Індекс показує агенту, де починати, а не змушує його перечитувати весь каталог.
+### Prefer Indexes Over Unstructured Card Growth
 
-### 7. Додати статуси зрілості
-Рекомендовані статуси:
+Each major section needs an index. The index tells agents where to start.
+
+### Use Maturity Statuses
+
+Recommended statuses:
 - `draft`
 - `verified`
 - `needs-review`
 - `stale`
 
----
+## Ecosystem Knowledge Location
 
-## Заплановане місце для екосередовища
+Store all language, standard, library, Docker, toolchain, OS, config-format, and module-layout facts in:
+- `01-project/PROJECT_ECOSYSTEM.md`
 
-Уся інформація про:
-- мови і стандарти
-- бібліотеки
-- Docker і toolchain
-- ОС і build target
-- формати конфігів
-- модулі репозиторію
-
-має фіксуватися в `01-project/PROJECT_ECOSYSTEM.md`.
-
-Додатково, якщо обсяг виросте, наступні файли варто додати окремо:
+If the content grows, split it into:
 - `01-project/BUILD_AND_RUN.md`
 - `01-project/DEPENDENCIES.md`
 - `01-project/REPO_LAYOUT.md`

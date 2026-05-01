@@ -1,30 +1,33 @@
 # VALIDATION_INDEX
 
-## Призначення
+## Purpose
 
-Цей індекс є точкою входу в знання про тестування, валідацію і regression-сценарії.
+This index is the entry point for testing, validation, and regression-scenario knowledge.
 
-Цей розділ також фіксує практичні сценарії валідації для змін у DP1/DP2, коли automated tests не створюються в межах задачі.
+This section also records practical validation scenarios for DP1/DP2 changes when automated tests are not created inside the task.
 
-Для задач AI-agent тестування canonical source:
+For AI-agent test execution, the canonical workflow is:
 - `AI_AGENT_TESTING_WORKFLOW.md`
 
-## Документи розділу
+## Section Documents
 
-- `AI_AGENT_TESTING_WORKFLOW.md` - обов'язковий алгоритм виконання test run для Amanita + Comparator.
+- `AI_AGENT_TESTING_WORKFLOW.md` - mandatory Amanita + Comparator test-run workflow for AI agents.
 
-## Поточні картки
+## Current Cards
 
-- `validation.amnt0004.dp1_binning` - валідація фічі сумуючого бінування в DP1 (OFF/ON, sweep, негативні кейси)
+- `validation.dp1.canonical_conformance` - canonical DP1 validation route: data domains, stage interfaces, stage specs before code generation, configuration `C`, Measurement handoff, profiling, and complexity levels.
+  link: `cards/validation.dp1.canonical_conformance.md`
+
+- `validation.amnt0004.dp1_binning` - validation card for legacy DP1 sum-binning feature.
   link: `cards/validation.amnt0004.dp1_binning.md`
 
-## Пов'язані документи
+## Related Documents
 
-- `project-knowledge/00-governance/TESTING_POLICY.md` - governance-правила тестування та межі дій агента.
-- `project-knowledge/06-tasks/TASKS_INDEX.md` - task cards з контекстом конкретних validation задач.
+- `project-knowledge/00-governance/TESTING_POLICY.md` - governance rules for testing and agent action limits.
+- `project-knowledge/06-tasks/TASKS_INDEX.md` - task cards with context for specific validation work.
 
-## Пов'язані інструменти
+## Related Tools
 
-- `test.agent/scripts/run_amanita_stage.sh` - універсальний запуск етапу Amanita.
-- `test.agent/scripts/run_comparator_stage.sh` - універсальний запуск етапу Comparator.
-- `test.agent/scripts/generate_summary.sh` - автоматична генерація підсумкового звіту `<TestId>_Summary.md`.
+- `test.agent/scripts/run_amanita_stage.sh` - run one Amanita stage.
+- `test.agent/scripts/run_comparator_stage.sh` - run one Comparator stage.
+- `test.agent/scripts/generate_summary.sh` - generate `<TestId>_Summary.md`.

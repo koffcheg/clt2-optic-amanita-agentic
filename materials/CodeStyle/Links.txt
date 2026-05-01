@@ -1,0 +1,6 @@
+https://learn.microsoft.com/en-us/cpp/cpp/welcome-back-to-cpp-modern-cpp?view=msvc-170
+https://google.github.io/styleguide/cppguide.html
+https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines?utm_source=chatgpt.com
+
+Open CV
+https://github.com/opencv/opencv/wiki

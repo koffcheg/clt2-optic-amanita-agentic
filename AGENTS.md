@@ -1,280 +1,340 @@
 # AGENTS.md
 
-## Призначення
+## Purpose
 
-Цей файл задає базові правила роботи AI-агента в репозиторії `clt2-optic_amanita` та описує, як орієнтуватися в knowledge base. Він не дублює повний опис проєкту, а маршрутизує агента до потрібних файлів і фіксує правила синхронізації коду та документації.
+This file defines the base operating rules for AI agents in the `clt2-optic_amanita` repository. It routes agents to the right Project Knowledge files and defines how code and documentation stay synchronized.
 
-## Очікуване розміщення knowledge base
+## Knowledge Base Location
 
-Knowledge base має лежати в корені репозиторію в каталозі `project-knowledge/`.
+Project Knowledge lives at the repository root under `project-knowledge/`.
 
-Робоча схема:
-- `AGENTS.md` - правила роботи агента і маршрутизація
-- `project-knowledge/PROJECT_INDEX.md` - карта проєкту і точка входу в domain knowledge
-- `project-knowledge/01-project/PROJECT_ECOSYSTEM.md` - екосередовище, стек, збірка, залежності, ОС
-- `project-knowledge/02-dp1/` - знання про DP1
-- `project-knowledge/03-dp2/` - знання про DP2
-- `project-knowledge/04-protocols/` - міжмодульні контракти, wire formats, IPC/TCP/RPC
-- `project-knowledge/05-validation/` - тести, mock-и, regression scenarios, validation notes
-- `project-knowledge/00-governance/CODE_STYLE.md` - правила стилю коду
-- `project-knowledge/00-governance/TESTING_POLICY.md` - правила тестування
-- `project-knowledge/06-tasks/TASKS_INDEX.md` - індекс task cards
-- `project-knowledge/06-tasks/cards/` - task cards для конкретних задач
-- `project-knowledge/00-governance/TASK_CARD_TEMPLATE.md` - шаблон task card
+Expected layout:
+- `AGENTS.md` - agent rules and navigation.
+- `project-knowledge/PROJECT_INDEX.md` - project map and domain knowledge entry point.
+- `project-knowledge/01-project/PROJECT_ECOSYSTEM.md` - ecosystem, stack, build, dependencies, OS.
+- `project-knowledge/02-dp1/` - DP1 knowledge.
+- `project-knowledge/03-dp2/` - DP2 knowledge.
+- `project-knowledge/04-protocols/` - inter-module contracts, wire formats, IPC/TCP/RPC.
+- `project-knowledge/05-validation/` - tests, mocks, regression scenarios, validation notes.
+- `project-knowledge/00-governance/CODE_STYLE.md` - code style rules.
+- `project-knowledge/00-governance/TESTING_POLICY.md` - testing rules.
+- `project-knowledge/06-tasks/TASKS_INDEX.md` - task card index.
+- `project-knowledge/06-tasks/cards/` - task cards.
+- `project-knowledge/00-governance/TASK_CARD_TEMPLATE.md` - task card template.
 
-## Ієрархія джерел істини
+## Source Of Truth
 
-Якщо між джерелами є конфлікт, агент має орієнтуватися в такому порядку:
+If sources conflict, use this order:
 
-1. Явні інструкції користувача в поточній задачі.
+1. Explicit user instructions in the current task.
 2. `AGENTS.md`.
 3. `project-knowledge/00-governance/CODE_STYLE.md`.
 4. `project-knowledge/00-governance/TESTING_POLICY.md`.
-5. Код, `CMakeLists.txt`, `.h/.hpp/.cpp/.cc`, конфігураційні JSON/XML, Dockerfile, shell-скрипти.
-6. Build/run-артефакти репозиторію: `README.md`, `builder/`, `docker-compose.yml`, `overseer/`, `config/`.
-7. Knowledge base у `project-knowledge/`.
-8. Старі нотатки, чернетки, неактуальні описи.
+5. Project Knowledge under `project-knowledge/`.
+6. Code, `CMakeLists.txt`, `.h/.hpp/.cpp/.cc`, JSON/XML configs, Dockerfile, shell scripts.
+7. Build/run artifacts: `README.md`, `builder/`, `docker-compose.yml`, `overseer/`, `config/`.
+8. Old notes, drafts, and stale descriptions.
 
+If Project Knowledge conflicts with code, Project Knowledge is authoritative. Do not silently update Project Knowledge unless the current task explicitly allows it. Report the mismatch, list affected files, and propose exact changes.
 
-Якщо knowledge base суперечить коду, код вважається authoritative source.
-Агент не повинен автоматично виправляти knowledge base без явного узгодження.
-Він повинен описати розбіжність, вказати зачеплені файли і запропонувати зміни.
+## Documentation Language
 
-## Обмеження та контроль змін
+English is the canonical language for agent-facing documentation. Use short, precise technical English.
 
-### Обмеження на зміни knowledge base
+Russian or Ukrainian may remain only in human-facing notes or explicitly bilingual fields, such as:
 
-Knowledge base є контрольованим артефактом проєкту.
+```yaml
+title:
+  uk:
+  en:
+```
 
-Агенту заборонено без явного узгодження:
-- редагувати `project-knowledge/PROJECT_INDEX.md`
-- створювати, змінювати, перейменовувати або видаляти knowledge cards
-- змінювати структуру knowledge base
-- редагувати шаблони карток
-- редагувати roadmap-файли
-- виконувати масову синхронізацію або реструктуризацію конспекту
-- редагувати `CODE_STYLE.md`, `TESTING_POLICY.md` або `PROJECT_ECOSYSTEM.md` без явного узгодження
+If a meaning is unclear, write `TODO: confirm with user` instead of inventing details.
 
-Якщо агент виявив, що knowledge base застаріла, суперечить коду або неповна, він повинен:
-1. описати проблему
-2. вказати зачеплені файли
-3. запропонувати точний перелік змін
-4. дочекатися явного узгодження
+## Canonical / Legacy Access
 
-Виняток:
-агенту дозволено створювати та оновлювати task cards у `project-knowledge/06-tasks/cards/` для поточної погодженої задачі, якщо це потрібно правилами workflow.
-Task cards не вважаються доменними knowledge cards і не замінюють оновлення knowledge base.
+For new canonical DP1/DP2 development, read canonical knowledge first:
+- `project-knowledge/02-dp1/canonical/`
+- `project-knowledge/03-dp2/canonical/`
+- shared canonical contracts in `project-knowledge/04-protocols/`
+- validation knowledge in `project-knowledge/05-validation/`
 
-### Обмеження на зміни коду
+Legacy knowledge describes how old DP1/DP2 work. Legacy is not a target-architecture source.
 
-Агент повинен надавати перевагу мінімальним, локальним і легко перевірюваним змінам.
+During `canonical_development`, legacy is forbidden by default. Legacy may be read only when the current task card has `legacy_access: allowed` and lists exact `allowed_legacy_sources`.
 
-Агенту заборонено без явного узгодження:
-- виконувати широкі рефакторинги
-- змінювати архітектуру
-- змінювати публічні контракти або формати обміну
-- додавати нові бібліотеки, фреймворки або зовнішні інструменти
-- змінювати CI/CD, Docker, build pipeline або deployment logic
-- масово перейменовувати файли, символи або директорії
+If a task card does not allow legacy access, do not use legacy as a design source. If canonical and legacy conflict, canonical wins. If a card and informal text conflict, the card wins.
 
-### Обмеження на тестування
+Card `source_role` controls code-generation source eligibility:
+- `source_role: canonical` is used by default for canonical design and code-generation inputs.
+- `source_role: legacy-reference` must not be used for code generation unless the active task card explicitly allows legacy access and lists exact legacy sources.
+- `source_role: verification` may constrain validation and acceptance, but does not replace canonical product, data, protocol, stage, or configuration cards.
+- `source_role: draft` is not sufficient for code generation until promoted.
 
-Агенту заборонено без явного узгодження:
-- створювати нові automated tests
-- створювати fixtures, mocks, stubs, snapshots або golden files
-- додавати тестову інфраструктуру
-- масово переписувати наявні тести
-- змінювати тестову стратегію проєкту
+Code must not be generated from legacy code, legacy-reference cards, or informal text unless explicit task-card rules allow the exact legacy source for a bounded migration task.
 
-Під час execution test runs (Amanita/Comparator) агенту заборонено змінювати production код Amanita або Comparator.
-Дозволені лише:
-- підготовка per-run конфігів і скриптів у run-директорії
-- запуск бінарників/CLI
-- збір логів, артефактів і звітів
+Canonical code generation route:
 
-Якщо агент бачить, що тести потрібні, він повинен не створювати їх автоматично, а описати test plan і дочекатися узгодження.
+```text
+Code = f(Cards, Stage_Spec, C)
+```
 
-## Обов'язковий старт для агента
+Where:
+- `Cards` are data-structure, data-domain, protocol, and stage-interface cards.
+- `Stage_Spec` is the formal small specification for a stage.
+- `C` is the pipeline configuration.
 
-Перед будь-якою нетривіальною задачею агент повинен:
+If a required card, stage specification, or configuration `C` is missing, stop and propose the missing source. Do not generate code from descriptive text.
 
-1. Перевірити, чи існує task card для поточної задачі.
-2. Якщо task card відсутня і задача є нетривіальною, створити нову task card у `project-knowledge/06-tasks/cards/` за шаблоном `project-knowledge/00-governance/TASK_CARD_TEMPLATE.md`.
-3. Заповнити в task card: опис задачі, межі задачі, обмеження, релевантні файли, очікувані зміни та ризики.
-4. Прочитати `project-knowledge/PROJECT_INDEX.md`.
-5. Прочитати релевантний індекс підсистеми або тематичний файл.
-6. Перевірити твердження по коду, якщо задача стосується runtime behavior, контрактів або формату даних.
-7. Після змін перевірити, чи зачеплено knowledge base, контракти, пайплайн або екосередовище.
-8. Якщо knowledge base потребує оновлення, не змінювати її автоматично без явного узгодження, а підготувати перелік потрібних змін.
+## Change Control
 
-## Маршрути читання по типу задачі
+### Project Knowledge Changes
 
-### 1. Загальна архітектура, склад модулів, high-level pipeline
-Читати:
+Project Knowledge is a controlled project artifact.
+
+Do not do the following without explicit approval:
+- edit `project-knowledge/PROJECT_INDEX.md`;
+- create, modify, rename, or delete knowledge cards;
+- change the Project Knowledge structure;
+- edit card templates;
+- edit roadmap files;
+- perform mass synchronization or note restructuring;
+- edit `CODE_STYLE.md`, `TESTING_POLICY.md`, or `PROJECT_ECOSYSTEM.md`.
+
+If Project Knowledge is stale, incomplete, or contradicts code:
+1. Describe the problem.
+2. List affected files.
+3. Propose exact changes.
+4. Wait for explicit approval.
+
+Exception: task cards under `project-knowledge/06-tasks/cards/` may be created or updated for the current approved task when the workflow requires it. Task cards are not domain knowledge cards and do not replace Project Knowledge updates.
+
+### Code Changes
+
+Prefer minimal, local, verifiable changes.
+
+Do not do the following without explicit approval:
+- broad refactoring;
+- architecture changes;
+- public contract or exchange-format changes;
+- new libraries, frameworks, or external tools;
+- CI/CD, Docker, build pipeline, or deployment logic changes;
+- mass renames of files, symbols, or directories.
+
+### Testing Changes
+
+Do not do the following without explicit approval:
+- create new automated tests;
+- create fixtures, mocks, stubs, snapshots, or golden files;
+- add test infrastructure;
+- mass-rewrite existing tests;
+- change the project testing strategy.
+
+During Amanita/Comparator execution test runs, do not change production Amanita or Comparator code.
+
+Allowed actions:
+- prepare per-run configs and scripts in the run directory;
+- run binaries or CLI commands;
+- collect logs, artifacts, and reports.
+
+If tests are needed, describe the test plan and wait for approval instead of creating tests automatically.
+
+## Required Start
+
+Before any non-trivial task:
+
+1. Ask user if card is needed, if not needed then skip list items 2-4
+2. Check whether a task card exists for the current task.
+3. If no task card exists, create one under `project-knowledge/06-tasks/cards/` from `project-knowledge/00-governance/TASK_CARD_TEMPLATE.md`.
+4. Fill in description, scope, constraints, relevant files, expected changes, and risks.
+5. Read `project-knowledge/PROJECT_INDEX.md`.
+6. Read the relevant subsystem index or topic file.
+7. Verify code-backed claims when the task concerns runtime behavior, contracts, or data formats.
+8. After changes, check whether Project Knowledge, contracts, pipeline, or ecosystem are affected.
+9. If Project Knowledge needs updates outside the approved scope, propose exact changes and wait for approval.
+
+## Reading Routes
+
+### Project Architecture
+
+Read:
 - `project-knowledge/PROJECT_INDEX.md`
 - `project-knowledge/01-project/PROJECT_ECOSYSTEM.md`
-- кореневий `README.md`
-- кореневий `CMakeLists.txt`
+- root `README.md`
+- root `CMakeLists.txt`
 
-### 2. Збірка, залежності, Docker, ОС, toolchain
-Читати:
+### Build, Dependencies, Docker, OS, Toolchain
+
+Read:
 - `project-knowledge/01-project/PROJECT_ECOSYSTEM.md`
 - `README.md`
 - `builder/Dockerfile`
 - `docker-compose.yml`
 - `builder/*.sh`
-- відповідні `CMakeLists.txt`
+- relevant `CMakeLists.txt`
 
-### 3. DP1: ingest, frame processing, tile pipeline, output
-Читати:
+### DP1
+
+Read:
 - `project-knowledge/02-dp1/DP1_INDEX.md`
-- `project-knowledge/02-dp1/DP1_CARDS_INDEX.md`
-- `project-knowledge/02-dp1/cards/*.md`
-- `datapro1/src/*`
-- `datapro1/config/*`
+- for canonical work: `project-knowledge/02-dp1/canonical/DP1_CANONICAL_INDEX.md`
+- for legacy analysis: `project-knowledge/02-dp1/legacy/DP1_LEGACY_INDEX.md`
+- legacy code/cards only when the task card explicitly allows legacy access
 
-### 4. DP2: receiving, aggregation, post-processing, tracking
-Читати:
+### DP2
+
+Read:
 - `project-knowledge/03-dp2/DP2_INDEX.md`
-- `project-knowledge/03-dp2/DP2_CARDS_INDEX.md`
-- `project-knowledge/03-dp2/cards/*.md`
-- `datapro2/src/*`
-- `datapro2/config/*`
-- спільні протокольні файли з `project-knowledge/04-protocols/`
+- for canonical work: `project-knowledge/03-dp2/canonical/DP2_CANONICAL_INDEX.md`
+- for legacy analysis: `project-knowledge/03-dp2/legacy/DP2_LEGACY_INDEX.md`
+- shared protocol files under `project-knowledge/04-protocols/`
+- legacy code/cards only when the task card explicitly allows legacy access
 
-### 5. Міжмодульні контракти, TCP/RPC, серіалізація, файли обміну
-Читати:
+### Inter-Module Contracts, TCP/RPC, Serialization, Exchange Files
+
+Read:
 - `project-knowledge/04-protocols/PROTOCOLS_INDEX.md`
-- релевантні картки в DP1/DP2
+- relevant DP1/DP2 cards
 - `datapro1/src/dp1_tr_res2dp2.cpp`
 - `datapro1/src/dp1_rpc_data_mrsh.cpp`
-- код прийому в DP2
+- DP2 receive-path code
 
-### 6. Тести, mock-и, перевірка сценаріїв
-Читати:
+### Tests, Mocks, Scenario Validation
+
+Read:
 - `project-knowledge/05-validation/`
 - `gtests/`
 - `test.mock/`
-- `overseer/`, якщо задача стосується orchestration або remote runs
+- `overseer/` when the task concerns orchestration or remote runs
 
-### 7. Код-стайл, правила змін коду, тестові обмеження
-Читати:
+### Code Style And Change Rules
+
+Read:
 - `AGENTS.md`
 - `project-knowledge/00-governance/CODE_STYLE.md`
 - `project-knowledge/00-governance/TESTING_POLICY.md`
 
-### 8. Поточна задача та її межі
-Читати:
+### Current Task Scope
+
+Read:
 - `project-knowledge/06-tasks/TASKS_INDEX.md`
-- поточну task card `project-knowledge/06-tasks/cards/AMNT-XXXX.md`
+- current task card `project-knowledge/06-tasks/cards/AMNT-XXXX.md`
 - `AGENTS.md`
-- за потреби релевантні domain files
+- relevant domain files when needed
 
-## Коли knowledge base потребує оновлення
+## When Project Knowledge Needs Updates
 
-Knowledge base вважається такою, що потребує оновлення, якщо агент:
-- додає нову сутність, яка впливає на архітектуру або контракти
-- змінює формат даних, serialization, network payload або file output
-- змінює build/runtime environment, залежності або toolchain
-- змінює high-level pipeline або responsibilities модуля
-- знаходить, що існуюча картка суперечить коду
+Project Knowledge needs an update when an agent:
+- adds a new entity affecting architecture or contracts;
+- changes data format, serialization, network payload, or file output;
+- changes build/runtime environment, dependencies, or toolchain;
+- changes high-level pipeline or module responsibilities;
+- finds that an existing card contradicts code.
 
-За замовчуванням агент не повинен виконувати таке оновлення автоматично.
+By default, do not apply such updates automatically.
 
-Натомість він повинен:
-- вказати, які саме файли knowledge base потребують змін
-- коротко описати причину
-- запропонувати мінімальний обсяг синхронізації
-- дочекатися явного узгодження
+Instead:
+- list the exact Project Knowledge files that need changes;
+- explain why;
+- propose the minimal synchronization scope;
+- wait for explicit approval.
 
-Мінімальний обсяг потенційної синхронізації може включати:
-- релевантну картку або нову картку
-- `PROJECT_INDEX.md`, якщо змінився ландшафт знань або структура розділів
-- `PROJECT_ECOSYSTEM.md`, якщо змінилася екосереда
+Possible minimal synchronization scope:
+- a relevant card or a new card;
+- `PROJECT_INDEX.md` if knowledge navigation or section structure changed;
+- `PROJECT_ECOSYSTEM.md` if environment facts changed.
 
-## Правила створення нових карток
+## Card Creation Rules
 
-Створення нових карток дозволене лише за явним узгодженням або якщо поточна задача прямо вимагає оновлення knowledge base.
+New cards may be created only with explicit approval or when the current task directly requires Project Knowledge updates.
 
-У проєкті існують два типи карток:
-- domain cards - картки знань про систему, контракти, структури, пайплайни та середовище
-- task cards - картки конкретних задач виконання
+The project has two card types:
+- domain cards - knowledge about system entities, contracts, structures, pipelines, and environment;
+- task cards - cards for specific execution tasks.
 
-Правила цього розділу для ID-просторів `project.*`, `dp1.*`, `dp2.*`, `protocols.*`, `validation.*` стосуються domain cards.
-Task cards використовують окремий формат ID: `AMNT-0001`, `AMNT-0002`, ...
+Project Knowledge also contains agent-facing operational documents. They are not cards, but they may be authoritative routing or governance sources for agents. Examples:
+- `AGENTS.md`;
+- `project-knowledge/PROJECT_INDEX.md`;
+- subsystem indexes;
+- `*_CANONICAL_INDEX.md`;
+- `*_LEGACY_INDEX.md`;
+- governance templates and policies;
+- protocol and validation indexes.
 
-### Принципи
-- 1 картка = 1 сутність або 1 вузький контракт.
-- Не змішувати в одній картці структуру, алгоритм і мережевий протокол, якщо це різні поняття.
-- Якщо інформація не підтверджена кодом, позначати її в `Assumptions` або `Open questions`.
-- Якщо сутність є shared між DP1 і DP2, картка має жити в `04-protocols/` або мати звідти canonical index.
+Agent-facing operational documents stay in English.
 
-### Правила для task cards
-- 1 task card = 1 задача
-- filename = task id
-- формат ID: `AMNT-XXXX`
-- task card створюється перед виконанням нетривіальної задачі
-- task card містить опис задачі, межі, обмеження, плановані зміни, ризики та validation approach
-- task card не є authoritative source для domain knowledge
+Rules for `project.*`, `dp1.*`, `dp2.*`, `protocols.*`, and `validation.*` ID spaces apply to domain cards. Task cards use `AMNT-XXXX` IDs.
 
-### Іменування
-Рекомендовані простори імен для ID:
-- `project.*` - загальна архітектура та проєктні сутності
-- `ecosystem.*` - стек, build, runtime, dependencies
-- `dp1.types.*`, `dp1.frame.*`, `dp1.runtime.*`, `dp1.rpc.*`, `dp1.net.*`, `dp1.io.*`, `dp1.tiles.*`, `dp1.config.*`
-- `dp2.types.*`, `dp2.runtime.*`, `dp2.net.*`, `dp2.track.*`, `dp2.io.*`, `dp2.config.*`
-- `protocols.*` - shared wire/file/message contracts
-- `validation.*` - test assets, scenarios, regressions
+Principles:
+- One card describes one entity or one narrow contract.
+- Do not mix a structure, an algorithm, and a network protocol in one card unless they are the same concept.
+- If information is not code-verified, mark it in `Assumptions` or `Open questions`.
+- If an entity is shared between DP1 and DP2, place the card in `04-protocols/` or link it from that canonical index.
 
-### Мінімальний шаблон картки
-Кожна нова картка має містити:
-- YAML front matter з `id`, `title`, `tags`, `source`, `status`
-- `Definition`
-- `Assumptions`
-- `Theorem / Contract`
-- `Interpretation`
-- `Failure cases`
-- `Typical misuse`
-- `Open questions` - якщо потрібно
-- `Connections`
+Task card rules:
+- one task card equals one task;
+- filename equals task ID;
+- ID format is `AMNT-XXXX`;
+- create the task card before non-trivial task execution;
+- include description, scope, constraints, planned changes, risks, and validation approach;
+- task cards are not authoritative sources for domain knowledge.
 
-Шаблон лежить у `project-knowledge/00-governance/CARD_TEMPLATE.md`.
+Recommended card ID namespaces:
+- `project.*` - general architecture and project entities;
+- `ecosystem.*` - stack, build, runtime, dependencies;
+- `dp1.types.*`, `dp1.frame.*`, `dp1.runtime.*`, `dp1.rpc.*`, `dp1.net.*`, `dp1.io.*`, `dp1.tiles.*`, `dp1.config.*`;
+- `dp2.types.*`, `dp2.runtime.*`, `dp2.net.*`, `dp2.track.*`, `dp2.io.*`, `dp2.config.*`;
+- `protocols.*` - shared wire/file/message contracts;
+- `validation.*` - test assets, scenarios, regressions.
 
-## Де фіксувати інформацію про екосередовище
+Each new card must include:
+- YAML front matter with `id`, `title`, `tags`, `source`, and `status`;
+- `Definition`;
+- `Assumptions`;
+- `Theorem / Contract`;
+- `Interpretation`;
+- `Failure cases`;
+- `Typical misuse`;
+- `Open questions`, if needed;
+- `Connections`.
 
-Усе, що стосується мов, стандартів, бібліотек, ОС, Docker, build tools, конфігураційних форматів і runtime dependencies, треба фіксувати в:
+The card template is `project-knowledge/00-governance/CARD_TEMPLATE.md`.
+
+## Ecosystem Knowledge
+
+Put all language, standard, library, OS, Docker, build tool, config format, and runtime dependency facts in:
 - `project-knowledge/01-project/PROJECT_ECOSYSTEM.md`
 
-Туди ж входить:
-- список мов і стандартів
-- основні бібліотеки та їх роль
-- цільова ОС і build container
-- build system і мінімальні команди
-- authoritative source files для environment knowledge
+This includes:
+- languages and standards;
+- main libraries and their role;
+- target OS and build container;
+- build system and minimal commands;
+- authoritative source files for environment knowledge.
 
-Якщо інформація детальна і велика, її можна виносити в окремі дочірні документи, наприклад:
+If the content grows, split it into child documents such as:
 - `project-knowledge/01-project/BUILD_AND_RUN.md`
 - `project-knowledge/01-project/DEPENDENCIES.md`
 - `project-knowledge/01-project/REPO_LAYOUT.md`
 
-## Поведінка агента при розбіжностях або нестачі знань
+## Missing Or Conflicting Knowledge
 
-Якщо knowledge base неповна, агент не повинен вигадувати факти.
+If Project Knowledge is incomplete, do not invent facts.
 
-Він має:
-- перевірити код і конфігураційні файли
-- описати, чого саме бракує
-- вказати, які картки або індекси слід оновити
-- явно позначити `Open questions`
-- запропонувати створення або оновлення картки як `draft`, але не робити цього без узгодження
+Do this instead:
+- verify code and config files;
+- describe exactly what is missing;
+- list cards or indexes that should be updated;
+- mark `Open questions`;
+- propose creating or updating a draft card, but wait for approval.
 
-## Definition of done для документаційної частини задачі
+## Documentation Definition Of Done
 
-Цей блок застосовується лише до задач, у яких оновлення документації було явно погоджене.
+This applies only to tasks where documentation updates were explicitly approved.
 
-Документаційна частина вважається завершеною, якщо:
-- нові або змінені технічні факти підтверджені кодом
-- оновлено релевантні картки
-- оновлено індекси, якщо змінилася навігація
-- оновлено `PROJECT_ECOSYSTEM.md`, якщо торкнулися середовища
-- у knowledge base немає тихих конфліктів між кодом і текстом
+Documentation work is done when:
+- new or changed technical facts are verified against code;
+- relevant cards are updated;
+- indexes are updated when navigation changed;
+- `PROJECT_ECOSYSTEM.md` is updated when environment facts changed;
+- Project Knowledge has no silent conflicts between code and documentation.

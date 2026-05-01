@@ -1,200 +1,164 @@
 # TESTING_POLICY.md
 
-## Призначення
+## Purpose
 
-Цей файл описує правила тестування в проєкті та обмеження для AI-агента щодо створення, зміни й запуску тестів.
+This file defines project testing rules and AI-agent limits for creating, changing, and running tests.
 
-## Статус документа
+## Status
 
-Статус: active
+Status: active.
 
-Цей документ визначає робочі правила тестування для поточного стану проєкту.
-Canonical алгоритм виконання AI-agent test runs визначено в:
+The canonical AI-agent run workflow is:
 - `project-knowledge/05-validation/AI_AGENT_TESTING_WORKFLOW.md`
 
-Scope для AI-agent test run policy:
-- правила stop-on-failure і orchestration у цьому контексті застосовуються лише до тестових запусків;
-- для звичайних задач розробки policy може бути іншою та узгоджується окремо.
+The stop-on-failure and orchestration rules in that workflow apply to test execution only. Normal development tasks may have separate policy agreed per task.
 
-## Базове правило для агента
+## Base Agent Rule
 
-Без явного узгодження агенту заборонено:
-- створювати нові automated tests;
-- створювати fixtures, mocks, stubs, snapshots, golden files;
-- додавати або змінювати тестову інфраструктуру;
-- масово переписувати існуючі тести;
-- змінювати тестову стратегію проєкту.
+Without explicit approval, agents must not:
+- create new automated tests;
+- create fixtures, mocks, stubs, snapshots, or golden files;
+- add or change test infrastructure;
+- mass-rewrite existing tests;
+- change the project testing strategy.
 
-Якщо агент вважає, що тестування потрібне, він повинен:
-- описати ризик;
-- пояснити, чому тест був би корисний;
-- запропонувати test plan;
-- дочекатися узгодження.
+If an agent believes testing is needed, it must:
+- describe the risk;
+- explain why a test would help;
+- propose a test plan;
+- wait for approval.
 
-## Роль тестування в проєкті
+## Testing Role In The Project
 
-Тестування має гібридний характер:
-- для C++ модулів використовуються build + targeted validation сценарії;
-- для інтеграційних сценаріїв DP1/DP2 використовується run-based перевірка артефактів;
-- для AI-agent test runs обов'язковий структурований pipeline зі stop-on-failure.
+Testing is hybrid:
+- C++ modules use build + targeted validation scenarios;
+- DP1/DP2 integration uses run-based artifact validation;
+- AI-agent test runs use a structured stop-on-failure pipeline.
 
-Базове правило для Amanita-run:
-- за замовчуванням виконувати спільний запуск DP1 + DP2;
-- модульно-ізольований запуск (тільки DP1 або тільки DP2) робити лише за явним узгодженням.
+Default Amanita run rule:
+- run DP1 + DP2 together by default;
+- isolated DP1-only or DP2-only runs require explicit approval.
 
-## Типи тестів у проєкті
+## Test Categories
 
-Поточні робочі категорії:
-- unit/integration тести через `gtests/` (де вже наявні);
-- run-based validation для DP1/DP2;
-- dataset-based validation через Amanita + Comparator;
-- manual verification для сценаріїв, де автоматизація не узгоджена.
+Current categories:
+- unit/integration tests through existing `gtests/`;
+- run-based validation for DP1/DP2;
+- dataset-based validation through Amanita + Comparator;
+- manual verification where automation is not approved.
 
-## Коли тестування потрібне
+## When Testing Must Be Proposed Or Run
 
-Тестування обов'язково пропонувати/виконувати, якщо змінюється:
-- алгоритм DP1/DP2;
-- формат даних або serialization contracts;
+Testing is required to propose or run when changes affect:
+- DP1/DP2 algorithms;
+- data formats or serialization contracts;
 - runtime/config behavior;
-- build/run path, що може вплинути на інтеграційний сценарій;
-- логіка, що вже покрита наявним validation-сценарієм.
+- build/run paths that may affect integration scenarios;
+- logic already covered by a validation scenario.
 
-## Коли агент не повинен автоматично додавати тести
+## When Agents Must Not Add Tests Automatically
 
-Агент не повинен автоматично додавати тести, якщо:
-- задача цього прямо не вимагає;
-- тестова стратегія для модуля не визначена;
-- для коректного тесту потрібна нова інфраструктура;
-- потрібні великі fixtures, datasets або mocks;
-- очікуваний формат перевірки ще не узгоджений.
+Do not add tests automatically when:
+- the task does not request it;
+- module testing strategy is undefined;
+- correct testing requires new infrastructure;
+- large fixtures, datasets, or mocks are needed;
+- expected check format is not agreed.
 
-## Test plan замість автоматичного тесту
+## Test Plan Instead Of Test Creation
 
-Якщо агент не має права створити тест, він повинен запропонувати test plan.
+When an agent cannot create a test, propose a test plan covering:
+- what to verify;
+- suitable verification type;
+- required input data;
+- expected result;
+- covered risks;
+- manual checks;
+- future automation candidates.
 
-Test plan може включати:
-- що саме потрібно перевірити;
-- який тип перевірки підходить;
-- які вхідні дані потрібні;
-- який очікуваний результат;
-- які ризики покриває перевірка;
-- що можна перевірити вручну;
-- що варто автоматизувати пізніше.
+## Existing Tests
 
-## Правила роботи з існуючими тестами
+Do not mass-change existing tests without explicit approval. Local edits to existing tests are allowed only when they are part of the approved task.
 
-Без явного узгодження агент не повинен масово змінювати наявні тести.
-Локальні зміни в існуючих тестах можливі лише якщо це прямо входить у погоджену задачу.
+## Fixtures, Mocks, Stubs, Datasets
 
-## Fixtures, mocks, stubs, datasets
+- Do not create new fixtures/mocks/stubs without explicit approval.
+- Store the dataset pool for AI-agent validation under `${AMANITA_RESOURCES_DIR}/datasets`.
+- Keep large binary artifacts in the resource directory, not in git history.
 
-- Нові fixtures/mocks/stubs не створювати без явного узгодження.
-- Dataset pool для AI-agent validation зберігати під `${AMANITA_RESOURCES_DIR}/datasets`.
-- Великі бінарні артефакти тримати в ресурсному каталозі, а не у git-історії коду.
+## Manual Verification
 
-## Manual verification
+Manual verification is acceptable when automation is unavailable or not approved, and the result is backed by run-directory artifacts.
 
-Manual verification прийнятна, якщо:
-- автоматизація не узгоджена або недоступна для конкретного сценарію;
-- результат підтверджується артефактами run-директорії.
+Minimum AI-agent run reporting:
+- run structure follows `AI_AGENT_TESTING_WORKFLOW.md`;
+- step logs are under `Logs/Amanita/<StageId>` and `Logs/Comparator/<StageId>`;
+- per-stage configs are under `Configs/Amanita/.../<StageId>` and `Configs/Comparator/<StageId>`;
+- `<TestId>_Summary.md` is generated at run root by `test.agent/scripts/generate_summary.sh`;
+- failures are recorded in `FAILED.txt`.
 
-Мінімальний формат manual/reporting для AI-agent run:
-- структура run згідно `AI_AGENT_TESTING_WORKFLOW.md`;
-- логи кроків у `Logs/Amanita/<StageId>` та `Logs/Comparator/<StageId>`;
-- per-stage конфіги у `Configs/Amanita/.../<StageId>` та `Configs/Comparator/<StageId>`;
-- підсумковий файл `<TestId>_Summary.md` у корені run, генерований автоматично через `test.agent/scripts/generate_summary.sh`;
-- явна фіксація причин помилки у `FAILED.txt` при fail.
+Generate the summary after both stages complete successfully:
 
-Обов'язковий мінімум даних у `<TestId>_Summary.md` (генерується автоматично):
-- id тесту (`TestId`), дата, датасет, опис;
-- дані DP1: кількість знайдених об'єктів (парсується з JSON), час виконання;
-- дані DP2: кількість відстежених траєкторій, час виконання;
-- дані Comparator: кількість report-файлів, загальна кількість порівняних кадрів, mean overlap %, mean RMS deviation area, mean false positives %, mean false negatives %, деталізація по кожному report-файлу;
-- коротке summary за результатами тесту.
-
-Цей перелік є default-профілем Summary.
-Перед test run за погодженням з користувачем може бути заданий custom-набір полів.
-Якщо використовується custom-набір полів, генерація Summary виконується per-run скриптами, що мають бути розміщені в `Temp/` поточного run.
-
-Генерацію Summary виконувати після успішного завершення обох stage-ів:
 ```bash
-test.agent/scripts/generate_summary.sh \
-  --run-root <path> \
-  --test-id <id> \
-  [--stage-id <id>] \
-  [--dataset <name>] \
-  [--description <text>] \
-  [--test-date "YYYY-MM-DD HH:MM:SS"]
+test.agent/scripts/generate_summary.sh   --run-root <path>   --test-id <id>   [--stage-id <id>]   [--dataset <name>]   [--description <text>]   [--test-date "YYYY-MM-DD HH:MM:SS"]
 ```
 
-Правило для multi-run:
-- якщо `--stage-id` не задано і в run наявні кілька stage, Summary формується як один aggregated звіт по всіх stage;
-- якщо `--stage-id` задано, формується Summary лише для цього stage.
+For multi-run:
+- without `--stage-id`, generate one aggregated report across all stages;
+- with `--stage-id`, generate the summary only for that stage.
 
-## Performance та benchmark перевірки
+## Performance And Benchmarks
 
-Performance/benchmark перевірки не є обов'язковими за замовчуванням.
-Виконуються лише за окремим запитом користувача або коли задача прямо про performance-регресію.
+Performance/benchmark checks are not mandatory by default. Run them only when the user asks or the task is about performance regression.
 
-## Запуск тестів
+## Running Tests
 
-- Для CMake-тестів використовувати інтегровані test flows проєкту.
-- Для AI-agent тестування Amanita + Comparator використовувати алгоритм із `05-validation/AI_AGENT_TESTING_WORKFLOW.md`.
-- Перед Comparator stage обов'язково перевіряти наявність і валідність готового Python-оточення Comparator.
-- Якщо Python-оточення Comparator відсутнє/невалідне, test run потрібно зупинити і запропонувати користувачу налаштування оточення.
-- Під час test run execution заборонено змінювати production код Amanita/Comparator; дозволені лише per-run конфіги, артефакти, логи та звіти.
-- Кожен новий test run має бути незалежним і стартувати з нуля; перевикористання staged конфігів і run-артефактів з попередніх тестів заборонено.
-- Для execution stage-ів використовувати строго `test.agent/scripts/run_amanita_stage.sh` -> validate -> `test.agent/scripts/run_comparator_stage.sh` -> validate.
-- Amanita stage вважається повним лише при спільному запуску DP1 + DP2 (якщо інше не погоджено явно).
-- Для DP1 із file-based source (`imagefile`, `videofile`) завершення потоку кадрів (EOF) має трактуватись як успішне завершення stage з кодом `0`.
-- Кроки в pipeline виконуються строго послідовно, якщо не задано інше.
-- Перехід до наступного кроку дозволений лише після завершення поточного процесу (blocking wait-until-exit).
-- Результат кроку 9 (загальний аналіз) обов'язково відображати в чаті та дублювати в кінці `<TestId>_Summary.md` у секції `Result summary`.
-- Звіт `<TestId>_Summary.md` має бути мовно узгодженим (без змішування мов); пріоритетна мова звітування: українська.
-- Інтерпретація кроку 9 має бути структурованою та включати щонайменше:
-  - загальний статус і короткий висновок;
-  - порівняння stage-ів (для multi-run) або підтвердження single-stage стабільності;
-  - розбір Comparator-метрик (`overlap`, `rms`, `false positives`, `false negatives`);
-  - коротку оцінку продуктивності (часи DP1/DP2/Comparator);
-  - ризики і рекомендований наступний крок.
-- Для smoke/synthetic multi-run обов'язково явно вказувати, що інтерпретація має технічний характер і не замінює benchmark на реальному candidate.
-- При першому fail подальше виконання припиняється.
-- Для невідомих non-zero exit кодів діє stop-and-wait за замовчуванням.
-- Після fail заборонено autonomous recovery без явної вказівки користувача.
+- Use integrated project test flows for CMake tests.
+- Use `05-validation/AI_AGENT_TESTING_WORKFLOW.md` for Amanita + Comparator AI-agent testing.
+- Before Comparator stage, verify the prepared Comparator Python environment.
+- If the Comparator Python environment is missing or invalid, stop and ask the user to configure it.
+- During test-run execution, do not change production Amanita/Comparator code. Only per-run configs, artifacts, logs, and reports may be changed.
+- Each new test run must start from a clean state. Do not reuse staged configs or artifacts from previous tests.
+- Use strictly `test.agent/scripts/run_amanita_stage.sh` -> validate -> `test.agent/scripts/run_comparator_stage.sh` -> validate.
+- Amanita stage is complete only when DP1 + DP2 run together, unless explicitly agreed otherwise.
+- For DP1 file-based sources (`imagefile`, `videofile`), EOF is a successful stage completion with exit code `0`.
+- Pipeline steps run strictly in sequence unless explicitly stated otherwise.
+- Move to the next step only after the current process exits.
+- Report step 9 analysis in chat and append it to `<TestId>_Summary.md` under `Result summary`.
+- A single Summary must use one language consistently. Default report language is Ukrainian unless the user asks otherwise.
+- Stop on the first failure.
+- Unknown non-zero exit codes use stop-and-wait by default.
+- After failure, autonomous recovery is forbidden without explicit user instruction.
 
-## Валідація без тестів
+## Validation Without Tests
 
-Коли automated tests не додаються, прийнятні альтернативи:
-- локальний build;
+When automated tests are not added, acceptable alternatives are:
+- local build;
 - run-based manual scenario;
-- перевірка output artifacts і логів;
-- порівняння expected/actual через Comparator;
-- документування результату в `<TestId>_Summary.md`.
+- output artifact and log review;
+- expected/actual comparison through Comparator;
+- result documentation in `<TestId>_Summary.md`.
 
-## Обмеження на тестову інфраструктуру
+## Test Infrastructure Limits
 
-Без явного узгодження агенту заборонено:
-- додавати нові test frameworks;
-- підключати нові mocking libraries;
-- змінювати структуру test directories;
-- додавати CI jobs лише для тестів;
-- створювати великі тестові артефакти в репозиторії.
+Without explicit approval, agents must not:
+- add new test frameworks;
+- add mocking libraries;
+- change test directory structure;
+- add CI jobs only for tests;
+- create large test artifacts in the repository.
 
-## Open questions
+## Open Questions
 
-Тут потрібно збирати неузгоджені питання щодо тестування.
+- Are unit tests required for core C++ logic, or are integration/manual checks enough?
+- Are mocks allowed in this project?
+- What is the minimum test plan for a bug fix?
 
-Приклад:
-- Чи потрібні unit tests для core C++ logic, чи достатньо integration/manual validation?
-- Чи допускається створення mocks у цьому проєкті?
-- Який мінімальний test plan очікується для багфіксу?
-- Чи можна агенту змінювати existing tests, якщо вони ламаються після погодженого refactoring?
+## Definition Of Done For This Document
 
-## Definition of done для цього документа
-
-Документ можна вважати робочим, коли:
-- визначено, які типи тестів реально використовуються;
-- зафіксовано, що агенту дозволено і що заборонено без узгодження;
-- визначено, коли потрібен test plan;
-- визначено, які ручні або альтернативні перевірки прийнятні;
-- визначено правила для запуску тестів і зміни існуючої тестової бази.
+This document is operational when it defines:
+- test types used by the project;
+- what agents may and may not do without approval;
+- when a test plan is required;
+- acceptable manual or alternative checks;
+- rules for running tests and changing existing tests.
