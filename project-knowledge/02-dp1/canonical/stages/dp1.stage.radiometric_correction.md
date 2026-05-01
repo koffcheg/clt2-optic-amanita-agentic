@@ -49,6 +49,9 @@ Residual або скоригований домен обробки: `CV_32FC1` �
 - `L1`: inverse median як robust-варіант.
 - `L2`: adaptive background, band-pass або per-tile background.
 
+`inverse_median` конкретизується у
+`dp1.stage_spec.radiometric_correction.inverse_median`.
+
 ## OpenCV mapping
 
 - `blur`: `native`.
@@ -74,6 +77,10 @@ Residual або скоригований домен обробки: `CV_32FC1` �
 
 Якщо використовується adaptive або stateful background, власник стану має бути
 задекларований у специфікації етапу і конфігурації `C`.
+
+Для `inverse_median` state ownership, lifecycle циклічного буфера, розрядність
+residual, режими приведення виходу та вимоги валідації визначені у
+`dp1.stage_spec.radiometric_correction.inverse_median`.
 
 ## Must not do
 
@@ -104,4 +111,5 @@ Residual або скоригований домен обробки: `CV_32FC1` �
 
 - uses: dp1.domain.processing
 - constrained_by: dp1.domain.conversion_rules
+- specified_by: dp1.stage_spec.radiometric_correction.inverse_median
 - feeds: dp1.stage.enhancement_denoising
