@@ -18,6 +18,7 @@ Knowledge base має лежати в корені репозиторію в к�
 - `project-knowledge/05-validation/` - тести, mock-и, regression scenarios, validation notes
 - `project-knowledge/00-governance/CODE_STYLE.md` - правила стилю коду
 - `project-knowledge/00-governance/TESTING_POLICY.md` - правила тестування
+- `project-knowledge/00-governance/CANONICALIZATION_POLICY.md` - коротка policy перенесення draft/task-card content у canonical domain cards
 - `project-knowledge/06-tasks/TASKS_INDEX.md` - індекс task cards
 - `project-knowledge/06-tasks/cards/` - task cards для конкретних задач
 - `project-knowledge/00-governance/TASK_CARD_TEMPLATE.md` - шаблон task card
