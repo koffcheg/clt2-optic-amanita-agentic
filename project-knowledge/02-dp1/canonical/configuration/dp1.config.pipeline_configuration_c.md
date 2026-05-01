@@ -99,6 +99,39 @@ status: "draft"
 Профіль `RT-5` допускає лише `L0` і частково доведені `L1`-варіанти. Профіль
 `RT-20` допускає `L1` і `L2`-варіанти за умови проходження часової валідації.
 
+Для `radiometric.variant = "inverse_median"` параметри визначає
+`dp1.stage_spec.radiometric_correction.inverse_median`.
+
+Фрагмент конфігурації `inverse_median`:
+
+```json
+{
+  "radiometric": {
+    "enabled": true,
+    "variant": "inverse_median",
+    "level": "L1",
+    "parameters": {
+      "inverse_median": {
+        "enabled": true,
+        "mode": "FixedK3|FixedK5",
+        "stride": 1,
+        "output_median_frame": false,
+        "output_dynamic_range_mode": "RawSigned|ClipToInputRange|ShiftToPositive|ScaleToInputRange"
+      }
+    }
+  }
+}
+```
+
+Для `inverse_median`:
+- `stride >= 1`;
+- внутрішній pipeline output за замовчуванням - `RawSigned`;
+- рекомендований користувацький або compatibility output - `ClipToInputRange`;
+- якщо `inverse_median` вимкнено у конфігурації при старті програми, пам'ять під
+  циклічний буфер кадрів не виділяється;
+- runtime disable/re-enable потребує окремого рішення у
+  `dp1.stage_spec.radiometric_correction.inverse_median`.
+
 ## Interpretation
 
 Вибір реалізації належить конфігурації, а не прихованим гілкам коду.
@@ -125,3 +158,4 @@ status: "draft"
 
 - uses: dp1.pipeline.formal_model
 - constrained_by: dp1.domain.conversion_rules
+- configures: dp1.stage_spec.radiometric_correction.inverse_median

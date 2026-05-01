@@ -14,10 +14,11 @@ This section defines target DP1 architecture independently from legacy `datapro1
 4. `pipeline/dp1.pipeline.stage_contract.md`
 5. `data_domains/*.md`
 6. `stages/*.md`
-7. `configuration/dp1.config.pipeline_configuration_c.md`
-8. `configuration/dp1.config.complexity_levels.md`
-9. `validation/dp1.validation.canonical_conformance.md`
-10. `../../04-protocols/cards/protocols.dp1_dp2.measurement_handoff.md`
+7. `stage_specs/*.md`
+8. `configuration/dp1.config.pipeline_configuration_c.md`
+9. `configuration/dp1.config.complexity_levels.md`
+10. `validation/dp1.validation.canonical_conformance.md`
+11. `../../04-protocols/cards/protocols.dp1_dp2.measurement_handoff.md`
 
 ## Code generation rule
 
@@ -27,11 +28,15 @@ Code = f(Cards, Stage_Spec, C)
 
 Code generation from informal text, legacy code, or legacy-reference cards is forbidden.
 
-Stage specifications are not written in this section yet. Stage-interface cards
-define boundaries, Big-TZ-derived interface constraints, complexity variants,
-OpenCV mapping, configuration fragments, data formats, and critical invariants.
-They still are not sufficient for code generation without future small stage
-specifications.
+Stage-interface cards define boundaries, technical-requirements-derived
+interface constraints, complexity variants, OpenCV mapping, configuration
+fragments, data formats, and critical invariants. They are not sufficient for
+code generation without small stage specifications.
+
+Current stage specifications:
+- `stage_specs/dp1.stage_spec.radiometric_correction.inverse_median.md` -
+  stage spec for the existing `radiometric_correction` variant
+  `inverse_median`.
 
 The current canonical stage-interface card set covers only the eight main DP1
 detection/measurement stages. Infrastructure stages such as visualization and

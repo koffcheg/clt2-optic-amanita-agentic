@@ -4,7 +4,7 @@ title:
   uk: "<Ukrainian title, optional when bilingual title is required>"
   en: "<English title>"
 tags: [tag1, tag2, tag3]
-kind: "<data-domain-card | stage-interface-card | pipeline-card | config-card | protocol-card | validation-card | governance-card | legacy-reference-card>"
+kind: "<data-domain-card | stage-interface-card | stage-spec-card | pipeline-card | config-card | protocol-card | validation-card | governance-card | legacy-reference-card>"
 source_role: "<canonical | legacy-reference | verification | draft>"
 source:
   file: "path/to/file"

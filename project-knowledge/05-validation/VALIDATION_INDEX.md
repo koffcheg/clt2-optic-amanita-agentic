@@ -21,6 +21,10 @@ For AI-agent test execution, the canonical workflow is:
 - `validation.amnt0004.dp1_binning` - validation card for legacy DP1 sum-binning feature.
   link: `cards/validation.amnt0004.dp1_binning.md`
 
+- `validation.dp1.radiometric_correction.inverse_median` - validation route for
+  the `inverse_median` variant of canonical DP1 `radiometric_correction`.
+  link: `cards/validation.dp1.radiometric_correction.inverse_median.md`
+
 ## Related Documents
 
 - `project-knowledge/00-governance/TESTING_POLICY.md` - governance rules for testing and agent action limits.

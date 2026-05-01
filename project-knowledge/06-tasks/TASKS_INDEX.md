@@ -30,3 +30,4 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0008` - historical task card, read only by explicit user request - completed
 - `AMNT-0009` - historical task card, read only by explicit user request - in_progress
 - `AMNT-0010` - card-driven / LLM-first Project Knowledge restructuring for canonical DP1 and future canonical DP2 - completed
+- `AMNT-0011` - temporal inverse median filter technical requirements specification analysis and implementation card - completed
