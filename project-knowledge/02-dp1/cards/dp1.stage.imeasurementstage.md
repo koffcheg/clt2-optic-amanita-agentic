@@ -10,12 +10,12 @@ source:
   - project-knowledge/02-dp1/cards/dp1.types.TDataRes.md
   - project-knowledge/02-dp1/cards/dp1.rpc.serialize_dp1_res.md
   - project-knowledge/02-dp1/cards/dp1.net.dp1_tr_res2dp2_connection.md
-status: canonical
+status: draft
 ---
 
 ## Definition
 
-`IMeasurementStage` — stage-level interface DP1, який перетворює candidate/segmentation artifacts у measurement-level output, сумісний з `TOptionsMeasurement`, `TDrawMeasurement`, `TDataRes` і downstream boundary DP1 -> DP2.
+`IMeasurementStage` — stage-level interface DP1, який перетворює candidate/segmentation artifacts у measurement-level output, сумісний з existing DP1 result structures, `TDrawMeasurement`, `TDataRes` і downstream boundary DP1 -> DP2.
 
 ## Assumptions
 
@@ -58,13 +58,13 @@ status: canonical
 
 - Змішування measurement extraction з transport-side serialization в одному компоненті.
 - Додавання GUI/debug I/O в measurement hot path.
-- Неявна зміна layout або semantics `TOptionsMeasurement` без versioning policy.
+- Неявна зміна layout або semantics existing DP1 result structures без versioning policy.
 
 ## Open questions
 
 1. Який canonical input DTO для `IMeasurementStage`: contour-first, CC-first чи hybrid?
 2. Які exact acceptance/rejection criteria на межі `IObjectFilterStage` -> `IMeasurementStage`?
-3. Чи потрібне explicit confidence/quality поле, якщо це впливає на layout `TOptionsMeasurement`?
+3. Чи потрібне explicit confidence/quality поле, якщо це впливає на layout existing DP1 result structures?
 4. Де фіксується межа відповідальності між `ICandidateExtractionStage` і `IMeasurementStage` для derived metrics?
 
 ## Connections
