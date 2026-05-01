@@ -1,35 +1,43 @@
 # DP1_INDEX
 
-## Призначення
+## Purpose
 
-Це вхідна точка knowledge base для DP1 (`datapro1`).
-Файл маршрутизує до структурних карток та основних джерел коду DP1.
+This is the entry point for DP1 knowledge. It routes agents between canonical DP1 target knowledge and legacy-reference knowledge for old `datapro1`.
 
-## Поточний вміст розділу
+## Current Section Content
 
-- `DP1_CARDS_INDEX.md` - індекс DP1-карток
-- `cards/*.md` - атомарні картки структур та інтерфейсів DP1
+- `canonical/DP1_CANONICAL_INDEX.md` - canonical entry point for new DP1.
+- `legacy/DP1_LEGACY_INDEX.md` - legacy-reference index for old DP1.
+- `DP1_CARDS_INDEX.md` - compatibility index for the former `cards/` layout.
 
-## Що вже покрито
+## Covered Knowledge
 
-1. Основні типи даних DP1 (`TData*`, `TOptionsMeasurement`, `TDrawMeasurement`, `TFolder`).
-2. Frame processing boundary (`frame_n_header`, `frame_processor`).
-3. Runtime буфери/локальні структури ingest і multithreading.
-4. Конфігураційний шар DP1.
-5. Preprocessing stage (sum-binning feature toggle).
-6. RPC serialization primitives і DP1 -> DP2 transport.
-7. File output contracts (`.blob`, `.json`, naming).
-8. Runtime lifecycle/orchestration contracts (`ipc_data_rc_impl`, `run_ipc_src`, `run_uri_src`, `dp1_main`).
-9. Manual validation сценарій для AMNT-0004 у `project-knowledge/05-validation/`.
+Canonical DP1:
+1. Product definition and source-of-truth route.
+2. Formal pipeline model `Π`.
+3. Data domains: Raw, Processing, Mask, Measurement, Visualization, conversion rules.
+4. Eight main stage-interface cards derived from the Big TZ interface requirements.
+5. Configuration model `C` and complexity levels.
+6. Canonical conformance validation.
 
-## Що лишається додати далі
+Legacy DP1:
+1. DP1 data structures, including `TData*`, `TOptionsMeasurement`, `TDrawMeasurement`, `TFolder`.
+2. Frame processing boundary.
+3. Runtime buffers and ingest/threading structures.
+4. Configuration layer.
+5. Preprocessing and tile-related behavior.
+6. RPC serialization primitives and DP1 -> DP2 legacy transport.
+7. File output contracts.
+8. Runtime lifecycle/orchestration contracts.
 
-1. За потреби винести shared wire/file contracts у `04-protocols/`.
-2. Синхронізувати додаткові зв'язки DP1 <-> DP2 при розширенні DP2 knowledge.
+## Next Work
 
-## Рекомендований маршрут читання
+1. Write full small stage specifications for canonical DP1.
+2. Define the complete configuration schema `C`.
+3. Define canonical Measurement payload schema.
 
-1. `DP1_CARDS_INDEX.md`
-2. `cards/*.md`
-3. `datapro1/src/*`
-4. `datapro1/config/*`
+## Reading Route
+
+1. For canonical development: `canonical/DP1_CANONICAL_INDEX.md`.
+2. For legacy analysis: `legacy/DP1_LEGACY_INDEX.md`.
+3. For compatibility navigation: `DP1_CARDS_INDEX.md`.

@@ -4,20 +4,20 @@
   1. Open project-knowledge/06-tasks/TASKS_INDEX.md
   2. Find the highest existing AMNT-XXXX number
   3. Increment it by 1 to get the new id
-  4. Use that id in the filename (e.g. AMNT-0002.md) and in the `id` field below
+  4. Use that id in the filename and in the `id` field below
   Never use placeholder ids like AMNT-0000.
 -->
 
 ---
 id: AMNT-XXXX
-title: Коротка назва задачі
+title: Short task title
 status: draft
 type: task-card
 priority: normal
 created_by: agent
 created_at: YYYY-MM-DD
 updated_at: YYYY-MM-DD
-related_user_request: Короткий опис запиту користувача
+related_user_request: Short description of the user request
 scope: local | medium | broad
 domain_area:
   - dp1
@@ -27,44 +27,60 @@ domain_area:
 related_files: []
 related_cards: []
 approval_status: pending
+task_mode: canonical_development | legacy_analysis | migration | validation | governance
+canonical_sources: []
+legacy_access: forbidden | allowed
+allowed_legacy_sources: []
+forbidden_sources: []
+source_of_truth_cards: []
+stage_specs_required: yes | no
+configuration_required: yes | no
+validation_route:
 ---
 
 ## Summary
 
-Короткий опис задачі людською мовою.
-Що саме потрібно зробити, без зайвих деталей.
+Brief human-readable description of the task.
 
 ## Goal
 
-Який очікуваний результат задачі.
+Expected result.
 
 ## In scope
 
-Що входить у межі задачі.
+What is included in the task.
 
 ## Out of scope
 
-Що не входить у межі задачі і не повинно змінюватися без окремого узгодження.
+What must not be changed without separate approval.
 
 ## User constraints
 
-Явні обмеження від користувача.
-Наприклад:
-- не змінювати knowledge base без узгодження
-- не створювати тести без узгодження
-- не робити широкі рефакторинги
-- не додавати нові залежності
+Explicit user constraints.
+
+Examples:
+- do not change Project Knowledge without approval;
+- do not create tests without approval;
+- do not perform broad refactoring;
+- do not add dependencies.
+
+## Source access rules
+
+For `canonical_development`, legacy is forbidden by default.
+
+If `legacy_access: allowed`, the task card must list exact `allowed_legacy_sources`.
+
+Legacy materials are not target-architecture sources and must not be used for canonical code generation.
 
 ## Assumptions
 
-Припущення, з якими агент починає роботу.
-Непідтверджені факти потрібно явно позначати тут.
+Starting assumptions. Mark unverified facts explicitly.
 
 ## Relevant context to read
 
-Список файлів, які треба прочитати перед виконанням задачі.
+Files that must be read before execution.
 
-Наприклад:
+Examples:
 - `project-knowledge/PROJECT_INDEX.md`
 - `project-knowledge/01-project/PROJECT_ECOSYSTEM.md`
 - `project-knowledge/04-protocols/PROTOCOLS_INDEX.md`
@@ -72,55 +88,44 @@ approval_status: pending
 
 ## Planned changes
 
-Які саме зміни очікуються.
-Краще коротким списком по суті.
+Short list of expected changes.
 
 ## Files expected to be touched
 
-Які файли, ймовірно, будуть змінюватися.
+Files likely to be changed.
 
 ## Risks
 
-Які є ризики:
-- порушення контрактів
-- зміна формату даних
-- вплив на build/run
-- ризик побічних змін
-- неповний knowledge context
+Risks such as contract changes, data-format changes, build/run impact, side effects, or incomplete knowledge context.
 
 ## Validation approach
 
-Як буде перевірятися результат.
+How the result will be checked.
 
-Наприклад:
-- review by code reading
-- local build
-- manual scenario
-- test plan only
-- no validation yet
+Examples:
+- review by code reading;
+- local build;
+- manual scenario;
+- test plan only;
+- no validation yet.
 
 ## Knowledge-base impact
 
-Чи зачіпає задача knowledge base.
-
-Можливі значення:
+Possible values:
 - none
 - maybe
 - yes
 
-Якщо `maybe` або `yes`, треба вказати:
-- які саме картки або індекси потенційно застарівають
-- чи потрібне окреме узгодження на їх оновлення
+If `maybe` or `yes`, list affected cards or indexes and whether separate approval is required.
 
 ## Execution notes
 
-Короткі нотатки по ходу виконання.
-Без перетворення картки на великий лог.
+Short execution notes. Do not turn the card into a large log.
 
 ## Result
 
-Що фактично зроблено.
+What was actually done.
 
 ## Follow-up
 
-Що залишилося на майбутнє або потребує окремого узгодження.
+Future work or items requiring separate approval.

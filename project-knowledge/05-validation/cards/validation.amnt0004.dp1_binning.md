@@ -4,6 +4,8 @@ title:
   uk: "Валідація AMNT-0004: sum-binning у DP1"
   en: "Validation AMNT-0004: DP1 sum-binning"
 tags: [validation, dp1, binning, manual-test, performance]
+kind: validation-card
+source_role: verification
 source:
   file: "datapro1/src/dp1_frame_proc.cpp"
   lines: "1-420"
@@ -12,39 +14,39 @@ status: "draft"
 
 ## Definition
 
-Картка описує фактичний manual validation сценарій для фічі `binning` у DP1: порівняння режимів OFF/ON на однаковому датасеті, оцінка продуктивності та перевірка guardrails конфіга.
+Ця картка описує ручний сценарій валідації для DP1-функції `binning`: порівняти режими OFF/ON на одному й тому самому dataset, оцінити продуктивність і перевірити guardrails конфігурації.
 
 ## Assumptions
 
-- Валідація проводиться в debug build через `builder/build_dp1_dp2.sh Debug`.
-- Для поточної ітерації використовується single-channel датасет `SWIR_Camera`.
-- DP2 може бути не запущений під час валідації DP1 output.
+- Валідація виконується у debug build через `builder/build_dp1_dp2.sh Debug`.
+- Поточний сценарій використовує одноканальний dataset `SWIR_Camera`.
+- DP2 може бути зупинений під час валідації виходу DP1.
 
 ## Theorem / Contract
 
-- `binning.switched=false` має зберігати legacy path без додаткового preprocessing.
-- `binning.switched=true, factor=2, mode=sum` має виконувати preprocessing перед тайлінгом і повертати координати вимірів у СК початкового кадру перед експортом.
-- Невалідні значення `binning.factor` і `binning.mode` повинні завершувати запуск із помилкою валідації конфіга.
+- `binning.switched=false` має зберігати legacy-шлях без додаткового preprocessing.
+- `binning.switched=true, factor=2, mode=sum` має запускати preprocessing перед tiling і перед export повертати координати вимірювань у початкову систему координат кадру.
+- Некоректні значення `binning.factor` і `binning.mode` мають зупиняти виконання з помилкою валідації конфігурації.
 
 ## Interpretation
 
-Ця валідація є evidence для задачі AMNT-0004 та прикладом базового шаблону перевірки нових алгоритмічних feature-toggle змін.
+Ця валідація є evidence для `AMNT-0004` і прикладом базового validation pattern для нових алгоритмічних змін, керованих feature toggle.
 
 ## Failure cases
 
-- Запуск із `factor`, що не підтримується (наприклад, 3).
-- Запуск із `mode`, що не підтримується (наприклад, avg).
-- Непридатний датасет (multi-channel без відповідної підтримки preprocessing).
+- Непідтримуваний `factor`, наприклад `3`.
+- Непідтримуваний `mode`, наприклад `avg`.
+- Непридатний dataset, наприклад multi-channel data без відповідної підтримки preprocessing.
 
 ## Typical misuse
 
-- Порівнювати OFF/ON на різних датасетах або з різними конфігами сегментації.
-- Робити висновок про якість детекції лише по FPS без аналізу метрик `Size`/координат.
+- Порівнювати режими OFF/ON на різних datasets або з різними segmentation configs.
+- Робити висновки про якість detection лише за FPS, без перевірки `Size` і coordinate metrics.
 
 ## Open questions
 
-- Чи потрібно окремо нормалізувати параметри сегментації для режиму binning за замовчуванням.
-- Чи слід додати average/max binning як окремі режими в майбутньому.
+- TODO: confirm with user whether segmentation parameters should be normalized separately for default binning mode.
+- TODO: confirm with user whether average/max binning should become separate future modes.
 
 ## Connections
 
