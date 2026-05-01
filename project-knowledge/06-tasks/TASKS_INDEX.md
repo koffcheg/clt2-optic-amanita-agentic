@@ -25,3 +25,5 @@ Task cards не є authoritative source для архітектури, конт�
 - `AMNT-0006` - План рефакторингу DP1-v2 на базі поточного plan+bottlenecks knowledge - completed
 - `AMNT-0007` - Узгодження DP1_v2 з VKO V20 stage-driven pipeline - completed
 - `AMNT-0008` - Винесення IMeasurementStage draft у canonical DP1 stage interface card - draft
+- `AMNT-0009` - Batch-створення canonical downstream DP1 stage interface cards - draft
+
