@@ -37,6 +37,23 @@ If sources conflict, use this order:
 
 If Project Knowledge conflicts with code, Project Knowledge is authoritative. Do not silently update Project Knowledge unless the current task explicitly allows it. Report the mismatch, list affected files, and propose exact changes.
 
+### Target architecture vs runtime facts
+
+Treat canonical cards/specs as **target architecture source of truth** for design and generation.
+
+Treat code, build scripts, runtime configs, and protocol payload paths as **observed system facts** for runtime/build/config/protocol behavior claims.
+
+Do not collapse these layers:
+- canonical target != automatic proof of current runtime behavior;
+- observed runtime behavior != automatic permission to rewrite canonical intent.
+
+When a divergence is found, classify it explicitly:
+1. canonical gap (target is underspecified or missing);
+2. runtime deviation (implementation differs from target);
+3. evidence gap (insufficient code/config/protocol verification).
+
+Then list affected files and propose minimal reconciliation scope.
+
 ## Documentation Language
 
 English is the canonical language for agent-facing documentation. Use short, precise technical English.
