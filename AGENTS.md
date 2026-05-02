@@ -35,24 +35,11 @@ If sources conflict, use this order:
 7. Build/run artifacts: `README.md`, `builder/`, `docker-compose.yml`, `overseer/`, `config/`.
 8. Old notes, drafts, and stale descriptions.
 
-If Project Knowledge conflicts with code, Project Knowledge is authoritative. Do not silently update Project Knowledge unless the current task explicitly allows it. Report the mismatch, list affected files, and propose exact changes.
+For target canonical architecture, canonical Project Knowledge defines intended design.
 
-### Target architecture vs runtime facts
+For existing runtime behavior, build behavior, configuration behavior, exchange formats, and protocol implementation facts, code and configs remain authoritative.
 
-Treat canonical cards/specs as **target architecture source of truth** for design and generation.
-
-Treat code, build scripts, runtime configs, and protocol payload paths as **observed system facts** for runtime/build/config/protocol behavior claims.
-
-Do not collapse these layers:
-- canonical target != automatic proof of current runtime behavior;
-- observed runtime behavior != automatic permission to rewrite canonical intent.
-
-When a divergence is found, classify it explicitly:
-1. canonical gap (target is underspecified or missing);
-2. runtime deviation (implementation differs from target);
-3. evidence gap (insufficient code/config/protocol verification).
-
-Then list affected files and propose minimal reconciliation scope.
+If canonical Project Knowledge and code/configs conflict, the agent must report the mismatch, classify it as canonical gap / runtime deviation / evidence gap, list affected files, and propose minimal reconciliation scope. The agent must not silently rewrite code or Project Knowledge to hide the conflict.
 
 ## Documentation Language
 

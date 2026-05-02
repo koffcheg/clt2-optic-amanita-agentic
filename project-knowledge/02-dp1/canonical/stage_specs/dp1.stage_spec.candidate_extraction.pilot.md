@@ -8,7 +8,7 @@ kind: stage-spec-card
 source_role: canonical
 source:
   file: "project-knowledge/02-dp1/canonical/stage_specs/dp1.stage_spec.candidate_extraction.pilot.md"
-  lines: "1-170"
+  lines: "1-N"
 status: "draft"
 ---
 
@@ -16,7 +16,7 @@ status: "draft"
 
 Pilot small-TZ for `ICandidateExtractionStage`.
 
-The card narrows the stage-interface contract to an implementation-grade route
+The card narrows the stage-interface contract to a pilot target route for future implementation validation
 for canonical development.
 
 ## Scope
@@ -108,6 +108,8 @@ Target canonical architecture source:
 Observed runtime/build/config/protocol facts:
 - must be verified against code/config/protocol artifacts before claiming
   current runtime behavior.
+- This card does not claim that the route is currently implemented or
+  validated in `datapro1_v2`.
 
 Safety rule:
 - if code/runtime behavior diverges from this card, report mismatch,
