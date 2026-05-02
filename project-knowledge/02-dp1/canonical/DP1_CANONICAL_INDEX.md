@@ -37,6 +37,9 @@ Current stage specifications:
 - `stage_specs/dp1.stage_spec.radiometric_correction.inverse_median.md` -
   stage spec for the existing `radiometric_correction` variant
   `inverse_median`.
+- `stage_specs/dp1.stage_spec.candidate_extraction.pilot.md` -
+  pilot small-TZ stage spec for `candidate_extraction` variant
+  `global_threshold` at `L0`.
 
 The current canonical stage-interface card set covers only the eight main DP1
 detection/measurement stages. Infrastructure stages such as visualization and
