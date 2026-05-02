@@ -269,6 +269,24 @@ How to use: open card Markdown files in the 'cards' folder.
 11 Stage interfaces
 -------------------
 
+
+- ICandidateExtractionStage - canonical stage interface для candidate extraction boundary
+  id: dp1.stage.ICandidateExtractionStage
+  link: cards/dp1.stage.icandidateextractionstage.md
+  src: project-knowledge/06-tasks/cards/AMNT-0009.md
+  note: Формалізує логічний input/output кандидатів після frame preprocessing і compatibility очікування для downstream segmentation/filter stages.
+
+- ISegmentationStage - canonical stage interface для segmentation boundary
+  id: dp1.stage.ISegmentationStage
+  link: cards/dp1.stage.isegmentationstage.md
+  src: project-knowledge/06-tasks/cards/AMNT-0009.md
+  note: Формалізує перетворення candidate artifacts у segmentation-resolved objects для downstream filtering/measurement.
+
+- IObjectFilterStage - canonical stage interface для object filtering boundary
+  id: dp1.stage.IObjectFilterStage
+  link: cards/dp1.stage.iobjectfilterstage.md
+  src: project-knowledge/06-tasks/cards/AMNT-0009.md
+  note: Формалізує policy-driven acceptance/rejection перед `IMeasurementStage` із збереженням сумісності з `TDataRes` boundary.
 - IMeasurementStage - canonical stage interface для measurement boundary
   id: dp1.stage.IMeasurementStage
   link: cards/dp1.stage.imeasurementstage.md
