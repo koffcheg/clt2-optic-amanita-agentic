@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Уніфікований мінімальний шаблон малого ТЗ для **DP1 stage-level** задач.
+Уніфікований мінімальний шаблон малого ТЗ для stage-level задач у межах проєкту.
+Конкретний module/pipeline/domain має задаватися в Meta кожного малого ТЗ.
 Цей документ є reusable governance/template artifact і не є canonical domain card.
 
 ## Canonicalization note
@@ -14,6 +15,8 @@
 
 ## 1) Meta
 
+- Project/module:
+- Pipeline/domain:
 - Stage name:
 - Related task card:
 - Author:

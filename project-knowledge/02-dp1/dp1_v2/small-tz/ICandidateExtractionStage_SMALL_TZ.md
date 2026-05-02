@@ -10,7 +10,7 @@
 
 ## 2) Context
 
-`ICandidateExtractionStage` розглядається як downstream stage у DP1 stage-driven потоці, що перетворює попередньо підготовлені проміжні результати у набір кандидатів для наступних етапів фільтрації/сегментації.
+`ICandidateExtractionStage` розглядається як downstream stage у DP1 stage-driven потоці, що перетворює попередньо підготовлені проміжні результати у набір кандидатів для наступних етапів segmentation, object filtering та measurement.
 
 ## 3) Objective
 
