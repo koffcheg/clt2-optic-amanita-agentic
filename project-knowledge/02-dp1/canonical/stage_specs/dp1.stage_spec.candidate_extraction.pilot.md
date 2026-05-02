@@ -16,8 +16,7 @@ status: "draft"
 
 Pilot small-TZ for `ICandidateExtractionStage`.
 
-The card narrows the stage-interface contract to a pilot target route for future implementation validation
-for canonical development.
+This card defines a pilot target route for future implementation validation, without claiming current runtime support.
 
 ## Scope
 
