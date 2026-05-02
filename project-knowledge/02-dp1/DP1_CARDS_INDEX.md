@@ -269,7 +269,6 @@ How to use: open card Markdown files in the 'cards' folder.
 11 Stage interfaces
 -------------------
 
-
 - ICandidateExtractionStage - canonical stage interface для candidate extraction boundary
   id: dp1.stage.ICandidateExtractionStage
   link: cards/dp1.stage.icandidateextractionstage.md

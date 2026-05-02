@@ -5,7 +5,6 @@ tags: [dp1, dp1_v2, stage-interface, object-filter]
 source:
   - project-knowledge/06-tasks/cards/AMNT-0009.md
   - project-knowledge/02-dp1/cards/dp1.stage.imeasurementstage.md
-  - project-knowledge/02-dp1/cards/dp1.types.TOptionsMeasurement.md
   - project-knowledge/02-dp1/cards/dp1.types.TDataRes.md
 status: draft
 ---
@@ -33,7 +32,7 @@ status: draft
    - збереження frame-level consistency для downstream packaging в `TDataRes`.
 
 3. **Compatibility contract:**
-   - stage не порушує очікувану semantics measurement-level fields у `TOptionsMeasurement`/`TDataRes`;
+   - stage не порушує semantics existing DP1 result structures або `TDataRes`.
    - допустимі only non-breaking policy refinements на parity phase.
 
 4. **Determinism / QoS contract:**
@@ -68,5 +67,4 @@ status: draft
 - `dp1.stage.ICandidateExtractionStage`
 - `dp1.stage.ISegmentationStage`
 - `dp1.stage.IMeasurementStage`
-- `dp1.types.TOptionsMeasurement`
 - `dp1.types.TDataRes`

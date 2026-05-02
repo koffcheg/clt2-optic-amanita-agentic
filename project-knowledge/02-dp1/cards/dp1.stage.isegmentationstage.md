@@ -5,7 +5,6 @@ tags: [dp1, dp1_v2, stage-interface, segmentation]
 source:
   - project-knowledge/06-tasks/cards/AMNT-0009.md
   - project-knowledge/02-dp1/cards/dp1.stage.imeasurementstage.md
-  - project-knowledge/02-dp1/cards/dp1.types.TOptionsMeasurement.md
 status: draft
 ---
 
@@ -67,4 +66,3 @@ status: draft
 - `dp1.stage.ICandidateExtractionStage`
 - `dp1.stage.IObjectFilterStage`
 - `dp1.stage.IMeasurementStage`
-- `dp1.types.TOptionsMeasurement`
