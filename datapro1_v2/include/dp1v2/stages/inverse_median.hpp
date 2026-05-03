@@ -47,7 +47,8 @@ struct InverseMedianResult {
 
 // Stateful temporal inverse median filter for single-channel CV_8U or CV_16U frames.
 //
-// reset() preallocates all frame, median, residual, and converted-output buffers.
+// The sized constructor or reset() preallocates all frame, median, residual,
+// and converted-output buffers.
 // processFrame() does not mutate input_frame and returns views into internal buffers.
 //
 // Output formats:
@@ -57,33 +58,47 @@ struct InverseMedianResult {
 // - median_frame: same type as the input frame when output_median_frame is true.
 //
 // Errors are reported with std::invalid_argument for invalid frame/configuration values and
-// std::logic_error for lifecycle misuse, such as calling processFrame() before reset().
+// std::logic_error for lifecycle misuse, such as calling processFrame() before initialization.
 class InverseMedianFilter {
 public:
     explicit InverseMedianFilter(InverseMedianConfig config);
+    InverseMedianFilter(InverseMedianConfig config, const cv::Size& frame_size, int input_depth);
 
     const InverseMedianConfig& config() const noexcept;
 
     void reset(const cv::Size& frame_size, int input_depth);
+    void updateStride(int stride);
     void clear() noexcept;
 
     const InverseMedianResult& processFrame(const cv::Mat& input_frame);
 
 private:
+    using MedianFrameUpdater = void (InverseMedianFilter::*)();
+
     static int windowSize(InverseMedianMode mode);
     static int residualDepthForInput(int input_depth);
 
     void validateResetArgs(const cv::Size& frame_size, int input_depth) const;
     void validateInputFrame(const cv::Mat& input_frame) const;
 
+    void resetStreamingState() noexcept;
+    MedianFrameUpdater selectMedianFrameUpdater() const;
     bool shouldUpdateMedian() const noexcept;
     void storeSelectedFrame(const cv::Mat& input_frame);
     void recomputeMedianFrame();
     void computeResidual(const cv::Mat& input_frame);
     void convertResidual();
 
+    void recomputeMedianFrameK3U8();
+    void recomputeMedianFrameK5U8();
+    void recomputeMedianFrameK3U16();
+    void recomputeMedianFrameK5U16();
+
     template <typename Pixel>
-    void recomputeMedianFrameTyped();
+    void recomputeMedianFrameK3Typed();
+
+    template <typename Pixel>
+    void recomputeMedianFrameK5Typed();
 
     template <typename InputPixel, typename ResidualPixel>
     void computeResidualTyped(const cv::Mat& input_frame);
@@ -104,6 +119,7 @@ private:
     int residual_depth_ = -1;
     int residual_type_ = -1;
     int window_size_ = 0;
+    MedianFrameUpdater median_frame_updater_ = nullptr;
     int next_slot_ = 0;
     int selected_count_ = 0;
     std::uint64_t frame_index_ = 0;

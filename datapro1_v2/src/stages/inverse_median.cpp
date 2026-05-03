@@ -89,6 +89,12 @@ InverseMedianFilter::InverseMedianFilter(InverseMedianConfig config) : config_(c
     window_size_ = windowSize(config_.mode);
 }
 
+InverseMedianFilter::InverseMedianFilter(InverseMedianConfig config, const cv::Size& frame_size, int input_depth)
+    : InverseMedianFilter(config)
+{
+    reset(frame_size, input_depth);
+}
+
 const InverseMedianConfig& InverseMedianFilter::config() const noexcept
 {
     return config_;
@@ -111,6 +117,7 @@ void InverseMedianFilter::reset(const cv::Size& frame_size, int input_depth)
     input_type_ = CV_MAKETYPE(input_depth_, kSingleChannel);
     residual_depth_ = residualDepthForInput(input_depth_);
     residual_type_ = CV_MAKETYPE(residual_depth_, kSingleChannel);
+    median_frame_updater_ = selectMedianFrameUpdater();
 
     frame_ring_.resize(static_cast<std::size_t>(window_size_));
     for (cv::Mat& frame : frame_ring_) {
@@ -128,6 +135,21 @@ void InverseMedianFilter::reset(const cv::Size& frame_size, int input_depth)
     result_.status = InverseMedianStatus::WarmingUp;
 }
 
+void InverseMedianFilter::updateStride(int stride)
+{
+    if (stride < 1) {
+        throw std::invalid_argument("inverse_median stride must be >= 1");
+    }
+    if (stride == config_.stride) {
+        return;
+    }
+
+    config_.stride = stride;
+    if (initialized_ && config_.enabled) {
+        resetStreamingState();
+    }
+}
+
 void InverseMedianFilter::clear() noexcept
 {
     frame_size_ = {};
@@ -135,6 +157,7 @@ void InverseMedianFilter::clear() noexcept
     input_type_ = -1;
     residual_depth_ = -1;
     residual_type_ = -1;
+    median_frame_updater_ = nullptr;
     next_slot_ = 0;
     selected_count_ = 0;
     frame_index_ = 0;
@@ -248,6 +271,42 @@ void InverseMedianFilter::validateInputFrame(const cv::Mat& input_frame) const
     }
 }
 
+void InverseMedianFilter::resetStreamingState() noexcept
+{
+    next_slot_ = 0;
+    selected_count_ = 0;
+    has_median_ = false;
+    result_.status = InverseMedianStatus::WarmingUp;
+    result_.frame_index = frame_index_;
+    result_.median_updated = false;
+    result_.residual = nullptr;
+    result_.converted_residual = nullptr;
+    result_.median_frame = nullptr;
+}
+
+InverseMedianFilter::MedianFrameUpdater InverseMedianFilter::selectMedianFrameUpdater() const
+{
+    if (input_depth_ == CV_8U) {
+        if (config_.mode == InverseMedianMode::FixedK3) {
+            return &InverseMedianFilter::recomputeMedianFrameK3U8;
+        }
+        if (config_.mode == InverseMedianMode::FixedK5) {
+            return &InverseMedianFilter::recomputeMedianFrameK5U8;
+        }
+    }
+
+    if (input_depth_ == CV_16U) {
+        if (config_.mode == InverseMedianMode::FixedK3) {
+            return &InverseMedianFilter::recomputeMedianFrameK3U16;
+        }
+        if (config_.mode == InverseMedianMode::FixedK5) {
+            return &InverseMedianFilter::recomputeMedianFrameK5U16;
+        }
+    }
+
+    throw std::logic_error("unsupported inverse_median mode or input depth during median updater selection");
+}
+
 bool InverseMedianFilter::shouldUpdateMedian() const noexcept
 {
     return frame_index_ % static_cast<std::uint64_t>(config_.stride) == 0;
@@ -262,15 +321,10 @@ void InverseMedianFilter::storeSelectedFrame(const cv::Mat& input_frame)
 
 void InverseMedianFilter::recomputeMedianFrame()
 {
-    if (input_depth_ == CV_8U) {
-        recomputeMedianFrameTyped<std::uint8_t>();
-        return;
+    if (median_frame_updater_ == nullptr) {
+        throw std::logic_error("inverse_median median updater is not initialized");
     }
-    if (input_depth_ == CV_16U) {
-        recomputeMedianFrameTyped<std::uint16_t>();
-        return;
-    }
-    throw std::logic_error("unsupported inverse_median input depth during median computation");
+    (this->*median_frame_updater_)();
 }
 
 void InverseMedianFilter::computeResidual(const cv::Mat& input_frame)
@@ -313,23 +367,54 @@ void InverseMedianFilter::convertResidual()
     throw std::logic_error("unsupported inverse_median input depth during residual conversion");
 }
 
+void InverseMedianFilter::recomputeMedianFrameK3U8()
+{
+    recomputeMedianFrameK3Typed<std::uint8_t>();
+}
+
+void InverseMedianFilter::recomputeMedianFrameK5U8()
+{
+    recomputeMedianFrameK5Typed<std::uint8_t>();
+}
+
+void InverseMedianFilter::recomputeMedianFrameK3U16()
+{
+    recomputeMedianFrameK3Typed<std::uint16_t>();
+}
+
+void InverseMedianFilter::recomputeMedianFrameK5U16()
+{
+    recomputeMedianFrameK5Typed<std::uint16_t>();
+}
+
 template <typename Pixel>
-void InverseMedianFilter::recomputeMedianFrameTyped()
+void InverseMedianFilter::recomputeMedianFrameK3Typed()
 {
     for (int y = 0; y < frame_size_.height; ++y) {
         const Pixel* row0 = frame_ring_[0].ptr<Pixel>(y);
         const Pixel* row1 = frame_ring_[1].ptr<Pixel>(y);
         const Pixel* row2 = frame_ring_[2].ptr<Pixel>(y);
-        const Pixel* row3 = window_size_ == 5 ? frame_ring_[3].ptr<Pixel>(y) : nullptr;
-        const Pixel* row4 = window_size_ == 5 ? frame_ring_[4].ptr<Pixel>(y) : nullptr;
         Pixel* median_row = median_frame_.ptr<Pixel>(y);
 
         for (int x = 0; x < frame_size_.width; ++x) {
-            if (window_size_ == 3) {
-                median_row[x] = fixedK3Median(row0[x], row1[x], row2[x]);
-            } else {
-                median_row[x] = fixedK5Median(row0[x], row1[x], row2[x], row3[x], row4[x]);
-            }
+            median_row[x] = fixedK3Median(row0[x], row1[x], row2[x]);
+        }
+    }
+}
+
+template <typename Pixel>
+void InverseMedianFilter::recomputeMedianFrameK5Typed()
+{
+    for (int y = 0; y < frame_size_.height; ++y) {
+        const Pixel* row0 = frame_ring_[0].ptr<Pixel>(y);
+        const Pixel* row1 = frame_ring_[1].ptr<Pixel>(y);
+        const Pixel* row2 = frame_ring_[2].ptr<Pixel>(y);
+        const Pixel* row3 = frame_ring_[3].ptr<Pixel>(y);
+        const Pixel* row4 = frame_ring_[4].ptr<Pixel>(y);
+        Pixel* median_row = median_frame_.ptr<Pixel>(y);
+
+        for (int x = 0; x < frame_size_.width; ++x) {
+            median_row[x] = fixedK5Median(row0[x], row1[x], row2[x], row3[x], row4[x]);
         }
     }
 }
