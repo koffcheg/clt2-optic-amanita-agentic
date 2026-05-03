@@ -14,110 +14,114 @@ status: "draft"
 
 ## Definition
 
-Pilot small-TZ for `ICandidateExtractionStage`.
+Пілотне мале ТЗ для `ICandidateExtractionStage`.
 
-This card defines a pilot target route for future implementation validation, without claiming current runtime support.
+Ця картка визначає пілотний цільовий маршрут для майбутньої валідації реалізації, без твердження про поточну runtime-підтримку.
 
 ## Scope
 
-- Stage interface: `ICandidateExtractionStage`.
-- Pipeline slot: `candidate_extraction`.
-- Complexity level: `L0`.
-- Variant: `global_threshold`.
+- Інтерфейс stage: `ICandidateExtractionStage`.
+- Слот pipeline: `candidate_extraction`.
+- Рівень складності: `L0`.
+- Варіант: `global_threshold`.
 
 ## Inputs
 
-- Detector response map from upstream stage.
-- Allowed types: `CV_32FC1` (preferred) or `CV_8UC1`.
-- Input must represent one-channel response in processing domain geometry.
+- Мапа detector response з upstream stage.
+- Дозволені типи: `CV_32FC1` (пріоритетний) або `CV_8UC1`.
+- Вхід має представляти одноканальний response у геометрії processing domain.
 
 ## Outputs
 
-- `CV_8UC1` binary candidate mask.
-- Candidate hypothesis collection derived from connected components of mask.
-- Hypotheses are provisional and must not be treated as validated objects.
+- Бінарна candidate mask типу `CV_8UC1`.
+- Колекція candidate hypotheses, отримана з connected components маски.
+- Hypotheses є попередніми та не мають трактуватися як валідовані об'єкти.
 
 ## Preconditions
 
-- Config fragment `candidate_extraction` exists.
-- `enabled=true` for execution path.
-- `variant=global_threshold` and `level=L0` for this pilot spec.
-- Threshold parameter exists and is numeric.
+- Існує config fragment `candidate_extraction`.
+- Для execution path встановлено `enabled=true`.
+- Для цієї pilot spec встановлено `variant=global_threshold` і `level=L0`.
+- Параметр threshold існує та є числовим.
 
 ## Deterministic flow
 
-1. Validate config keys and variant-level pair.
-2. Normalize input representation:
-   - if `CV_8UC1`, convert to internal scalar range policy;
-   - if `CV_32FC1`, use directly.
-3. Apply global threshold to produce binary mask.
-4. Run connected-component extraction for hypothesis generation.
-5. Emit mask and hypothesis set with explicit "not validated" semantic.
+1. Валідувати config keys і пару variant-level.
+2. Нормалізувати подання входу:
+   - якщо `CV_8UC1`, конвертувати за internal scalar range policy;
+   - якщо `CV_32FC1`, використовувати безпосередньо.
+3. Застосувати global threshold для формування binary mask.
+4. Запустити connected-component extraction для генерації hypotheses.
+5. Емітити mask і набір hypotheses з явною семантикою "not validated".
 
 ## Configuration contract
 
-Canonical `C` fragment:
+Канонічний фрагмент `C`:
 
-```yaml
-candidate_extraction:
-  enabled: true
-  variant: global_threshold
-  level: L0
-  parameters:
-    threshold: <number>
-    min_area: <int, optional>
+```json
+{
+  "candidate_extraction": {
+    "enabled": true,
+    "variant": "global_threshold",
+    "level": "L0",
+    "parameters": {
+      "threshold": "<number>",
+      "min_area": "<int, optional>"
+    }
+  }
+}
 ```
 
-Rules:
-- Missing `enabled|variant|level|parameters.threshold` => configuration error.
-- Unknown keys in `candidate_extraction.parameters` => warning + ignore.
-- `threshold` range policy must be explicit in implementation config notes.
+Правила:
+- Відсутній `enabled|variant|level|parameters.threshold` => configuration error.
+- Невідомі keys у `candidate_extraction.parameters` => warning + ignore.
+- Політика діапазону для `threshold` має бути явно зафіксована в implementation config notes.
 
 ## Invariants
 
-- Output mask is single-channel `CV_8UC1` with binary values.
-- Candidate hypotheses are derived only from produced mask.
-- Stage must not perform downstream validation/classification.
-- Stateful background models are forbidden in this pilot variant.
+- Вихідна mask є одноканальною `CV_8UC1` із бінарними значеннями.
+- Candidate hypotheses формуються лише з produced mask.
+- Stage не має виконувати downstream validation/classification.
+- Stateful background models заборонені в цьому pilot variant.
 
 ## Failure cases
 
-- Threshold too high -> near-empty mask and candidate loss.
-- Threshold too low -> noisy mask and candidate flooding.
-- Type mismatch -> contract violation and stage failure path.
+- Threshold занадто високий -> майже порожня mask і втрата candidates.
+- Threshold занадто низький -> шумна mask і переповнення candidates.
+- Невідповідність типу -> порушення контракту і stage failure path.
 
 ## Non-goals
 
-- Adaptive thresholding (`L1`) behavior definition.
-- Stateful background extraction (`L2`) behavior definition.
-- Final object validation and measurement.
+- Визначення поведінки adaptive thresholding (`L1`).
+- Визначення поведінки stateful background extraction (`L2`).
+- Фінальна object validation і measurement.
 
 ## Validation hooks
 
-- Per-frame candidate count.
-- Mask fill ratio.
-- Threshold value trace.
-- Stage time for threshold + connected components.
+- Кількість candidates на frame.
+- Коефіцієнт заповнення mask.
+- Трасування значення threshold.
+- Час stage для threshold + connected components.
 
 ## Source-of-truth and canonicalization safety
 
-Target canonical architecture source:
-- this card defines intended behavior for canonical implementation.
+Джерело цільової канонічної архітектури:
+- ця картка визначає intended behavior для canonical implementation.
 
-Observed runtime/build/config/protocol facts:
-- must be verified against code/config/protocol artifacts before claiming
-  current runtime behavior.
-- This card does not claim that the route is currently implemented or
-  validated in `datapro1_v2`.
+Спостережувані runtime/build/config/protocol факти:
+- мають бути верифіковані за code/config/protocol artifacts перед твердженням
+  про поточну runtime-поведінку.
+- Ця картка не стверджує, що маршрут наразі реалізований або
+  валідований у `datapro1_v2`.
 
-Safety rule:
-- if code/runtime behavior diverges from this card, report mismatch,
-  classify it as either "canonical gap" or "runtime deviation", and propose
-  minimal reconciliation updates; do not silently collapse the distinction.
+Правило безпеки:
+- якщо code/runtime behavior розходиться з цією карткою, потрібно повідомити
+  про невідповідність, класифікувати її як "canonical gap" або "runtime deviation"
+  і запропонувати мінімальні reconciliation-оновлення; не зводити відмінність мовчки.
 
 ## Connections
 
-- Stage interface card: `../stages/dp1.stage.candidate_extraction.md`
-- Canonical index: `../DP1_CANONICAL_INDEX.md`
-- Pipeline/config route: `../pipeline/dp1.pipeline.stage_contract.md`,
+- Картка stage interface: `../stages/dp1.stage.candidate_extraction.md`
+- Канонічний індекс: `../DP1_CANONICAL_INDEX.md`
+- Маршрут pipeline/config: `../pipeline/dp1.pipeline.stage_contract.md`,
   `../configuration/dp1.config.pipeline_configuration_c.md`
