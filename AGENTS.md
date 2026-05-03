@@ -35,7 +35,11 @@ If sources conflict, use this order:
 7. Build/run artifacts: `README.md`, `builder/`, `docker-compose.yml`, `overseer/`, `config/`.
 8. Old notes, drafts, and stale descriptions.
 
-If Project Knowledge conflicts with code, Project Knowledge is authoritative. Do not silently update Project Knowledge unless the current task explicitly allows it. Report the mismatch, list affected files, and propose exact changes.
+For target canonical architecture, canonical Project Knowledge defines intended design.
+
+For existing runtime behavior, build behavior, configuration behavior, exchange formats, and protocol implementation facts, code and configs remain authoritative.
+
+If canonical Project Knowledge and code/configs conflict, the agent must report the mismatch, classify it as canonical gap / runtime deviation / evidence gap, list affected files, and propose minimal reconciliation scope. The agent must not silently rewrite code or Project Knowledge to hide the conflict.
 
 ## Documentation Language
 

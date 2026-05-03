@@ -88,6 +88,11 @@ MOG2/KNN або інші stateful background models мають мати явно
 - гіпотези не є валідованими об’єктами;
 - stateful-моделі не допускаються як прихований швидкий шлях.
 
+
+## Stage specification
+
+- Pilot small-TZ: `../stage_specs/dp1.stage_spec.candidate_extraction.pilot.md`.
+
 ## Failure cases
 
 Нестабільність порогу, фрагментація кандидатів, пропуск слабких сигналів.
