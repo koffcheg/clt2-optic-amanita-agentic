@@ -2,16 +2,22 @@
 
 ## Purpose
 
-This file defines project testing rules and AI-agent limits for creating, changing, and running tests.
+This file is the governance source for project testing rules and AI-agent limits.
+
+It defines:
+- the target testing taxonomy;
+- the target test-directory model;
+- what agents may and may not create or change without approval;
+- where to read detailed guidance for each testing type.
 
 ## Status
 
 Status: active.
 
-The canonical AI-agent run workflow is:
-- `project-knowledge/05-validation/AI_AGENT_TESTING_WORKFLOW.md`
-
-The stop-on-failure and orchestration rules in that workflow apply to test execution only. Normal development tasks may have separate policy agreed per task.
+Detailed testing documents:
+- `project-knowledge/05-validation/UNIT_TESTING_GUIDE.md` - unit and visual-unit testing guide.
+- `project-knowledge/05-validation/AMANITA_COMPARATOR_E2E_VALIDATION_WORKFLOW.md` - Amanita + Comparator system-e2e run-based validation workflow.
+- `project-knowledge/05-validation/VALIDATION_INDEX.md` - validation knowledge entry point and validation-card index.
 
 ## Base Agent Rule
 
@@ -28,24 +34,90 @@ If an agent believes testing is needed, it must:
 - propose a test plan;
 - wait for approval.
 
-## Testing Role In The Project
+## Target Test Types
 
-Testing is hybrid:
-- C++ modules use build + targeted validation scenarios;
-- DP1/DP2 integration uses run-based artifact validation;
-- AI-agent test runs use a structured stop-on-failure pipeline.
+The project uses these target test types:
+
+- `unit` - isolated automated checks for small units of logic.
+- `visual-unit` - a unit-test subtype for computer-vision behavior using small controlled visual inputs and expected values, properties, or invariants.
+- `integration` - checks for interaction between several target components or boundaries.
+- `accuracy-regression` - checks that fixed inputs produce expected outputs, ground-truth alignment, or stable algorithmic metrics.
+- `performance` - checks for runtime, throughput, memory behavior, profiling, or complexity budgets.
+- `system-e2e` - full pipeline validation across major runtime components and environment assumptions.
+- `manual-run-based validation` - validation performed through run directories, configs, logs, artifacts, reports, and explicit human/agent interpretation rather than automated test files.
+
+Amanita + Comparator validation is classified as:
+- primary type: `system-e2e`;
+- execution form: `manual-run-based validation`;
+- optional evidence type: `accuracy-regression`;
+- optional evidence type: `performance`.
+
+## Target Test Directory Model
+
+The target repository test layout is:
+
+```text
+tests/
+  unit/
+    dp1/
+    dp2/
+    common/
+  visual-unit/
+    dp1/
+    dp2/
+  integration/
+    dp1/
+    dp2/
+    dp1_dp2/
+  accuracy-regression/
+    dp1/
+    dp2/
+    dp1_dp2/
+  performance/
+    dp1/
+    dp2/
+    pipeline/
+  system-e2e/
+    amanita-comparator/
+  fixtures/
+    images/
+    configs/
+    expected/
+```
+
+This policy defines the target model only. Creating this structure or adding files to it requires explicit approval.
+
+## Unit And Visual-Unit Rules
+
+Unit and visual-unit tests must follow `05-validation/UNIT_TESTING_GUIDE.md`.
+
+Default rules:
+- prefer deterministic synthetic in-memory data;
+- keep tests small and independent;
+- use explicit assertions;
+- test project behavior, not third-party library behavior;
+- classify file-based datasets, full pipeline runs, deployment, or long-running scenarios as non-unit test types.
+
+GoogleTest is the target C++ unit-test framework. CTest is the target CMake-level test runner when tests are integrated into the build.
+
+## Amanita + Comparator Run-Based Validation
+
+Amanita + Comparator validation is governed by:
+- `project-knowledge/05-validation/AMANITA_COMPARATOR_E2E_VALIDATION_WORKFLOW.md`
+
+Classification:
+- primary type: `system-e2e`;
+- execution form: `manual-run-based validation`;
+- optional evidence type: `accuracy-regression`;
+- optional evidence type: `performance`.
 
 Default Amanita run rule:
 - run DP1 + DP2 together by default;
 - isolated DP1-only or DP2-only runs require explicit approval.
 
-## Test Categories
+During Amanita + Comparator validation, agents must not change production Amanita or Comparator code. Only per-run configs, artifacts, logs, and reports may be changed.
 
-Current categories:
-- unit/integration tests through existing `gtests/`;
-- run-based validation for DP1/DP2;
-- dataset-based validation through Amanita + Comparator;
-- manual verification where automation is not approved.
+The workflow's stop-on-failure and orchestration rules apply to test execution only. Normal development tasks may have separate policy agreed per task.
 
 ## When Testing Must Be Proposed Or Run
 
@@ -53,14 +125,20 @@ Testing is required to propose or run when changes affect:
 - DP1/DP2 algorithms;
 - data formats or serialization contracts;
 - runtime/config behavior;
-- build/run paths that may affect integration scenarios;
+- build/run paths that may affect integration or system-e2e scenarios;
 - logic already covered by a validation scenario.
+
+For new or changed algorithmic code, the proposed validation coverage must include:
+- normal scenarios;
+- boundary scenarios;
+- invalid or error-input scenarios;
+- known regression risks, if any.
 
 ## When Agents Must Not Add Tests Automatically
 
 Do not add tests automatically when:
 - the task does not request it;
-- module testing strategy is undefined;
+- the module testing strategy is undefined;
 - correct testing requires new infrastructure;
 - large fixtures, datasets, or mocks are needed;
 - expected check format is not agreed.
@@ -76,68 +154,42 @@ When an agent cannot create a test, propose a test plan covering:
 - manual checks;
 - future automation candidates.
 
-## Existing Tests
+## Expected Result Changes
 
-Do not mass-change existing tests without explicit approval. Local edits to existing tests are allowed only when they are part of the approved task.
+Agents must not change expected results only to make tests or validation pass.
+
+If expected behavior changes, classify the change before editing expected outputs:
+- bug fix - the previous expected result encoded incorrect behavior;
+- contract change - accepted behavior changed and requires approval;
+- regression - new behavior is unintended and must not be accepted as expected.
+
+Expected-result changes require an explicit explanation in the task result or test plan.
 
 ## Fixtures, Mocks, Stubs, Datasets
 
-- Do not create new fixtures/mocks/stubs without explicit approval.
-- Store the dataset pool for AI-agent validation under `${AMANITA_RESOURCES_DIR}/datasets`.
+- Do not create new fixtures, mocks, stubs, snapshots, golden files, or datasets without explicit approval.
+- Store the dataset pool for Amanita + Comparator validation under `${AMANITA_RESOURCES_DIR}/datasets`.
 - Keep large binary artifacts in the resource directory, not in git history.
 
-## Manual Verification
+## Performance
 
-Manual verification is acceptable when automation is unavailable or not approved, and the result is backed by run-directory artifacts.
+Performance checks are not mandatory by default.
 
-Minimum AI-agent run reporting:
-- run structure follows `AI_AGENT_TESTING_WORKFLOW.md`;
-- step logs are under `Logs/Amanita/<StageId>` and `Logs/Comparator/<StageId>`;
-- per-stage configs are under `Configs/Amanita/.../<StageId>` and `Configs/Comparator/<StageId>`;
-- `<TestId>_Summary.md` is generated at run root by `test.agent/scripts/generate_summary.sh`;
-- failures are recorded in `FAILED.txt`.
+Run or require them only when:
+- the user asks;
+- the task concerns performance regression;
+- the stage specification or validation card defines a complexity or runtime budget.
 
-Generate the summary after both stages complete successfully:
+Performance results must be interpreted separately from unit-test pass/fail.
 
-```bash
-test.agent/scripts/generate_summary.sh   --run-root <path>   --test-id <id>   [--stage-id <id>]   [--dataset <name>]   [--description <text>]   [--test-date "YYYY-MM-DD HH:MM:SS"]
-```
-
-For multi-run:
-- without `--stage-id`, generate one aggregated report across all stages;
-- with `--stage-id`, generate the summary only for that stage.
-
-## Performance And Benchmarks
-
-Performance/benchmark checks are not mandatory by default. Run them only when the user asks or the task is about performance regression.
-
-## Running Tests
-
-- Use integrated project test flows for CMake tests.
-- Use `05-validation/AI_AGENT_TESTING_WORKFLOW.md` for Amanita + Comparator AI-agent testing.
-- Before Comparator stage, verify the prepared Comparator Python environment.
-- If the Comparator Python environment is missing or invalid, stop and ask the user to configure it.
-- During test-run execution, do not change production Amanita/Comparator code. Only per-run configs, artifacts, logs, and reports may be changed.
-- Each new test run must start from a clean state. Do not reuse staged configs or artifacts from previous tests.
-- Use strictly `test.agent/scripts/run_amanita_stage.sh` -> validate -> `test.agent/scripts/run_comparator_stage.sh` -> validate.
-- Amanita stage is complete only when DP1 + DP2 run together, unless explicitly agreed otherwise.
-- For DP1 file-based sources (`imagefile`, `videofile`), EOF is a successful stage completion with exit code `0`.
-- Pipeline steps run strictly in sequence unless explicitly stated otherwise.
-- Move to the next step only after the current process exits.
-- Report step 9 analysis in chat and append it to `<TestId>_Summary.md` under `Result summary`.
-- A single Summary must use one language consistently. Default report language is Ukrainian unless the user asks otherwise.
-- Stop on the first failure.
-- Unknown non-zero exit codes use stop-and-wait by default.
-- After failure, autonomous recovery is forbidden without explicit user instruction.
-
-## Validation Without Tests
+## Validation Without Automated Tests
 
 When automated tests are not added, acceptable alternatives are:
 - local build;
 - run-based manual scenario;
 - output artifact and log review;
-- expected/actual comparison through Comparator;
-- result documentation in `<TestId>_Summary.md`.
+- expected/actual comparison through an approved validation workflow;
+- result documentation in the approved report format.
 
 ## Test Infrastructure Limits
 
@@ -150,15 +202,16 @@ Without explicit approval, agents must not:
 
 ## Open Questions
 
-- Are unit tests required for core C++ logic, or are integration/manual checks enough?
-- Are mocks allowed in this project?
-- What is the minimum test plan for a bug fix?
+- What is the first approved target module for new unit tests?
+- What fixture size limits should be used for `accuracy-regression` tests?
+- Which performance thresholds are mandatory for canonical DP1/DP2 stages?
 
 ## Definition Of Done For This Document
 
 This document is operational when it defines:
 - test types used by the project;
+- target test-directory model;
 - what agents may and may not do without approval;
 - when a test plan is required;
 - acceptable manual or alternative checks;
-- rules for running tests and changing existing tests.
+- routes to detailed testing and validation documents.

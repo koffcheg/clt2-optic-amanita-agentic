@@ -15,7 +15,6 @@ Key modules for Project Knowledge:
 - `datapro1` - DP1, primary frame processing.
 - `datapro2` - DP2, downstream processing of DP1 results.
 - `common/*` - shared models, frame utilities, turret/common logic.
-- `gtests` and `test.mock/*` - validation and isolated module/channel testing.
 - `builder/*`, `docker-compose.yml`, `overseer/*` - build, orchestration, remote/automation tooling.
 
 ## High-Level Pipeline
@@ -27,7 +26,7 @@ Current legacy runtime can be read as:
 3. `datapro1` performs primary frame processing and produces frame-level results.
 4. DP1 may send results to DP2, store `.blob` / `.json`, and create diagnostic artifacts.
 5. `datapro2` receives DP1 results and performs downstream processing, aggregation, or tracking.
-6. Helper modules, GUI, and mocks are used for debugging, validation, and integration scenarios.
+6. Helper modules and GUI components are used for debugging, validation, and integration scenarios.
 
 Canonical DP1/DP2 development must not treat this legacy runtime as target architecture.
 
@@ -67,7 +66,8 @@ project-knowledge/
     cards/
   05-validation/
     VALIDATION_INDEX.md
-    AI_AGENT_TESTING_WORKFLOW.md
+    UNIT_TESTING_GUIDE.md
+    AMANITA_COMPARATOR_E2E_VALIDATION_WORKFLOW.md
     cards/
   06-tasks/
     TASKS_INDEX.md
@@ -80,7 +80,7 @@ Section roles:
 - `02-dp1/` - DP1 knowledge split into canonical and legacy.
 - `03-dp2/` - DP2 knowledge split into canonical and legacy.
 - `04-protocols/` - shared contracts between modules.
-- `05-validation/` - validation, mocks, regression scenarios, and test assets.
+- `05-validation/` - testing taxonomy, validation workflows, regression scenarios, and test assets.
 - `06-tasks/` - task cards with scope, constraints, risks, and results.
 
 ## Entry Points
@@ -128,7 +128,8 @@ Read:
 
 Read:
 - `05-validation/VALIDATION_INDEX.md`;
-- `05-validation/AI_AGENT_TESTING_WORKFLOW.md`;
+- `05-validation/UNIT_TESTING_GUIDE.md`;
+- `05-validation/AMANITA_COMPARATOR_E2E_VALIDATION_WORKFLOW.md`;
 - `00-governance/TESTING_POLICY.md`;
 - `06-tasks/TASKS_INDEX.md`.
 
