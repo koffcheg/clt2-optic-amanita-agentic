@@ -33,3 +33,4 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0011` - temporal inverse median filter technical requirements specification analysis and implementation card - completed
 - `AMNT-0012` - reconciliation of AMNT-0007 artifacts into canonical/legacy develop structure - completed
 - `AMNT-0013` - standalone inverse_median module from canonical specification - completed
+- `AMNT-0014` - align inverse_median stage spec with formal template - completed
