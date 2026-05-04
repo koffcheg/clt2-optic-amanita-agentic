@@ -1,14 +1,34 @@
-# AI_AGENT_TESTING_WORKFLOW
+# AMANITA_COMPARATOR_E2E_VALIDATION_WORKFLOW
 
 ## Purpose
 
-This document defines the standard AI-agent test-run workflow.
+This document defines the standard Amanita + Comparator end-to-end run-based validation workflow.
 
-It is the canonical source for Amanita + Comparator test execution order and run rules.
+It is the canonical source for Amanita + Comparator execution order, run-directory structure, stop-on-failure behavior, and report generation.
+
+Testing type mapping:
+- primary type: `system-e2e`;
+- execution form: `manual-run-based validation`;
+- may provide evidence for `accuracy-regression` when Comparator metrics are evaluated against fixed data;
+- may provide evidence for `performance` when DP1, DP2, and Comparator timing is interpreted.
 
 Scope:
 - applies only to test execution and test-run orchestration;
 - is not a universal policy for normal development tasks.
+
+## Governance Boundary
+
+General testing permissions, approval rules, and target test taxonomy are defined in:
+- `project-knowledge/00-governance/TESTING_POLICY.md`
+
+This workflow owns Amanita + Comparator operational details:
+- run location and required directory structure;
+- staged config and artifact layout;
+- script sequence;
+- Comparator environment precheck;
+- Summary generation;
+- stop-on-failure behavior;
+- failure reporting and recovery limits.
 
 Production-code immutability during test runs:
 - do not change production Amanita or Comparator code during execution test runs;
@@ -54,6 +74,9 @@ Expected minimum under `RunResults/`:
 
 The run root must contain reports. Required minimum:
 - `<TestId>_Summary.md`, generated from Amanita and Comparator artifacts.
+
+Failures must be recorded in the run root:
+- `FAILED.txt`
 
 Default `<TestId>_Summary.md` data:
 - `TestId`;

@@ -1,0 +1,5 @@
+https://google.github.io/googletest/primer.html
+https://github.com/opencv/opencv/wiki/QA_in_OpenCV
+https://www.incredibuild.com/blog/cmake-opencv-and-unit-tests
+https://github.com/google/googletest
+https://www.augmentcode.com/guides/unit-testing-best-practices-that-focus-on-quality-over-quantity
