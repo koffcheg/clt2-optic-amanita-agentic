@@ -16,13 +16,13 @@ status: "draft"
 
 `Candidate` є canonical structure у Struct domain для попередньої гіпотези про об'єкт після candidate extraction.
 
-Candidate не є валідованим об'єктом і не є measurement.
+`Candidate` не є validated object і не є measurement.
 
 ## Assumptions
 
-- Candidate може бути отриманий із connected components, thresholding або іншого candidate extraction route.
-- Exact C++ representation is deferred to implementation tasks.
-- Candidate confidence/score є optional, якщо stage spec не визначає його явно.
+- `Candidate` може бути отриманий через connected components, thresholding або інший candidate extraction route.
+- Конкретна C++ representation має визначатися окремою implementation task.
+- `Candidate` confidence/score є optional, якщо stage spec не визначає його явно.
 
 ## Theorem / Contract
 
@@ -34,21 +34,21 @@ Candidate не є валідованим об'єктом і не є measurement.
 - `bbox_px` — bounding box у processing-frame coordinates.
 - `centroid_px` — optional centroid у pixel coordinates.
 - `area_px` — площа candidate у pixels.
-- `status` — `provisional` for MVP.
-- optional `score` — detector/candidate score if defined by the stage spec.
-- optional `quality_flags` — bounded flags, not free-form debug text.
+- `status` — `provisional` для MVP.
+- optional `score` — detector/candidate score, якщо це визначено stage spec.
+- optional `quality_flags` — bounded flags, а не free-form debug text.
 
-Candidate має бути explicit object. Його не можна кодувати лише через mask pixels.
+`Candidate` має бути explicit object. Його не можна кодувати тільки через mask pixels.
 
 ## Interpretation
 
-Candidate є bridge між mask-level extraction і downstream segmentation/filtering. Він описує hypothesis geometry і мінімальні attributes, але не підтверджує існування об'єкта.
+`Candidate` є bridge між mask-level extraction і downstream segmentation/filtering. Він описує hypothesis geometry і мінімальні attributes, але не підтверджує існування об'єкта.
 
 ## Failure cases
 
-- Candidate трактується як валідований object.
-- Candidate geometry не узгоджена з source mask geometry.
-- Candidate lacks `frame_id` or source relation.
+- `Candidate` трактується як validated object.
+- Geometry candidate не узгоджена з source mask geometry.
+- Candidate не має `frame_id` або source relation.
 
 ## Typical misuse
 
@@ -57,9 +57,9 @@ Candidate є bridge між mask-level extraction і downstream segmentation/filt
 
 ## Open questions
 
-- Exact `candidate_id` namespace.
+- Exact namespace для `candidate_id`.
 - Required score/confidence semantics.
-- Minimum geometry fields for MVP code.
+- Мінімальні geometry fields для MVP code.
 
 ## Connections
 
