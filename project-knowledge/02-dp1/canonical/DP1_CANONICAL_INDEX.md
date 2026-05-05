@@ -12,13 +12,14 @@ This section defines target DP1 architecture independently from legacy `datapro1
 2. `product/dp1.canonical.source_of_truth.md`
 3. `pipeline/dp1.pipeline.formal_model.md`
 4. `pipeline/dp1.pipeline.stage_contract.md`
-5. `data_domains/*.md`
-6. `stages/*.md`
-7. `stage_specs/*.md`
-8. `configuration/dp1.config.pipeline_configuration_c.md`
-9. `configuration/dp1.config.complexity_levels.md`
-10. `validation/dp1.validation.canonical_conformance.md`
-11. `../../04-protocols/cards/protocols.dp1_dp2.measurement_handoff.md`
+5. `pipeline/dp1.pipeline.stage_domain_bindings.md`
+6. `data_domains/*.md`
+7. `stages/*.md`
+8. `stage_specs/*.md`
+9. `configuration/dp1.config.pipeline_configuration_c.md`
+10. `configuration/dp1.config.complexity_levels.md`
+11. `validation/dp1.validation.canonical_conformance.md`
+12. `../../04-protocols/cards/protocols.dp1_dp2.measurement_handoff.md`
 
 ## Code generation rule
 
@@ -36,6 +37,9 @@ code generation without small stage specifications.
 Data-domain cards define the canonical domains and boundary structures that
 move through stages. Algorithms must reference these cards instead of inventing
 local frame, mask, candidate, segment, or measurement structures.
+
+Stage-domain bindings define which domain structures each stage may read and emit.
+They prevent agents from using domain structures in the wrong stage or hiding outputs in runtime context.
 
 ## Current data domains
 
@@ -65,6 +69,10 @@ They do not implement parallelism and do not claim current runtime support.
 - `data_domains/dp1.domain.runtime.tile_desc.md` - `TileDesc` for ROI/tile + border/valid-area description.
 - `data_domains/dp1.domain.runtime.tile_context.md` - `TileContext` for per-tile/per-worker buffers and diagnostics.
 - `data_domains/dp1.domain.runtime.tile_result.md` - `TileResult` for tile-local outputs before merge.
+
+## Current pipeline bindings
+
+- `pipeline/dp1.pipeline.stage_domain_bindings.md` - canonical matrix of stage inputs, runtime context, and allowed outputs.
 
 ## Current stage specifications
 
