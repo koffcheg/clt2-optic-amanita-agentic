@@ -1,7 +1,7 @@
 ---
 id: dp1.domain.mask
 title:
-  uk: "Домен масок DP1"
+  uk: "Mask домен DP1"
   en: "DP1 Mask domain"
 tags: [dp1, canonical, data-domain, mask]
 kind: data-domain-card
@@ -14,7 +14,9 @@ status: "draft"
 
 ## Definition
 
-`Mask` є canonical DP1 data object для binary або label representation, що використовується у candidate extraction, segmentation і downstream filtering.
+Mask domain описує semantic role масок у DP1: foreground/background, label або segmentation-related representations, які не є intensity images.
+
+Конкретна MVP-структура бінарної маски описана окремою structure card `dp1.domain.mask.binary_mask`.
 
 ## Assumptions
 
@@ -24,32 +26,21 @@ status: "draft"
 
 ## Theorem / Contract
 
-Canonical DP1 має мінімально розрізняти:
+Mask domain має такі правила:
 
-- `binary_mask` — foreground/background mask.
-- `label_mask` — optional integer component labels when exposed by a stage.
+- mask values encode selection/classification, not photometric intensity;
+- binary mask and label mask semantics must be explicit;
+- mask geometry must be tied to its source frame/processing representation;
+- masks may feed candidate extraction, segmentation, filtering, and ROI-based measurement;
+- masks must not be used as grayscale processing frames or visualization images.
 
-For MVP, `binary_mask` contract:
+Canonical MVP structure:
 
-- carrier: `MaskU8`, typically `CV_8UC1`;
-- background value: `0`;
-- foreground value: `255` unless a stage spec explicitly defines another binary convention;
-- geometry: same processing domain geometry as source frame unless remapped explicitly.
-
-`Mask` має містити або посилатися на:
-
-- `frame_id`;
-- `source_ref` — source `ProcessingFrame`, `Candidate`, або `Segment` relation;
-- `mask_kind` — `binary_mask` або `label_mask`;
-- `pixel_format` — `MaskU8` for MVP binary masks;
-- `geometry`;
-- optional `component_count` for label/component-derived masks.
+- `dp1.domain.mask.binary_mask`.
 
 ## Interpretation
 
-`Mask` не є grayscale processing image. It is a semantic object with mask-specific invariants.
-
-Binary masks can feed connected components, segmentation, filtering, and measurement-related ROI extraction.
+Mask domain є переходом від pixel/response processing до structural hypotheses. It should not carry object identity by itself when explicit Candidate or Segment structures are required.
 
 ## Failure cases
 
@@ -69,9 +60,9 @@ Binary masks can feed connected components, segmentation, filtering, and measure
 
 ## Connections
 
+- has_structure: dp1.domain.mask.binary_mask
 - uses: dp1.domain.pixel_format
-- derived_from: dp1.domain.processing
-- may_produce: dp1.domain.candidate
-- may_produce: dp1.domain.segment
+- may_produce: dp1.domain.struct.candidate
+- may_produce: dp1.domain.struct.segment
 - used_by: dp1.stage.candidate_extraction
 - used_by: dp1.stage.segmentation_refinement
