@@ -14,25 +14,25 @@ status: "draft"
 
 ## Definition
 
-Struct domain описує semantic role структурованих проміжних об'єктів DP1 після mask-level extraction і перед final measurement.
+Struct domain описує семантичну роль структурованих проміжних об'єктів DP1 після mask-level extraction і перед final measurement.
 
-Цей домен містить explicit structures для hypotheses, refined regions, object-like records, and filtering outputs.
+Цей домен містить explicit structures для гіпотез, уточнених областей, object-like records і результатів filtering.
 
 ## Assumptions
 
-- Struct domain objects are not final DP1 -> DP2 measurement payloads.
-- Exact C++ representations are deferred to implementation tasks.
-- Candidate and Segment are MVP structures in this domain.
+- Об'єкти Struct domain не є фінальним DP1 -> DP2 measurement payload.
+- Конкретні C++ representations мають визначатися в окремих implementation tasks.
+- `Candidate` і `Segment` є MVP structures у цьому домені.
 
 ## Theorem / Contract
 
-Struct domain має такі правила:
+Для Struct domain діють такі правила:
 
-- objects must have explicit identity and source relation;
-- geometry must declare coordinate system or source frame relation;
-- candidates are provisional hypotheses, not validated objects;
-- segments are refined regions, not final measurements;
-- filtering decisions must not erase source traceability unless explicitly defined by a stage spec.
+- об'єкти мають мати explicit identity і source relation;
+- geometry має вказувати coordinate system або relation до source frame;
+- candidates є provisional hypotheses, а не validated objects;
+- segments є refined regions, а не final measurements;
+- filtering decisions не мають втрачати source traceability, якщо інше явно не визначено stage spec.
 
 Canonical MVP structures:
 
@@ -41,23 +41,23 @@ Canonical MVP structures:
 
 ## Interpretation
 
-Struct domain is the bridge from pixel/mask semantics to measurement semantics. It prevents the pipeline from encoding all object state in masks or unstructured lists.
+Struct domain є мостом між pixel/mask semantics і measurement semantics. Він не дозволяє pipeline кодувати весь object state тільки в masks або unstructured lists.
 
 ## Failure cases
 
-- Candidate or segment is treated as final measurement.
-- Object geometry loses relation to frame/source mask.
-- Stage passes unstructured rectangles without identity/source metadata.
+- `Candidate` або `Segment` трактується як final measurement.
+- Object geometry втрачає relation до frame/source mask.
+- Stage передає unstructured rectangles без identity/source metadata.
 
 ## Typical misuse
 
-- Hiding candidates or segments in `FrameContext`.
-- Encoding object state only in mask pixels.
+- Ховати candidates або segments у `FrameContext`.
+- Кодувати object state тільки через mask pixels.
 
 ## Open questions
 
-- Whether an explicit `object` structure is needed after filtering or whether filtered `Candidate`/`Segment` structures are enough for MVP.
-- Standard quality flags for struct-domain objects.
+- Чи потрібна окрема `object` structure після filtering, чи для MVP достатньо filtered `Candidate`/`Segment` structures.
+- Standard quality flags для struct-domain objects.
 
 ## Connections
 
