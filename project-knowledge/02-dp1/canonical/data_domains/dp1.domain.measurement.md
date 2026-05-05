@@ -14,25 +14,27 @@ status: "draft"
 
 ## Definition
 
-Measurement domain описує semantic role фінального структурованого виходу DP1, який може бути переданий через DP1 -> DP2 handoff.
+Measurement domain описує семантичну роль фінального структурованого виходу DP1, який може передаватися через межу DP1 -> DP2.
 
-Конкретний запис вимірювання описаний окремою structure card `dp1.domain.measurement.record`.
+Цей домен не є контейнером для `cv::Mat`, debug-зображень, внутрішніх масок або тимчасових буферів обробки.
+
+Конкретна структура запису вимірювання описана окремою карткою `dp1.domain.measurement.record`.
 
 ## Assumptions
 
-- Measurement domain зберігає координати, геометрію, photometry і downstream metadata, потрібні DP2.
-- Exact payload schema має бути узгоджена з `protocols.dp1_dp2.measurement_handoff`.
-- Exact C++ representation is deferred to implementation tasks.
+- Measurement domain має містити координати, геометрію, фотометрію та downstream metadata, потрібні для DP2.
+- Точна схема payload має бути узгоджена з `protocols.dp1_dp2.measurement_handoff`.
+- Конкретна C++ структура має визначатися окремою implementation task.
 
 ## Theorem / Contract
 
-Measurement domain має такі правила:
+Для Measurement domain діють такі правила:
 
-- measurement output is structured data, not `cv::Mat`;
-- measurement output is product output, not debug artifact;
-- measurement output must include enough identity/time/source/coordinate metadata for DP2 interpretation;
-- internal masks, visualization images, and temporary buffers must not be part of canonical handoff;
-- measurement records may reference source segments or raw/processing data used for photometry.
+- вихід вимірювань є structured data, а не `cv::Mat`;
+- вихід вимірювань є продуктовим результатом DP1, а не debug artifact;
+- вихід має містити достатньо identity/time/source/coordinate metadata для інтерпретації в DP2;
+- внутрішні маски, visualization images і temporary buffers не входять у canonical handoff;
+- measurement records можуть посилатися на source segments або raw/processing дані, використані для фотометрії.
 
 Canonical MVP structure:
 
@@ -40,26 +42,26 @@ Canonical MVP structure:
 
 ## Interpretation
 
-Measurement domain є canonical source domain for DP1 -> DP2 protocol boundary. It is the result of measurement stage, not a generic structure bucket.
+Measurement domain є canonical source domain для межі протоколу DP1 -> DP2. Це результат `measurement` stage, а не загальний контейнер для будь-яких structured objects.
 
 ## Failure cases
 
-- Надсилання внутрішніх масок або visualization images як canonical DP2 input.
-- Measurement lacks frame/time/source identity.
-- Geometry is emitted without coordinate-system metadata.
-- Photometry is computed from display/debug buffer instead of measurement domain.
+- Внутрішні маски або visualization images передаються як canonical DP2 input.
+- Measurement не містить `frame_id`, time/source identity або coordinate metadata.
+- Геометрія видається без системи координат.
+- Фотометрія рахується з display/debug buffer замість Raw/Processing/Measurement domain.
 
 ## Typical misuse
 
 - Кодувати measurement як pixels.
-- Treating candidate or segment as final measurement without measurement-stage contract.
+- Трактувати `Candidate` або `Segment` як final measurement без contract `measurement` stage.
 
 ## Open questions
 
-- Exact payload schema and versioning policy.
-- Required calibration metadata.
-- Required units for coordinates and photometry.
-- Error/partial-frame semantics for DP2 handoff.
+- Точна payload schema і versioning policy.
+- Обов'язкова calibration metadata.
+- Одиниці координат і фотометрії.
+- Семантика помилок і partial-frame cases для DP2 handoff.
 
 ## Connections
 
