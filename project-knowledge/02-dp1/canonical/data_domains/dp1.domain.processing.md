@@ -1,7 +1,7 @@
 ---
 id: dp1.domain.processing
 title:
-  uk: "Домен обробки DP1"
+  uk: "Processing домен DP1"
   en: "DP1 Processing domain"
 tags: [dp1, canonical, data-domain, processing]
 kind: data-domain-card
@@ -14,7 +14,7 @@ status: "draft"
 
 ## Definition
 
-`Processing` domain описує canonical DP1 data object для кадру або frame-derived payload після одного чи кількох processing stages, коли semantics вже відрізняються від raw/input `FramePacket`.
+Processing domain описує canonical DP1 data object для кадру або похідного від кадру payload після одного чи кількох processing stages, коли semantics вже відрізняються від raw/input `FramePacket`.
 
 Цей домен відповідає на питання: у якому представленні кадр обробляється всередині DP1 перед mask/candidate/measurement stages.
 
@@ -34,7 +34,7 @@ Processing data object має мінімально містити або пос�
 - `pixel_format` — `U8`, `U16` або `F32`, defined by `dp1.domain.pixel_format`.
 - `processing_domain` — semantic label, наприклад `radiometric_corrected`, `enhanced`, `detector_response`.
 - `geometry` — width, height, coordinate origin policy.
-- `range_policy` — interpretation of scalar range, if required by the route.
+- `range_policy` — interpretation of scalar range, якщо це потрібно для route.
 
 Фотометричні операції не повинні непомітно виконуватися на `CV_8U`; такий режим потребує явного route/config у `C`.
 
@@ -42,7 +42,7 @@ Processing domain не має містити binary mask semantics, candidates, 
 
 ## Interpretation
 
-Цей домен дозволяє одному алгоритмічному маршруту працювати з різною бітністю або normalized representation, якщо stage spec явно задає conversion/threshold/range rules.
+Цей домен дозволяє одному algorithm route працювати з різною бітністю або normalized representation, якщо stage spec явно задає conversion/threshold/range rules.
 
 Processing domain є внутрішнім станом обчислень, а не вихідним протоколом.
 
@@ -56,21 +56,21 @@ Processing domain є внутрішнім станом обчислень, а н
 ## Typical misuse
 
 - Трактувати debug-зображення як вхід для обробки.
-- Treating every `cv::Mat` between stages as equivalent processing object.
-- Hiding algorithm outputs in processing metadata.
+- Трактувати кожен `cv::Mat` між stages як еквівалентний processing object.
+- Ховати algorithm outputs у processing metadata.
 
 ## Open questions
 
-- Які швидкі режими можуть дозволяти `CV_8UC1`.
+- Які fast modes можуть дозволяти `CV_8UC1`.
 - Standard vocabulary for `processing_domain`.
 - Exact normalization/range policy for `F32` detector response.
-- Whether processing data objects should be immutable after stage emission.
+- Чи processing data objects мають бути immutable після stage emission.
 
 ## Connections
 
-- derived_from: dp1.domain.frame_packet
+- derived_from: dp1.domain.raw.frame_packet
 - uses: dp1.domain.pixel_format
 - used_by: dp1.stage.radiometric_correction
 - used_by: dp1.stage.matched_filtering
 - may_feed: dp1.stage.candidate_extraction
-- may_produce: dp1.domain.mask
+- may_produce: dp1.domain.mask.binary_mask
