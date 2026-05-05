@@ -16,51 +16,51 @@ status: "draft"
 
 `TileContext` є runtime structure для per-tile або per-worker working state під час tile-local DP1 execution.
 
-Він не замінює `FrameContext` і не є глобальним state.
+Він не замінює `FrameContext` і не є global state.
 
 ## Assumptions
 
-- Tile-local execution is a target model for future implementation, not a current-runtime claim.
-- Each worker/thread should own or receive its own tile-local working buffers.
-- Raw/source frame access should be read-only unless a future task explicitly defines another model.
+- Tile-local execution є target model для майбутньої реалізації, а не claim про поточний runtime.
+- Кожен worker/thread має отримувати або володіти власними tile-local working buffers.
+- Доступ до raw/source frame має бути read-only, якщо майбутня task card явно не визначить іншу модель.
 
 ## Theorem / Contract
 
 `TileContext` має мінімально містити або посилатися на:
 
-- `tile_id` and `frame_id`.
+- `tile_id` і `frame_id`.
 - `tile_desc_ref` — source tile descriptor.
 - `frame_context_ref` — parent frame runtime context.
-- `processing_buffer` — tile-local processing payload, often `F32` route.
-- `mask_buffer` — tile-local binary mask buffer, typically `MaskU8`.
+- `processing_buffer` — tile-local processing payload, часто route `F32`.
+- `mask_buffer` — tile-local binary mask buffer, зазвичай `MaskU8`.
 - `candidate_buffer` — tile-local candidates.
 - `segment_buffer` — tile-local segments.
 - `measurement_buffer` — tile-local measurements.
 - `profiling_trace` — tile-local timing/profile events.
 - `warnings` / `errors` — tile-local diagnostics.
 
-`TileContext` buffers must not be shared mutably across workers unless an implementation task defines explicit synchronization.
+Buffers у `TileContext` не мають shared mutable access між workers, якщо implementation task явно не визначає synchronization.
 
 ## Interpretation
 
-`TileContext` is the memory-local companion to `TileDesc`. It allows a worker to run one or more DP1 stages over a tile without allocating full-frame processing and mask buffers for every intermediate representation.
+`TileContext` є memory-local companion до `TileDesc`. Він дозволяє worker виконати один або кілька DP1 stages над tile без створення full-frame buffers для кожного проміжного представлення.
 
 ## Failure cases
 
-- Tile workers share mutable buffers accidentally.
-- TileContext stores global frame outputs without merge semantics.
-- Tile-local coordinates are not transformed before final merge.
+- Tile workers випадково використовують shared mutable buffers.
+- `TileContext` зберігає global frame outputs без merge semantics.
+- Tile-local coordinates не перетворюються перед фінальним merge.
 
 ## Typical misuse
 
-- Using `TileContext` as global mutable pipeline state.
-- Hiding final stage outputs in context instead of emitting `TileResult`.
+- Використовувати `TileContext` як global mutable pipeline state.
+- Ховати final stage outputs у context замість emission через `TileResult`.
 
 ## Open questions
 
 - Exact buffer reuse policy.
-- Whether TileContext is per tile, per worker, or pooled.
-- Required synchronization model for profiling and diagnostics.
+- Чи `TileContext` має бути per tile, per worker або pooled.
+- Required synchronization model для profiling і diagnostics.
 
 ## Connections
 
