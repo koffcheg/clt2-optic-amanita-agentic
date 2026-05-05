@@ -18,29 +18,29 @@ status: "draft"
 
 ## Assumptions
 
-- Tile-local execution is a target model for future implementation, not a current-runtime claim.
-- Tile outputs may be produced in tile-local coordinates and must be converted to global frame coordinates during merge.
-- Exact merge algorithm is out of scope for this card.
+- Tile-local execution є target model для майбутньої реалізації, а не claim про поточний runtime.
+- Tile outputs можуть бути сформовані в tile-local coordinates і мають бути перетворені у global frame coordinates під час merge.
+- Конкретний merge algorithm не входить у scope цієї картки.
 
 ## Theorem / Contract
 
 `TileResult` має мінімально містити або посилатися на:
 
-- `tile_id` and `frame_id`.
-- `valid_area` — tile area whose results should be accepted after border crop.
-- `candidate_results` — tile-local or globalized `Candidate` structures.
-- `segment_results` — tile-local or globalized `Segment` structures.
-- `measurement_results` — tile-local or globalized `MeasurementRecord` structures.
-- `diagnostics` — bounded warnings/errors emitted during tile processing.
-- `profiling_summary` — timing/profile summary for the tile.
+- `tile_id` і `frame_id`.
+- `valid_area` — tile area, результати якої приймаються після border crop.
+- `candidate_results` — tile-local або globalized `Candidate` structures.
+- `segment_results` — tile-local або globalized `Segment` structures.
+- `measurement_results` — tile-local або globalized `MeasurementRecord` structures.
+- `diagnostics` — bounded warnings/errors, згенеровані під час tile processing.
+- `profiling_summary` — timing/profile summary для tile.
 
-TileResult must declare whether coordinates are tile-local or frame-global before merge.
+`TileResult` має явно визначати, чи coordinates є tile-local або frame-global до merge.
 
 ## Interpretation
 
-TileResult is the explicit boundary between tile-local work and frame-level aggregation. It prevents hidden global mutation from tile workers.
+`TileResult` є explicit boundary між tile-local work і frame-level aggregation. Він не дозволяє tile workers приховано змінювати global output.
 
-The intended merge step:
+Очікуваний merge step:
 
 ```text
 TileResult[] -> crop/filter by valid_area -> transform to global coordinates -> remove border duplicates -> frame-level MeasurementRecord[]
@@ -48,21 +48,21 @@ TileResult[] -> crop/filter by valid_area -> transform to global coordinates -> 
 
 ## Failure cases
 
-- Tile-local outputs are appended globally without coordinate transform.
-- Border duplicates are not removed.
-- Invalid border-area detections are accepted as final measurements.
-- Tile worker writes directly to global measurement output without merge contract.
+- Tile-local outputs додаються глобально без coordinate transform.
+- Border duplicates не видаляються.
+- Detections із invalid border-area приймаються як final measurements.
+- Tile worker пише напряму в global measurement output без `TileResult`/merge contract.
 
 ## Typical misuse
 
-- Treating TileResult as final DP1 output without merge.
-- Hiding TileResult inside FrameContext or TileContext.
+- Трактувати `TileResult` як final DP1 output без merge.
+- Ховати `TileResult` всередині `FrameContext` або `TileContext`.
 
 ## Open questions
 
-- Exact duplicate suppression policy at tile borders.
-- Whether candidates/segments or only measurements are merged globally in MVP.
-- Merge ordering and determinism requirements.
+- Exact duplicate suppression policy на tile borders.
+- Чи в MVP глобально merge-яться candidates/segments, чи тільки measurements.
+- Merge ordering і determinism requirements.
 
 ## Connections
 
