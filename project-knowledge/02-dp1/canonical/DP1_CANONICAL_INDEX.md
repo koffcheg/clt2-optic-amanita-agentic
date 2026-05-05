@@ -33,7 +33,24 @@ interface constraints, complexity variants, OpenCV mapping, configuration
 fragments, data formats, and critical invariants. They are not sufficient for
 code generation without small stage specifications.
 
-Current stage specifications:
+Data-domain cards define the canonical boundary objects and semantic carriers
+that move through stages. Algorithms must reference these cards instead of
+inventing local frame, mask, candidate, segment, or measurement structures.
+
+## Current data domains
+
+- `data_domains/dp1.domain.raw.md` - raw sensor/source data domain.
+- `data_domains/dp1.domain.frame_packet.md` - frame payload boundary object.
+- `data_domains/dp1.domain.frame_context.md` - per-frame runtime/pipeline context object.
+- `data_domains/dp1.domain.pixel_format.md` - U8/U16/F32/MaskU8 pixel format vocabulary.
+- `data_domains/dp1.domain.processing.md` - processing-domain frame-derived payload.
+- `data_domains/dp1.domain.mask.md` - binary/label mask domain.
+- `data_domains/dp1.domain.candidate.md` - provisional candidate hypothesis domain.
+- `data_domains/dp1.domain.segment.md` - segmentation/refined-region domain.
+- `data_domains/dp1.domain.measurement.md` - final DP1 measurement output domain.
+
+## Current stage specifications
+
 - `stage_specs/dp1.stage_spec.radiometric_correction.inverse_median.md` -
   stage spec for the existing `radiometric_correction` variant
   `inverse_median`.
