@@ -14,33 +14,33 @@ status: "draft"
 
 ## Definition
 
-`TileDesc` є lightweight runtime structure для опису tile/ROI, який може бути оброблений локально або паралельно.
+`TileDesc` є lightweight runtime structure для опису tile/ROI, який може оброблятися локально або паралельно.
 
 Це не image buffer і не копія кадру.
 
 ## Assumptions
 
-- Tile processing is a target execution model, not a current-runtime claim.
-- ROI may be represented as OpenCV `cv::Rect` or equivalent geometry in implementation.
-- Exact parallel scheduler/thread-pool implementation is out of scope for this card.
+- Tile processing є target execution model, а не claim про поточну реалізацію.
+- ROI може бути представлений як OpenCV `cv::Rect` або equivalent geometry в implementation.
+- Конкретна parallel scheduler / thread-pool implementation не входить у scope цієї картки.
 
 ## Theorem / Contract
 
 `TileDesc` має мінімально містити або посилатися на:
 
-- `tile_id` — stable tile identifier within a frame.
-- `frame_id` — source frame identifier.
-- `roi` — valid tile area in global frame coordinates.
-- `roi_with_border` — processing area including overlap/border.
-- `valid_area` — crop area whose results are valid after border-dependent operations.
-- `origin_px` — tile origin in global frame coordinates.
-- optional `border_policy` — required overlap semantics for filters/morphology.
+- `tile_id` — stable tile identifier у межах кадру.
+- `frame_id` — ідентифікатор source frame.
+- `roi` — valid tile area у глобальних координатах кадру.
+- `roi_with_border` — processing area з урахуванням overlap/border.
+- `valid_area` — crop area, результати якої вважаються валідними після border-dependent operations.
+- `origin_px` — tile origin у глобальних координатах кадру.
+- optional `border_policy` — required overlap semantics для filters/morphology.
 
-`TileDesc` має бути cheap to copy/pass between workers.
+`TileDesc` має бути cheap to copy/pass між workers.
 
 ## Interpretation
 
-The intended tile execution pattern is:
+Очікуваний tile execution pattern:
 
 ```text
 build TileDesc list from FramePacket
@@ -51,20 +51,20 @@ merge TileResult objects into global frame coordinates
 
 ## Failure cases
 
-- Tile is copied eagerly instead of described by ROI metadata.
-- Border/overlap is omitted for filters or morphology.
-- Local coordinates are emitted as global coordinates without transform.
+- Tile копіюється як image buffer замість опису через ROI metadata.
+- Border/overlap не враховано для filters або morphology.
+- Local coordinates видаються як global coordinates без transform.
 
 ## Typical misuse
 
-- Treating `TileDesc` as owning image memory.
-- Using tile-local output without valid-area crop.
+- Трактувати `TileDesc` як owner image memory.
+- Використовувати tile-local output без valid-area crop.
 
 ## Open questions
 
-- Standard tile size and overlap policy.
-- Whether tile grid is static or config-driven.
-- Exact boundary behavior at frame edges.
+- Standard tile size і overlap policy.
+- Чи tile grid є static або config-driven.
+- Exact boundary behavior на краях кадру.
 
 ## Connections
 
