@@ -35,3 +35,4 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0013` - standalone inverse_median module from canonical specification - completed
 - `AMNT-0014` - align inverse_median stage spec with formal template - completed
 - `AMNT-0015` - testing knowledge taxonomy and validation workflow restructuring - completed
+- `AMNT-0016` - canonical DP1 data-domain package for stage code generation - completed
