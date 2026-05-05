@@ -14,15 +14,15 @@ status: "draft"
 
 ## Definition
 
-`MeasurementRecord` є canonical structure у Measurement domain для структурованого результату вимірювання, який може бути переданий через DP1 -> DP2 handoff.
+`MeasurementRecord` є canonical structure у Measurement domain для структурованого результату вимірювання, який може передаватися через DP1 -> DP2 handoff.
 
-`MeasurementRecord` не є `cv::Mat`, debug visualization, internal mask або тимчасовий processing buffer.
+`MeasurementRecord` не є `cv::Mat`, debug visualization, internal mask або temporary processing buffer.
 
 ## Assumptions
 
-- Measurement зберігає координати, геометрію, photometry і downstream metadata, потрібні DP2.
-- Exact payload schema має бути узгоджена з `protocols.dp1_dp2.measurement_handoff`.
-- Exact C++ representation is deferred to implementation tasks.
+- Measurement має містити координати, геометрію, фотометрію та downstream metadata, потрібні DP2.
+- Точна payload schema має бути узгоджена з `protocols.dp1_dp2.measurement_handoff`.
+- Конкретна C++ структура має визначатися окремою implementation task.
 
 ## Theorem / Contract
 
@@ -30,33 +30,33 @@ status: "draft"
 
 - `measurement_id` — stable identifier measurement output.
 - `frame_id` — кадр, з якого сформовано measurement.
-- `source_id` або `camera_id` — джерело/camera relation.
+- `source_id` або `camera_id` — зв'язок із джерелом/camera.
 - `time_ref` — acquisition або processing timestamp reference.
 - `position_px` — canonical object position in pixel coordinates.
-- `bbox_px` — object bounding geometry when applicable.
+- `bbox_px` — object bounding geometry, якщо застосовно.
 - `area_px` або equivalent geometry metric.
-- optional `photometry` — intensity/statistical measurements defined by stage spec.
-- `coordinate_system` і units metadata where applicable.
+- optional `photometry` — intensity/statistical measurements, визначені stage spec.
+- `coordinate_system` і units metadata, де це потрібно.
 - `quality_flags` — bounded flags for measurement validity/quality.
-- optional `source_segment_id` — relation to segment used for measurement.
+- optional `source_segment_id` — зв'язок із segment, використаним для measurement.
 
 Measurement має бути sufficient для downstream DP2 interpretation without requiring DP1 debug images, masks, or temporary buffers.
 
 ## Interpretation
 
-Це продуктовий вихід DP1, а не debug artifact. MeasurementRecord є source structure for canonical DP1 -> DP2 protocol boundary.
+Це продуктовий вихід DP1, а не debug artifact. `MeasurementRecord` є source structure для canonical DP1 -> DP2 protocol boundary.
 
 ## Failure cases
 
-- Надсилання внутрішніх масок або visualization images як canonical DP2 input.
+- Внутрішні маски або visualization images передаються як canonical DP2 input.
 - Measurement lacks frame/time/source identity.
-- Geometry is emitted without coordinate-system metadata.
-- Photometry is computed from display/debug buffer instead of measurement domain.
+- Геометрія видається без coordinate-system metadata.
+- Фотометрія рахується з display/debug buffer замість measurement domain.
 
 ## Typical misuse
 
 - Кодувати measurement як pixels.
-- Treating candidate or segment as final measurement without measurement-stage contract.
+- Трактувати candidate або segment як final measurement без measurement-stage contract.
 
 ## Open questions
 
