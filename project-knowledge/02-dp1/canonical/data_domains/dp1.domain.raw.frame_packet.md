@@ -34,7 +34,7 @@ status: "draft"
 - `image` — image payload/storage carrier.
 - `pixel_format` — canonical pixel format, defined by `dp1.domain.pixel_format`.
 - `geometry` — width, height, coordinate origin policy.
-- `metadata` — bounded source/frame metadata, not arbitrary stage output.
+- `metadata` — bounded source/frame metadata, а не arbitrary stage output.
 
 `FramePacket` не має містити algorithm-specific outputs: masks, candidates, segments, measurements або tile-local working buffers.
 
