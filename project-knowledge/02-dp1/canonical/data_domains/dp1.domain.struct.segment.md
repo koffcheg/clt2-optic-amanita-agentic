@@ -16,13 +16,13 @@ status: "draft"
 
 `Segment` є canonical structure у Struct domain для уточненої області, отриманої після segmentation або segmentation refinement.
 
-Segment уточнює candidate geometry/shape, але сам по собі ще не є final measurement.
+`Segment` уточнює geometry/shape candidate, але сам по собі ще не є final measurement.
 
 ## Assumptions
 
-- Segment may reference a source `Candidate` and/or source `BinaryMask`.
-- Segment representation may be mask ROI, contour, or bounded geometry depending on stage spec.
-- Exact C++ representation is deferred to implementation tasks.
+- `Segment` може посилатися на source `Candidate` і/або source `BinaryMask`.
+- Segment representation може бути mask ROI, contour або bounded geometry залежно від stage spec.
+- Конкретна C++ representation має визначатися окремою implementation task.
 
 ## Theorem / Contract
 
@@ -30,35 +30,35 @@ Segment уточнює candidate geometry/shape, але сам по собі щ�
 
 - `segment_id` — stable identifier у межах кадру або stage output.
 - `frame_id` — кадр, якому належить segment.
-- `candidate_id` — optional source candidate relation.
-- `source_mask_ref` — optional source mask relation.
+- `candidate_id` — optional relation до source candidate.
+- `source_mask_ref` — optional relation до source mask.
 - `bbox_px` — bounding box у processing-frame coordinates.
-- `area_px` — area of segmented region.
-- `shape_ref` — mask ROI, contour, або equivalent bounded representation.
-- `quality_flags` — bounded flags about segmentation quality.
+- `area_px` — площа segment region.
+- `shape_ref` — mask ROI, contour або equivalent bounded representation.
+- `quality_flags` — bounded flags для оцінки якості segmentation.
 
-Segment must not contain final measurement payload intended for DP2 handoff.
+`Segment` не має містити final measurement payload, призначений для DP2 handoff.
 
 ## Interpretation
 
-Segment є проміжним structure між candidate-level hypotheses і measurement-level output. Він може бути використаний object filtering або measurement stage.
+`Segment` є проміжною structure між candidate-level hypotheses і measurement-level output. Він може використовуватися на етапах object filtering або measurement.
 
 ## Failure cases
 
-- Segment loses relation to source candidate/frame.
-- Segment geometry uses a different coordinate system without metadata.
-- Measurement fields are mixed into segment output.
+- `Segment` втрачає relation до source candidate/frame.
+- Segment geometry використовує іншу coordinate system без metadata.
+- Measurement fields змішуються з segment output.
 
 ## Typical misuse
 
-- Treating segment as validated object or final measurement.
-- Encoding segment only as debug visualization.
+- Трактувати segment як validated object або final measurement.
+- Кодувати segment тільки як debug visualization.
 
 ## Open questions
 
-- Canonical shape representation for MVP: ROI mask, contour, or both.
+- Canonical shape representation для MVP: ROI mask, contour або обидва варіанти.
 - Required segmentation quality flags.
-- Whether multi-component segments are allowed.
+- Чи дозволені multi-component segments.
 
 ## Connections
 
