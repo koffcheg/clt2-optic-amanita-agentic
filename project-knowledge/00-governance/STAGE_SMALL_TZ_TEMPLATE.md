@@ -61,13 +61,17 @@ For each step, state exact input/output contract and allowed side effects.
 
 Canonical `C` fragment:
 
-```yaml
-<pipeline_stage_key>:
-  enabled: <bool>
-  variant: <enum>
-  level: <enum>
-  parameters:
-    <key>: <value-type>
+```json
+{
+  "<pipeline_stage_key>": {
+    "enabled": "<bool>",
+    "variant": "<enum>",
+    "level": "<enum>",
+    "parameters": {
+      "<key>": "<value-type>"
+    }
+  }
+}
 ```
 
 Rules:

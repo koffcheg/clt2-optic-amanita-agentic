@@ -1,8 +1,8 @@
 ---
 id: dp1.validation.canonical_conformance
 title:
-  uk: "Валідація відповідності canonical DP1"
-  en: "Canonical DP1 conformance validation"
+  uk: "Вимоги відповідності canonical DP1"
+  en: "Canonical DP1 conformance requirements"
 tags: [dp1, canonical, validation]
 kind: validation-card
 source_role: verification
@@ -14,11 +14,15 @@ status: "draft"
 
 ## Definition
 
-Маршрут валідації для перевірки, чи реалізація DP1 відповідає знанням canonical DP1.
+DP1-local вимоги відповідності для canonical DP1 knowledge і stage architecture.
+
+Ця картка визначає, що canonical DP1 очікує перевірити перед тим, як реалізацію можна вважати узгодженою з цільовою DP1-архітектурою. Вона не є cross-project test execution route або runtime validation workflow.
 
 ## Assumptions
 
-Це документаційна картка валідації. Automated tests у цій задачі не створюються.
+Це документаційна картка вимог відповідності. Automated tests у цій задачі не створюються.
+
+Практичне виконання перевірок має бути описане в `05-validation`, де validation route прив'язується до code/config/test scenarios/reports/runtime evidence.
 
 ## Theorem / Contract
 
@@ -39,22 +43,28 @@ status: "draft"
 
 ## Interpretation
 
-Ця картка визначає, що потрібно перевірити перед тим, як код canonical DP1 можна вважати таким, що відповідає специфікації.
+Ця картка є DP1-local requirements source: вона описує, що саме треба перевіряти для canonical DP1 conformance.
+
+Вона не визначає команди запуску тестів, datasets, runtime reports або CI workflow. Такі execution-level деталі мають жити в `05-validation`.
 
 ## Failure cases
 
 - Код етапу існує без специфікації етапу.
 - Legacy-протокол трактується як canonical handoff.
+- DP1-local requirements використовуються як заміна execution validation route.
 
 ## Typical misuse
 
 - Трактувати успішну компіляцію як відповідність специфікації.
+- Трактувати цю картку як інструкцію запуску тестів.
 
 ## Open questions
 
 - Конкретні метрики і пороги.
+- Які datasets/runtime reports мають бути обов'язковими для execution validation.
 
 ## Connections
 
 - uses: dp1.pipeline.stage_contract
 - uses: protocols.dp1_dp2.measurement_handoff
+- executed_by: validation.dp1.canonical_conformance

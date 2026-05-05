@@ -60,7 +60,7 @@ This is a target model only. Creating directories, tests, or fixtures requires a
 
 ### Canonical Conformance
 
-- `validation.dp1.canonical_conformance` - canonical DP1 validation route: data domains, stage interfaces, stage specs before code generation, configuration `C`, Measurement handoff, profiling, and complexity levels.
+- `validation.dp1.canonical_conformance` - cross-project execution/runtime validation route for canonical DP1 conformance. It checks DP1-local conformance requirements from `project-knowledge/02-dp1/canonical/validation/dp1.validation.canonical_conformance.md` against code/config/test scenarios/reports/runtime evidence.
   link: `cards/validation.dp1.canonical_conformance.md`
 
 ### Stage-Level Algorithm Validation
