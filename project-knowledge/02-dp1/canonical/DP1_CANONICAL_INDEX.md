@@ -33,21 +33,38 @@ interface constraints, complexity variants, OpenCV mapping, configuration
 fragments, data formats, and critical invariants. They are not sufficient for
 code generation without small stage specifications.
 
-Data-domain cards define the canonical boundary objects and semantic carriers
-that move through stages. Algorithms must reference these cards instead of
-inventing local frame, mask, candidate, segment, or measurement structures.
+Data-domain cards define the canonical domains and boundary structures that
+move through stages. Algorithms must reference these cards instead of inventing
+local frame, mask, candidate, segment, or measurement structures.
 
 ## Current data domains
 
-- `data_domains/dp1.domain.raw.md` - raw sensor/source data domain.
-- `data_domains/dp1.domain.frame_packet.md` - frame payload boundary object.
-- `data_domains/dp1.domain.frame_context.md` - per-frame runtime/pipeline context object.
-- `data_domains/dp1.domain.pixel_format.md` - U8/U16/F32/MaskU8 pixel format vocabulary.
-- `data_domains/dp1.domain.processing.md` - processing-domain frame-derived payload.
-- `data_domains/dp1.domain.mask.md` - binary/label mask domain.
-- `data_domains/dp1.domain.candidate.md` - provisional candidate hypothesis domain.
-- `data_domains/dp1.domain.segment.md` - segmentation/refined-region domain.
-- `data_domains/dp1.domain.measurement.md` - final DP1 measurement output domain.
+- `data_domains/dp1.domain.raw.md` - Raw/Input domain for source frame data.
+- `data_domains/dp1.domain.processing.md` - Processing domain for frame-derived computational payloads.
+- `data_domains/dp1.domain.mask.md` - Mask domain for binary/label semantics.
+- `data_domains/dp1.domain.struct.md` - Struct domain for candidates, segments, and intermediate object-like structures.
+- `data_domains/dp1.domain.measurement.md` - Measurement domain for final DP1 product output and DP1 -> DP2 handoff.
+- `data_domains/dp1.domain.visualization.md` - Visualization domain for display/debug rendering outputs.
+- `data_domains/dp1.domain.pixel_format.md` - Shared U8/U16/F32/MaskU8 pixel-format vocabulary used by the domains.
+
+## Current domain structures
+
+- `data_domains/dp1.domain.raw.frame_packet.md` - `FramePacket` structure in Raw/Input domain.
+- `data_domains/dp1.domain.processing.frame.md` - `ProcessingFrame` structure in Processing domain.
+- `data_domains/dp1.domain.mask.binary_mask.md` - `BinaryMask` structure in Mask domain.
+- `data_domains/dp1.domain.struct.candidate.md` - `Candidate` structure in Struct domain.
+- `data_domains/dp1.domain.struct.segment.md` - `Segment` structure in Struct domain.
+- `data_domains/dp1.domain.measurement.record.md` - `MeasurementRecord` structure in Measurement domain.
+
+## Current runtime / tile-local execution structures
+
+These cards describe target execution-support structures for AI-coder context.
+They do not implement parallelism and do not claim current runtime support.
+
+- `data_domains/dp1.domain.runtime.frame_context.md` - `FrameContext` for per-frame runtime/config/profiling context.
+- `data_domains/dp1.domain.runtime.tile_desc.md` - `TileDesc` for ROI/tile + border/valid-area description.
+- `data_domains/dp1.domain.runtime.tile_context.md` - `TileContext` for per-tile/per-worker buffers and diagnostics.
+- `data_domains/dp1.domain.runtime.tile_result.md` - `TileResult` for tile-local outputs before merge.
 
 ## Current stage specifications
 
