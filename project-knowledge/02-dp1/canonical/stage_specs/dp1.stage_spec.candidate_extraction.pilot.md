@@ -8,7 +8,6 @@ kind: stage-spec-card
 source_role: canonical
 source:
   file: "project-knowledge/02-dp1/canonical/stage_specs/dp1.stage_spec.candidate_extraction.pilot.md"
-  lines: "1-N"
 status: "draft"
 ---
 

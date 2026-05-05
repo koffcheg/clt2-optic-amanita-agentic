@@ -8,7 +8,6 @@ kind: pipeline-card
 source_role: canonical
 source:
   file: "project-knowledge/02-dp1/canonical/pipeline/dp1.pipeline.stage_domain_bindings.md"
-  lines: "1-N"
 status: "draft"
 ---
 
