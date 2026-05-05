@@ -8,7 +8,6 @@ kind: data-domain-card
 source_role: canonical
 source:
   file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.processing.md"
-  lines: "1-N"
 status: "draft"
 ---
 
