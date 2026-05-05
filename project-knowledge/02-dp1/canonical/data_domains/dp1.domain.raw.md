@@ -20,42 +20,42 @@ Raw/Input domain описує початкові сенсорні або source-
 
 ## Assumptions
 
-- Canonical high-quality route expects raw dynamic range to be preserved until explicit conversion into Processing domain.
-- Raw carrier may be `U16` or `U8` depending on source/configuration route, but the selected pixel format must be explicit.
-- Runtime claims about actual supported camera/source formats must be verified against code/config artifacts.
+- Canonical high-quality route очікує, що raw dynamic range зберігається до явного переходу в Processing domain.
+- Raw carrier може бути `U16` або `U8` залежно від source/configuration route, але selected pixel format має бути explicit.
+- Runtime claims про фактично підтримані camera/source formats мають перевірятися за code/config artifacts.
 
 ## Theorem / Contract
 
-Raw/Input domain має такі правила:
+Для Raw/Input domain діють такі правила:
 
-- raw data is source/acquisition-level input, not debug visualization;
-- raw dynamic range must not be reduced silently;
-- conversion from Raw/Input to Processing must be explicit, profileable, and stage-owned;
-- raw data may be used by Measurement stage for photometry if the stage spec requires it;
-- Raw/Input objects must not contain masks, candidates, segments, measurements, or tile-local working buffers.
+- raw data є source/acquisition-level input, а не debug visualization;
+- raw dynamic range не має зменшуватися неявно;
+- перехід із Raw/Input у Processing має бути явним, profileable і належати конкретному stage;
+- raw data може використовуватися Measurement stage для photometry, якщо це вимагає stage spec;
+- Raw/Input objects не мають містити masks, candidates, segments, measurements або tile-local working buffers.
 
-Allowed canonical pixel-format vocabulary is defined by `dp1.domain.pixel_format`.
+Дозволена canonical pixel-format vocabulary визначена в `dp1.domain.pixel_format`.
 
 ## Interpretation
 
-Raw/Input domain is the source of physical or source-equivalent intensity data. It is separate from Processing domain, where filtering, residuals, detector responses, and normalized representations live.
+Raw/Input domain є джерелом фізичних або source-equivalent intensity data. Він відокремлений від Processing domain, де живуть filtering, residuals, detector responses і normalized representations.
 
 ## Failure cases
 
 - Раннє неявне перетворення у `CV_8U`.
 - Прихована нормалізація перед формуванням вимірювань.
-- Raw data is overwritten by processing output.
-- Algorithm-specific outputs are stored in raw metadata.
+- Raw data перезаписується processing output.
+- Algorithm-specific outputs записуються в raw metadata.
 
 ## Typical misuse
 
 - Виконувати фотометричні обчислення після перетворення з втратою даних.
-- Treating display/debug buffers as raw input.
+- Трактувати display/debug buffers як raw input.
 
 ## Open questions
 
-- Exact sensor bit-depth variants for production camera sources.
-- Whether `U8` raw/source route is accepted only for MVP/test data or also for production.
+- Exact sensor bit-depth variants для production camera sources.
+- Чи `U8` raw/source route допускається тільки для MVP/test data або також для production.
 - Raw buffer ownership and lifetime policy.
 
 ## Connections
