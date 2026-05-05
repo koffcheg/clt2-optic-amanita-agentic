@@ -58,7 +58,8 @@ Runtime/system:
 - POSIX IPC primitives are referenced in `README.md` through `/dev/mqueue` and `/dev/shm`.
 
 Testing:
-- GoogleTest is present under `gtests/`.
+- GoogleTest is the target C++ unit-test framework.
+- CTest is the target CMake-level test runner when tests are integrated into the build.
 
 ## Build System
 

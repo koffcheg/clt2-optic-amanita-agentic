@@ -24,6 +24,7 @@ target_sources(
         src/source/ipc_frame_source.cpp
         src/source/source_factory.cpp
         src/stages/calibration.cpp
+        src/stages/inverse_median.cpp
         ../datapro1/src/dp1_tr_res2dp2.cpp
         ../datapro1/src/dp1_rpc_data_mrsh.cpp
         ../datapro1/src/dataproSaveToFile.cpp
