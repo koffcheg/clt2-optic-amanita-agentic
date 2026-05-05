@@ -14,15 +14,15 @@ status: "draft"
 
 ## Definition
 
-`FrameContext` є canonical runtime/context structure, який супроводжує обробку одного кадру або frame-derived packet між етапами DP1.
+`FrameContext` є canonical runtime/context structure, яка супроводжує обробку одного кадру або похідного від кадру пакета між етапами DP1.
 
-Він відповідає на питання: у якому pipeline/runtime контексті обробляється кадр.
+Вона відповідає на питання: у якому pipeline/runtime context обробляється кадр.
 
 ## Assumptions
 
 - `FrameContext` передається між stages разом із input/output data objects, але не замінює їх.
 - `FrameContext` не є pipeline configuration `C`.
-- Фактична C++ форма context має бути підтверджена окремою implementation task.
+- Конкретна C++ форма context має визначатися окремою implementation task.
 
 ## Theorem / Contract
 
@@ -31,7 +31,7 @@ status: "draft"
 - `frame_id` — ідентифікатор кадру, узгоджений із `FramePacket`.
 - `pipeline_run_id` — ідентифікатор pipeline run або processing session.
 - `config_ref` або config snapshot reference — посилання на active configuration `C`.
-- `pixel_route` — selected route such as `U8`, `U16`, або `F32`.
+- `pixel_route` — selected route, наприклад `U8`, `U16` або `F32`.
 - `stage_status` — bounded map/list статусів stages для поточного кадру.
 - `profiling_trace` — накопичувач timing/profiling events.
 - `warnings` / `errors` — structured diagnostics для поточного кадру.
@@ -59,7 +59,7 @@ status: "draft"
 
 ## Open questions
 
-- Exact representation of profiling trace.
+- Exact representation для profiling trace.
 - Чи потрібен immutable config snapshot або достатньо config reference.
 - Error taxonomy для stage-level diagnostics.
 
