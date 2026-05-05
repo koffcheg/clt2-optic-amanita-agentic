@@ -14,11 +14,15 @@ status: "draft"
 
 ## Definition
 
-Глобальна картка валідації відповідності canonical DP1.
+Cross-project маршрут валідації для перевірки відповідності canonical DP1 через code/config/test scenarios/reports/runtime evidence.
+
+Ця картка описує, як practically перевіряти DP1 conformance. Вона не замінює DP1-local requirements card `dp1.validation.canonical_conformance`, а виконує її на рівні validation workflow.
 
 ## Assumptions
 
 Ця картка перевіряє повноту специфікації та відповідність реалізації. Вона сама по собі не створює automated tests.
+
+DP1-local conformance requirements визначені в `project-knowledge/02-dp1/canonical/validation/dp1.validation.canonical_conformance.md`.
 
 ## Theorem / Contract
 
@@ -39,17 +43,21 @@ status: "draft"
 
 ## Interpretation
 
-Це validation entry у `05-validation/`. DP1-local validation card може містити DP1-specific context, але ця картка є cross-section route.
+Це validation entry у `05-validation/`. Вона є execution/runtime validation route для DP1 conformance і має прив'язувати DP1-local requirements до code/config/test scenarios/reports/runtime evidence.
+
+DP1-local validation card описує, що canonical DP1 очікує перевірити. Ця картка описує, як цей conformance route має виконуватись у ширшому validation workflow.
 
 ## Failure cases
 
 - Код існує до формальної stage specification.
 - Legacy transport проходить валідацію як canonical handoff.
 - Debug/visualization output трактується як computation data.
+- Ця картка використовується як заміна DP1-local conformance requirements.
 
 ## Typical misuse
 
 - Трактувати цей checklist як заміну stage specs.
+- Трактувати цей route як DP1-local architecture requirements source.
 
 ## Open questions
 
@@ -59,5 +67,6 @@ status: "draft"
 - Acceptance thresholds для complexity levels.
 
 ## Connections
-- validates: dp1.validation.canonical_conformance
+
+- implements_validation_for: dp1.validation.canonical_conformance
 - uses: protocols.dp1_dp2.measurement_handoff
