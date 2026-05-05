@@ -16,13 +16,13 @@ status: "draft"
 
 Ця картка задає canonical matrix прив'язки DP1 stages до дозволених input/context/output domains і structures.
 
-Мета картки — не дозволити AI-кодеру довільно використовувати структури не в тому етапі або ховати stage outputs у `FrameContext` / `TileContext`.
+Мета картки — показати AI-кодеру, які структури дозволені на вході та виході кожного етапу.
 
 ## Assumptions
 
 - Це knowledge-only binding matrix, а не claim про поточну реалізацію в `datapro1_v2`.
 - Конкретні algorithm variants мають уточнюватися у stage specs.
-- Tile-local execution structures є target execution-support model, not current runtime claim.
+- Tile-local execution structures є target execution-support model, а не claim про поточний runtime.
 
 ## Theorem / Contract
 
@@ -34,61 +34,60 @@ process(input, context, config) -> output
 
 де:
 - `input` має належати дозволеному input domain/structure для цього stage;
-- `context` має бути runtime context, а не прихованим контейнером stage output;
+- `context` має бути runtime context, а не контейнером stage output;
 - `output` має бути explicit domain/structure output;
 - internal buffers не мають ставати canonical output без явного domain contract.
 
 ## Canonical stage-domain binding matrix
 
-| Stage | Allowed input | Runtime context | Allowed output | Notes |
+| Stage | Дозволений input | Runtime context | Дозволений output | Примітки |
 |---|---|---|---|---|
-| `prep` | `dp1.domain.raw.frame_packet` | `dp1.domain.runtime.frame_context` | `dp1.domain.raw.frame_packet` або `dp1.domain.processing.frame` | ROI/tile extraction and source preparation. No candidates/masks/measurements. |
-| `radiometric_correction` | `dp1.domain.raw.frame_packet` або `dp1.domain.processing.frame` | `dp1.domain.runtime.frame_context` | `dp1.domain.processing.frame` | Produces corrected/residual processing representation. No `Mask`/`Struct` output. |
-| `enhancement` | `dp1.domain.processing.frame` | `dp1.domain.runtime.frame_context` | `dp1.domain.processing.frame` | Denoise/enhance processing representation. |
-| `matched_filtering` | `dp1.domain.processing.frame` | `dp1.domain.runtime.frame_context` | `dp1.domain.processing.frame` | Detector/response representation remains Processing domain. |
-| `candidate_extraction` | `dp1.domain.processing.frame` | `dp1.domain.runtime.frame_context` | `dp1.domain.mask.binary_mask` + `dp1.domain.struct.candidate` | Candidate is provisional, not validated object. |
-| `segmentation_refinement` | `dp1.domain.mask.binary_mask` + optional `dp1.domain.struct.candidate` | `dp1.domain.runtime.frame_context` | `dp1.domain.struct.segment` | Segments refine candidates/regions. |
-| `object_filtering` | `dp1.domain.struct.candidate` або `dp1.domain.struct.segment` | `dp1.domain.runtime.frame_context` | `dp1.domain.struct.candidate` або `dp1.domain.struct.segment` | Filtering changes acceptance/quality, not measurement payload. |
-| `measurement` | `dp1.domain.struct.segment` + optional `dp1.domain.raw.frame_packet` або `dp1.domain.processing.frame` for photometry | `dp1.domain.runtime.frame_context` | `dp1.domain.measurement.record` | Final DP1 product output for DP1 -> DP2 handoff. |
-| `visualization` | any explicit domain object needed for display/debug | `dp1.domain.runtime.frame_context` | visualization artifact in `dp1.domain.visualization` | Visualization output must not feed computation unless a stage spec explicitly allows it. |
+| `prep` | `dp1.domain.raw.frame_packet` | `dp1.domain.runtime.frame_context` | `dp1.domain.raw.frame_packet` або `dp1.domain.processing.frame` | Підготовка source data та ROI/tile route. Без candidates/masks/measurements. |
+| `radiometric_correction` | `dp1.domain.raw.frame_packet` або `dp1.domain.processing.frame` | `dp1.domain.runtime.frame_context` | `dp1.domain.processing.frame` | Формує corrected/residual processing representation. |
+| `enhancement` | `dp1.domain.processing.frame` | `dp1.domain.runtime.frame_context` | `dp1.domain.processing.frame` | Покращує processing representation. |
+| `matched_filtering` | `dp1.domain.processing.frame` | `dp1.domain.runtime.frame_context` | `dp1.domain.processing.frame` | Detector/response representation лишається в Processing domain. |
+| `candidate_extraction` | `dp1.domain.processing.frame` | `dp1.domain.runtime.frame_context` | `dp1.domain.mask.binary_mask` + `dp1.domain.struct.candidate` | Candidate є provisional, а не validated object. |
+| `segmentation_refinement` | `dp1.domain.mask.binary_mask` + optional `dp1.domain.struct.candidate` | `dp1.domain.runtime.frame_context` | `dp1.domain.struct.segment` | Segment уточнює candidate/region. |
+| `object_filtering` | `dp1.domain.struct.candidate` або `dp1.domain.struct.segment` | `dp1.domain.runtime.frame_context` | `dp1.domain.struct.candidate` або `dp1.domain.struct.segment` | Filtering змінює acceptance/quality, але не формує measurement payload. |
+| `measurement` | `dp1.domain.struct.segment` + optional `dp1.domain.raw.frame_packet` або `dp1.domain.processing.frame` для photometry | `dp1.domain.runtime.frame_context` | `dp1.domain.measurement.record` | Фінальний продуктовий output DP1 для DP1 -> DP2 handoff. |
+| `visualization` | Будь-який explicit domain object, потрібний для display/debug | `dp1.domain.runtime.frame_context` | visualization artifact у `dp1.domain.visualization` | Visualization output не має подаватися назад у computation без explicit stage spec. |
 
 ## Tile-local execution binding
 
-Tile-local execution support structures may be used by runtime/execution model without changing semantic stage contracts:
+Tile-local execution support structures можуть використовуватися runtime/execution model без зміни semantic stage contracts:
 
-| Runtime structure | Role | Must not be used as |
+| Runtime structure | Роль | Не можна використовувати як |
 |---|---|---|
 | `dp1.domain.runtime.tile_desc` | опис tile/ROI, border, valid area | image buffer або stage output |
-| `dp1.domain.runtime.tile_context` | per-tile/per-worker working buffers and diagnostics | global mutable state або final output |
-| `dp1.domain.runtime.tile_result` | explicit tile-local results before merge | final DP1 output without merge |
+| `dp1.domain.runtime.tile_context` | per-tile/per-worker buffers і diagnostics | global mutable state або final output |
+| `dp1.domain.runtime.tile_result` | explicit tile-local results перед merge | final DP1 output без merge |
 
-Tile-local outputs must be cropped by valid area, transformed to global coordinates, and merged before becoming frame-level `MeasurementRecord` output.
+Tile-local outputs мають бути обрізані за valid area, перетворені в global coordinates і merged перед тим, як стати frame-level `MeasurementRecord` output.
 
 ## Interpretation
 
-Stage cards define responsibility boundaries. Data-domain cards define allowed semantic objects. This binding matrix connects both layers so an implementation task can restrict what each stage may read and emit.
+Stage cards визначають межі відповідальності. Data-domain cards визначають дозволені semantic objects. Ця binding matrix з'єднує обидва шари, щоб implementation task могла обмежити, що кожен stage має право читати і видавати.
 
-Stage specs may narrow the allowed domains further, but should not broaden them without updating this binding matrix or an approved task card.
+Stage specs можуть звужувати дозволені domains, але не мають розширювати їх без оновлення цієї binding matrix або окремо погодженої task card.
 
 ## Failure cases
 
-- `measurement` reads directly from `MaskU8` as if it were photometry.
-- `candidate_extraction` emits `MeasurementRecord` directly.
-- `FrameContext` stores candidates, segments, masks, or measurements as hidden payload.
-- Tile worker writes directly into global measurement output without `TileResult`/merge semantics.
-- Visualization image is used as computation input.
+- `candidate_extraction` напряму видає `MeasurementRecord`.
+- `FrameContext` зберігає candidates, segments, masks або measurements як прихований output.
+- Tile execution пише напряму в global measurement output без `TileResult` і merge semantics.
+- Visualization image використовується як computation input.
 
 ## Typical misuse
 
-- Treating `cv::Mat` type as enough to select stage input domain.
-- Passing `Candidate` or `Segment` to stages that expect Processing or Mask domain.
-- Using runtime context as a substitute for explicit input/output contracts.
+- Вважати `cv::Mat` type достатнім для вибору stage input domain.
+- Передавати `Candidate` або `Segment` у stages, які очікують Processing або Mask domain.
+- Використовувати runtime context як заміну explicit input/output contracts.
 
 ## Open questions
 
-- Exact stage naming synchronization with code-level names.
-- Whether `object_filtering` should introduce a separate accepted-object structure after MVP.
-- Whether `segmentation_refinement` should accept only `Candidate` + mask or also mask-only routes.
+- Exact stage naming synchronization із code-level names.
+- Чи має `object_filtering` вводити окрему accepted-object structure після MVP.
+- Чи має `segmentation_refinement` приймати тільки `Candidate` + mask або також mask-only routes.
 
 ## Connections
 
