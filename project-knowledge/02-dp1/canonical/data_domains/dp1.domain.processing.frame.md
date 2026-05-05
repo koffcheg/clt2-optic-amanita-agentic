@@ -14,13 +14,13 @@ status: "draft"
 
 ## Definition
 
-`ProcessingFrame` є canonical structure у Processing domain для кадру або frame-derived payload після одного чи кількох processing stages.
+`ProcessingFrame` є canonical structure у Processing domain для кадру або похідного від кадру представлення після одного чи кількох processing stages.
 
-Він використовується, коли semantics вже відрізняються від Raw/Input `FramePacket`.
+Ця structure використовується тоді, коли semantics вже відрізняються від Raw/Input `FramePacket`.
 
 ## Assumptions
 
-- Processing representation може використовувати `U8`, `U16` або `F32` route залежно від configuration `C` і stage spec.
+- Processing representation може використовувати `U8`, `U16` або `F32` залежно від configuration `C` і stage spec.
 - OpenCV carrier не визначає semantics без explicit pixel format і processing domain.
 - Code-level structure має бути підтверджена окремою implementation task.
 
@@ -30,34 +30,34 @@ status: "draft"
 
 - `frame_id` — ідентичність кадру, узгоджена з `FramePacket`.
 - `source_frame_ref` — optional reference на source `FramePacket`.
-- `image` — processing payload/storage carrier.
+- `image` — processing storage carrier.
 - `pixel_format` — `U8`, `U16` або `F32`, defined by `dp1.domain.pixel_format`.
 - `processing_domain` — semantic label, наприклад `radiometric_corrected`, `enhanced`, `detector_response`.
 - `geometry` — width, height, coordinate origin policy.
-- `range_policy` — interpretation of scalar range, if required by the route.
+- `range_policy` — interpretation of scalar range, якщо це потрібно для route.
 
 `ProcessingFrame` не має містити binary mask semantics, candidates, segments або measurements.
 
 ## Interpretation
 
-Ця structure дозволяє одному алгоритмічному маршруту працювати з різною бітністю або normalized representation, якщо stage spec явно задає conversion/threshold/range rules.
+Ця structure дозволяє одному algorithm route працювати з різною бітністю або normalized representation, якщо stage spec явно задає conversion/threshold/range rules.
 
 ## Failure cases
 
 - Detector response записується як raw frame без processing semantics.
-- `U8` і `U16` routes змішуються без explicit range policy.
+- `U8` і `U16` змішуються без explicit range policy.
 - Binary mask передається як `ProcessingFrame`.
 
 ## Typical misuse
 
-- Treating every `cv::Mat` between stages as equivalent processing object.
-- Hiding algorithm outputs in processing metadata.
+- Трактувати кожен `cv::Mat` між stages як еквівалентний processing object.
+- Ховати algorithm outputs у processing metadata.
 
 ## Open questions
 
-- Standard vocabulary for `processing_domain`.
-- Exact normalization/range policy for `F32` detector response.
-- Whether processing frames should be immutable after stage emission.
+- Standard vocabulary для `processing_domain`.
+- Exact normalization/range policy для `F32` detector response.
+- Чи мають processing frames бути immutable після stage emission.
 
 ## Connections
 
