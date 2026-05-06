@@ -31,7 +31,15 @@ residual у processing domain.
 
 ## Inputs
 
-Домен обробки після підготовки.
+Semantic input належить до raw-like або processing representation після
+`prep`. Concrete carrier залежить від `prep.variant` і має бути явно
+задекларований route/config:
+
+| Route | Дозволений input carrier |
+|---|---|
+| `full_frame` | `FramePacket` або `ProcessingFrame` |
+| `roi` | ROI/view над `FramePacket` або `ProcessingFrame` |
+| `tiles` | `TileRawView` або `TileProcessingFrame` |
 
 ## Internal computation domain
 
@@ -40,8 +48,21 @@ residual у processing domain.
 
 ## Outputs
 
-Residual або скоригований домен обробки: `CV_32FC1` або явно задекларований
-`CV_8UC1`.
+Вихід завжди належить Processing domain. Concrete carrier залежить від route:
+
+| Route | Output carrier |
+|---|---|
+| `full_frame` | `ProcessingFrame` |
+| `roi` | `ProcessingFrame` або ROI-scoped processing representation, якщо це визначено stage spec |
+| `tiles` | `TileProcessingFrame` |
+
+Output має явно задавати:
+
+- `pixel_format` (`S16`, `S32`, `F32`, `U8` або `U16` відповідно до route);
+- `processing_domain` (`RadiometricResidual` або `RadiometricCorrected`);
+- `range_policy`;
+- `value_range`;
+- `coordinate_space`.
 
 ## Complexity variants
 
@@ -92,7 +113,7 @@ residual, режими приведення виходу та вимоги ва�
 
 Критичні інваріанти:
 - background model і residual є різними сутностями;
-- етап працює у processing domain;
+- етап видає explicit Processing-domain carrier, а не мутує raw input;
 - фотометрично значущі операції не виконуються непомітно на `CV_8U`.
 
 ## Failure cases
@@ -112,4 +133,4 @@ residual, режими приведення виходу та вимоги ва�
 - uses: dp1.domain.processing
 - constrained_by: dp1.domain.conversion_rules
 - specified_by: dp1.stage_spec.radiometric_correction.inverse_median
-- feeds: dp1.stage.enhancement_denoising
+- feeds: dp1.stage.enhancement

@@ -27,19 +27,23 @@ status: "draft"
 ## Algorithmic idea
 
 Відфільтрувати псевдооб’єкти за площею, геометрією, shape descriptors і
-фотометричними правилами, не виконуючи downstream tracking.
+фотометричними правилами та видати `ValidatedObject[]`, не виконуючи downstream
+tracking.
 
 ## Inputs
 
-Уточнені сегментовані кандидати плюс photometric references із домену обробки.
+`Candidate[]` або `Segment[]` плюс optional photometric references із Raw або
+Processing domain, якщо variant цього потребує.
 
 ## Internal computation domain
 
-Структурований домен кандидатів/об’єктів і, де потрібно, домен обробки.
+Struct domain і, де потрібно, Raw або Processing domain для photometric
+criteria.
 
 ## Outputs
 
-Набір валідованих об’єктів.
+`ValidatedObject[]` у Struct domain. Accepted і rejected records мають бути
+позначені bounded status/flags, якщо route зберігає rejected records.
 
 ## Complexity variants
 
@@ -70,6 +74,8 @@ status: "draft"
 
 Змінювати raw data або визначати політику tracking у DP2.
 
+Формувати `MeasurementRecord` або DP1 -> DP2 payload.
+
 ## Constraints
 
 Критерії мають бути задекларовані у майбутній специфікації етапу та конфігурації `C`.
@@ -94,5 +100,6 @@ Canonical-словник валідності об’єкта.
 ## Connections
 
 - feeds: dp1.stage.measurement
+- produces: dp1.domain.struct.validated_object
 - uses: dp1.domain.processing
 - constrained_by: dp1.domain.conversion_rules

@@ -1,13 +1,13 @@
 ---
-id: dp1.stage.enhancement_denoising
+id: dp1.stage.enhancement
 title:
-  uk: "Етап підсилення та приглушення шуму DP1"
-  en: "DP1 Enhancement and denoising stage"
+  uk: "Етап підсилення DP1"
+  en: "DP1 Enhancement stage"
 tags: [dp1, canonical, stage]
 kind: stage-interface-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/stages/dp1.stage.enhancement_denoising.md"
+  file: "project-knowledge/02-dp1/canonical/stages/dp1.stage.enhancement.md"
   lines: "1-130"
 status: "draft"
 ---

@@ -1,8 +1,6 @@
 ---
 id: dp1.domain.processing.frame
-title:
-  uk: "Кадр у Processing домені DP1"
-  en: "DP1 Processing-domain frame"
+title: "Кадр у Processing домені DP1"
 tags: [dp1, canonical, data-domain, processing, structure]
 kind: data-domain-card
 source_role: canonical
@@ -31,11 +29,61 @@ status: "draft"
 - `source_frame_ref` — optional reference на source `FramePacket`.
 - `image` — processing storage carrier.
 - `pixel_format` — `U8`, `U16` або `F32`, defined by `dp1.domain.pixel_format`.
-- `processing_domain` — semantic label, наприклад `radiometric_corrected`, `enhanced`, `detector_response`.
+- `processing_domain` — semantic label із `dp1.domain.pixel_format`, наприклад
+  `RadiometricResidual`, `RadiometricCorrected`, `EnhancedFrame` або
+  `DetectorResponse`.
 - `geometry` — width, height, coordinate origin policy.
 - `range_policy` — interpretation of scalar range, якщо це потрібно для route.
 
 `ProcessingFrame` не має містити binary mask semantics, candidates, segments або measurements.
+
+Для `prep.variant = "tiles"` full-frame `ProcessingFrame` не є runtime payload
+цього route. Tile-specific processing payload описує `TileProcessingFrame`.
+
+Рекомендована full-frame C++ форма, якщо stage spec явно дозволяє full-frame
+route:
+
+```cpp
+struct ProcessingFrame {
+    std::uint64_t frame_id = 0;
+    std::optional<std::uint64_t> source_frame_id;
+    cv::Mat image;
+    PixelFormat pixel_format = PixelFormat::F32;
+    PixelRange value_range;
+    ProcessingDomain processing_domain = ProcessingDomain::RadiometricResidual;
+    RangePolicy range_policy = RangePolicy::NormalizedFloat;
+    FrameGeometry geometry;
+    CoordinateSpace coordinate_space = CoordinateSpace::FrameGlobal;
+};
+```
+
+## Поля
+
+| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
+|---|---|---|---|---|
+| `frame_id` | `std::uint64_t` | Ідентичність source frame. | Validation, tracing. | 8 B |
+| `source_frame_id` | optional `std::uint64_t` | Relation до `FramePacket`. | Audit, reproducibility. | ~16 B |
+| `image` | `cv::Mat` | Processing pixels. | Residual, enhancement, detector response. | header ~96 B + payload |
+| `pixel_format` | `PixelFormat` | `F32`, `S16`, `S32` або explicit fast route. | Algorithm route validation. | 4 B |
+| `value_range` | `PixelRange` | Numeric range після conversion. | Thresholds, clipping, photometry. | ~32 B |
+| `processing_domain` | `ProcessingDomain` | Семантика image payload. | Забороняє змішування residual/enhanced/response. | 4 B |
+| `range_policy` | `RangePolicy` | Як трактувати значення. | Signed residual, normalization. | 4 B |
+| `geometry` | `FrameGeometry` | Розмір і origin representation. | Coordinate validation. | ~16 B |
+| `coordinate_space` | `CoordinateSpace` | Frame-global або tile-local. | Merge/geometry correctness. | 4 B |
+
+## Пам'ять
+
+Full-frame `F32` для `1440x1080` коштує приблизно 6.2 MB. Для
+`prep.variant = "tiles"` такий buffer не створюється цим route; processing
+memory цього route живе у `TileContext.processing_buffer_a/b`. Для
+`full_frame`, `roi` і `adaptive_roi` memory policy має бути задана окремою
+stage spec.
+
+## Етапи
+
+- Full-frame `ProcessingFrame` може існувати тільки якщо stage spec/config
+  явно вибирає full-frame route.
+- Stages у route `prep.variant = "tiles"` використовують `TileProcessingFrame`.
 
 ## Interpretation
 
@@ -63,5 +111,7 @@ status: "draft"
 - belongs_to: dp1.domain.processing
 - derived_from: dp1.domain.raw.frame_packet
 - uses: dp1.domain.pixel_format
+- constrained_by: dp1.domain.memory_ownership
+- constrained_by: dp1.domain.threshold
 - may_feed: dp1.stage.candidate_extraction
 - may_produce: dp1.domain.mask.binary_mask

@@ -49,15 +49,28 @@ They prevent agents from using domain structures in the wrong stage or hiding ou
 - `data_domains/dp1.domain.struct.md` - Struct domain for candidates, segments, and intermediate object-like structures.
 - `data_domains/dp1.domain.measurement.md` - Measurement domain for final DP1 product output and DP1 -> DP2 handoff.
 - `data_domains/dp1.domain.visualization.md` - Visualization domain for display/debug rendering outputs.
-- `data_domains/dp1.domain.pixel_format.md` - Shared U8/U16/F32/MaskU8 pixel-format vocabulary used by the domains.
+- `data_domains/dp1.domain.pixel_format.md` - Shared pixel-format, input bit-depth, range-policy, and route metadata vocabulary used by the domains.
+
+## Current domain policies
+
+- `data_domains/dp1.domain.identity.md` - canonical identity tuple and compact local-id policy.
+- `data_domains/dp1.domain.time.md` - timestamp roles and explicit clock semantics.
+- `data_domains/dp1.domain.memory_ownership.md` - image/view ownership and tile-worker memory policy.
+- `data_domains/dp1.domain.threshold.md` - threshold units and range semantics for code generation.
+- `data_domains/dp1.domain.quality_flags.md` - compact quality/reject flag registry.
+- `data_domains/dp1.domain.coordinates.md` - tile-local/frame-global coordinate policy and merge boundary.
 
 ## Current domain structures
 
 - `data_domains/dp1.domain.raw.frame_packet.md` - `FramePacket` structure in Raw/Input domain.
+- `data_domains/dp1.domain.raw.tile_raw_view.md` - `TileRawView` read-only ROI view in Raw/Input domain.
 - `data_domains/dp1.domain.processing.frame.md` - `ProcessingFrame` structure in Processing domain.
+- `data_domains/dp1.domain.processing.tile_processing_frame.md` - `TileProcessingFrame` tile-local processing payload in Processing domain.
 - `data_domains/dp1.domain.mask.binary_mask.md` - `BinaryMask` structure in Mask domain.
+- `data_domains/dp1.domain.mask.tile_binary_mask.md` - `TileBinaryMask` tile-local binary mask payload in Mask domain.
 - `data_domains/dp1.domain.struct.candidate.md` - `Candidate` structure in Struct domain.
 - `data_domains/dp1.domain.struct.segment.md` - `Segment` structure in Struct domain.
+- `data_domains/dp1.domain.struct.validated_object.md` - `ValidatedObject` structure emitted by object filtering in Struct domain.
 - `data_domains/dp1.domain.measurement.record.md` - `MeasurementRecord` structure in Measurement domain.
 
 ## Current runtime / tile-local execution structures
@@ -66,9 +79,42 @@ These cards describe target execution-support structures for AI-coder context.
 They do not implement parallelism and do not claim current runtime support.
 
 - `data_domains/dp1.domain.runtime.frame_context.md` - `FrameContext` for per-frame runtime/config/profiling context.
+- `data_domains/dp1.domain.runtime.cyclic_frame_buffer.md` - `CyclicFrameBuffer` for bounded reusable frame-history state owned by stateful stages.
 - `data_domains/dp1.domain.runtime.tile_desc.md` - `TileDesc` for ROI/tile + border/valid-area description.
-- `data_domains/dp1.domain.runtime.tile_context.md` - `TileContext` for per-tile/per-worker buffers and diagnostics.
+- `data_domains/dp1.domain.runtime.tile_context.md` - `TileContext` for per-worker reusable tile-local buffers and diagnostics.
 - `data_domains/dp1.domain.runtime.tile_result.md` - `TileResult` for tile-local outputs before merge.
+
+## Prep Execution Variants
+
+DP1 supports several `prep.variant` execution routes:
+
+- `full_frame` — the whole frame is one processing unit.
+- `roi` — one or more explicit frame-global ROI regions are processing units.
+- `tiles` — the frame or selected ROI is split into `TileDesc[]` and processed
+  through tile-local support structures.
+- `adaptive_roi` — ROI regions are selected dynamically by a dedicated stage
+  spec and fallback policy.
+
+The tile execution route uses:
+
+```text
+FramePacket.image
+  -> TileDesc[]
+  -> TileRawView per tile
+  -> TileContext per worker
+  -> TileProcessingFrame / TileBinaryMask / Candidate / Segment / ValidatedObject / MeasurementRecord
+  -> TileResult[]
+  -> frame-level MeasurementRecord[]
+```
+
+Tile-local structures define the `prep.variant = "tiles"` route. They must not
+be treated as the only canonical execution model. `full_frame`, `roi`, and
+`adaptive_roi` require their own stage specs and memory/coordinate policies.
+
+Structures are domain carriers. Algorithms are route-specific implementations.
+`U8` and `U16` input routes must be represented through `PixelFormat`,
+`InputBitDepth`, `PixelRange`, and `PipelineRoute` metadata instead of
+structure names such as `raw16` or `proc32`.
 
 ## Current pipeline bindings
 

@@ -31,7 +31,9 @@ status: "draft"
 
 ## Inputs
 
-Набір валідованих об’єктів, metadata перетворення координат і потрібні references з raw/processing.
+Accepted `ValidatedObject[]`, metadata перетворення координат і потрібні
+references з raw/processing. `Segment[]` може подаватися як source geometry або
+shape reference, якщо measurement route потребує contour/moments.
 
 ## Internal computation domain
 
@@ -82,6 +84,8 @@ status: "draft"
 - координати мають бути узгоджені з metadata `local <-> global`;
 - photometry domain має бути явно вибраний (`raw16`, `proc32` або допоміжний
   `proc8`);
+- measurement має читати тільки accepted `ValidatedObject`, якщо stage spec не
+  визначає diagnostic route для rejected records;
 - результат є structured data, а не `cv::Mat`.
 
 ## Failure cases
@@ -99,5 +103,6 @@ status: "draft"
 ## Connections
 
 - produces: dp1.domain.measurement
+- uses: dp1.domain.struct.validated_object
 - feeds: protocols.dp1_dp2.measurement_handoff
 - constrained_by: dp1.domain.conversion_rules

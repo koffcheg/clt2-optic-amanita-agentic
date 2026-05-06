@@ -15,11 +15,12 @@ status: "draft"
 
 Mask domain описує semantic role масок у DP1: foreground/background, label або segmentation-related representations, які не є intensity images.
 
-Конкретна MVP-структура бінарної маски описана окремою structure card `dp1.domain.mask.binary_mask`.
+Конкретна canonical structure бінарної маски описана окремою structure card
+`dp1.domain.mask.binary_mask`.
 
 ## Assumptions
 
-- MVP carrier для binary mask — `MaskU8`, зазвичай `CV_8UC1`.
+- Canonical carrier для binary mask — `MaskU8`, зазвичай `CV_8UC1`.
 - Label masks можуть бути введені, коли stage specs потребуватимуть explicit component labels.
 - Конкретна C++ representation має визначатися окремою implementation task.
 
@@ -33,7 +34,7 @@ Mask domain описує semantic role масок у DP1: foreground/background,
 - masks можуть подаватися в candidate extraction, segmentation, filtering і ROI-based measurement;
 - masks не мають використовуватися як grayscale processing frames або visualization images.
 
-Canonical MVP structure:
+Canonical structure:
 
 - `dp1.domain.mask.binary_mask`.
 

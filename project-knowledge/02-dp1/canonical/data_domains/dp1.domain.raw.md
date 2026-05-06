@@ -54,7 +54,8 @@ Raw/Input domain є джерелом фізичних або source-equivalent i
 ## Open questions
 
 - Exact sensor bit-depth variants для production camera sources.
-- Чи `U8` raw/source route допускається тільки для MVP/test data або також для production.
+- Чи `U8` raw/source route допускається для production input, чи тільки для
+  compatibility/test data.
 - Raw buffer ownership and lifetime policy.
 
 ## Connections

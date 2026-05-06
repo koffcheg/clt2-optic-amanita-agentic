@@ -35,7 +35,7 @@ Measurement domain описує семантичну роль фінальног
 - внутрішні маски, visualization images і temporary buffers не входять у canonical handoff;
 - measurement records можуть посилатися на source segments або raw/processing дані, використані для фотометрії.
 
-Canonical MVP structure:
+Canonical structure:
 
 - `dp1.domain.measurement.record`.
 

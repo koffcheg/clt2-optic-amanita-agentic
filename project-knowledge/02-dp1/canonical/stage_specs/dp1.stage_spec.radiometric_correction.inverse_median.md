@@ -91,44 +91,50 @@ Residual формується у знаковому форматі підвищ�
 Формула:
 
 ```text
-Residual_clip(x, y) = min(max(Residual(x, y), 0), Imax)
+R(x, y) = I_t(x, y) - Med_t(x, y)
+Residual_clip(x, y) = clamp(R(x, y), 0, U)
 ```
+
+де:
+- `U = 255` для `uint8`;
+- `U = 65535` для `uint16`;
+- межі `0` і `U` задаються типом вихідного зображення, а не статистикою
+  поточного residual-кадру.
 
 Цей режим рекомендований для користувацького виходу за замовчуванням, оскільки
 не змінює масштаб сигналу та зберігає локальний контраст у межах допустимого
 діапазону. Недолік: значення за межами діапазону втрачаються через насичення.
 
-`ShiftToPositive` - residual зсувається у додатну область:
+Clipping виконується попіксельно в одному проході як saturating cast або явний
+`clamp` до типу вихідного зображення:
 
 ```text
-Residual_shift(x, y) = Residual(x, y) - min(Residual)
+for each pixel:
+    r = signed(current[x, y]) - signed(median[x, y])
+    out[x, y] = clamp(r, 0, U)
 ```
 
-Режим корисний для візуалізації, але змінює базовий рівень сигналу. Може
-потребувати попереднього пошуку глобального мінімуму, тобто додаткового проходу
-по кадру.
+Це приведення не є нормалізацією, не виконує `min(R)` / `max(R)` по кадру і не
+зсуває residual у додатну область. Значення `R < 0` стають `0`, значення
+`R > U` стають `U`, а значення всередині `[0, U]` зберігаються без зміни
+масштабу.
 
-`ScaleToInputRange` - residual масштабується до діапазону вхідного формату.
+Допустимий OpenCV-аналог реалізації:
 
-Для `ScaleToInputRange` значення residual множаться на коефіцієнт
-масштабування:
-
-```text
-alpha = range_input / range_residual
+```cpp
+cv::subtract(src, median, tmp, cv::noArray(), CV_16S);
+tmp.convertTo(out, CV_8U);
 ```
 
-де:
-- `range_input` - діапазон вхідного формату;
-- `range_residual` - динамічний діапазон residual.
+Для `uint16` вхідного маршруту:
 
-У загальному вигляді:
-```text
-Residual_scaled(x, y) = alpha * Residual(x, y)
+```cpp
+cv::subtract(src, median, tmp, cv::noArray(), CV_32S);
+tmp.convertTo(out, CV_16U);
 ```
 
-Метод гарантує стискання діапазону до масштабу вхідного формату, але може
-зменшувати видимість слабкоконтрастних об'єктів. Він дорожчий за clipping,
-оскільки потребує множення та приведення типу.
+`tmp` і `out` мають бути виділені до гарячого циклу `processFrame`. Виклик
+`convertTo` не повинен створювати нові `cv::Mat` або буфери в hot path.
 
 ## Preconditions
 
@@ -149,7 +155,8 @@ Residual_scaled(x, y) = alpha * Residual(x, y)
 
 Обов'язковий контекст і runtime-стан:
 - глобальний лічильник кадрів `t`;
-- циклічний буфер відібраних кадрів;
+- циклічний буфер відібраних кадрів за контрактом
+  `dp1.domain.runtime.cyclic_frame_buffer`;
 - стан медіанного кадру `Med_t`;
 - стан валідності residual;
 - поточний `stride`;
@@ -180,8 +187,8 @@ Residual_scaled(x, y) = alpha * Residual(x, y)
 
 1. Прийняти наступний потоковий кадр `I_t`.
 2. Перевірити, чи кадр потрапляє у медіанний буфер за правилом `t % stride == 0`.
-3. Якщо кадр відібраний, оновити циклічний буфер і перерахувати `Med_t` для
-   `FixedK3` або `FixedK5`.
+3. Якщо кадр відібраний, записати його в `CyclicFrameBuffer` і перерахувати
+   `Med_t` для `FixedK3` або `FixedK5`.
 4. Якщо циклічний буфер ще не заповнений достатньою кількістю відібраних кадрів,
    повернути явну ознаку відсутності валідного residual.
 5. Якщо `Med_t` валідний, сформувати `Residual_t = I_t - Med_t`.
@@ -209,7 +216,7 @@ Residual_scaled(x, y) = alpha * Residual(x, y)
         "mode": "FixedK3|FixedK5",
         "stride": 1,
         "output_median_frame": false,
-        "output_dynamic_range_mode": "RawSigned|ClipToInputRange|ShiftToPositive|ScaleToInputRange"
+        "output_dynamic_range_mode": "RawSigned|ClipToInputRange"
       }
     }
   }
@@ -277,6 +284,14 @@ t % stride == 0
 не є валідним. Реалізація має повертати явну ознаку відсутності валідного
 residual.
 
+Для `inverse_median` параметри `CyclicFrameBuffer` такі:
+- `capacity = 3` для `FixedK3`;
+- `capacity = 5` для `FixedK5`;
+- у буфер записуються тільки кадри, відібрані за правилом `t % stride == 0`;
+- `filled_count == capacity` є умовою валідності першого `Med_t`;
+- physical slot order дозволено використовувати напряму, оскільки temporal
+  median не залежить від хронологічного порядку кадрів у вікні.
+
 Медіанний фільтр сам не розширює діапазон яскравості: значення медіани належить
 множині вхідних значень відповідного пікселя. Розширення діапазону виникає на
 етапі віднімання `I_t - Med_t`, тому residual має знаковий тип підвищеної
@@ -294,10 +309,10 @@ Residual у `RawSigned` є основним внутрішнім предста�
 проходом по кадру.
 
 Орієнтовна вартість:
-- `ClipToInputRange`: 2-3 операції min/max на піксель;
-- `ScaleToInputRange`: множення та приведення типу, дорожче за clipping;
-- `ShiftToPositive`: може потребувати пошуку глобального мінімуму, тобто
-  додаткового проходу по кадру.
+- `ClipToInputRange`: один попіксельний прохід, saturating cast або явний
+  `max/min` на піксель;
+- clipping не залежить від `K`, не потребує пошуку глобальних мінімумів або
+  максимумів і не залежить від статистики residual-значень.
 
 Для high-FPS режимів приведення формату слід виконувати тільки тоді, коли це
 потрібно для користувача, візуалізації, запису у файл або інтеграції з модулем,
@@ -336,9 +351,10 @@ Residual у `RawSigned` є основним внутрішнім предста�
 - `SelectedOnly`.
 - Просторове медіанне вікно.
 - Прийняття кандидатів, фільтрація об’єктів або фінальне вимірювання.
-- Прихований внутрішній формат конвеєра `ClipToInputRange`,
-  `ShiftToPositive` або `ScaleToInputRange`.
+- Прихований внутрішній формат конвеєра `ClipToInputRange`.
+- Режими представлення residual `ShiftToPositive` і `ScaleToInputRange`.
 - Просторова операція OpenCV `medianBlur` як реалізація МКМФ.
+- Нормалізація residual через `min(R)` / `max(R)` по кадру.
 - Генерація коду із матеріалів Технічного завдання без канонічних карток, цієї
   специфікації і конфігурації `C`.
 
@@ -372,8 +388,8 @@ Residual у `RawSigned` є основним внутрішнім предста�
 - точну відповідність формулі `Residual_t = I_t - Med_t`;
 - `RawSigned`;
 - `ClipToInputRange`;
-- `ShiftToPositive`;
-- `ScaleToInputRange`;
+- `ClipToInputRange`: `R < 0 -> 0`, `0 <= R <= U -> R`, `R > U -> U`;
+- відсутність min-max normalization у `ClipToInputRange`;
 - відсутність динамічних алокацій у `processFrame`, якщо це можна
   інструментувати;
 - стабільну роботу на довгій послідовності кадрів;
@@ -395,12 +411,6 @@ Residual у `RawSigned` є основним внутрішнім предста�
 - Чи має вимкнення та повторне ввімкнення під час виконання зберігати пам'ять
   циклічного буфера і стан, скидати стан або бути непідтримуваним після старту.
 - Точна сигнатура API залежить від майбутньої реалізації інтерфейсу етапу DP1.
-- Чи має `ShiftToPositive` описувати тільки чистий зсув `R - R_min`, чи контракт
-  повинен явно фіксувати фінальне обмеження при виведенні у `uint8`/`uint16`:
-  `clamp(R - R_min, L, U)`.
-- Чи має `ScaleToInputRange` використовувати поточну формулу `alpha * R`, чи
-  повне min-max приведення signed residual до цільового діапазону:
-  `(R - R_min) * (U - L) / (R_max - R_min) + L`.
 
 ## Connections
 
@@ -411,7 +421,10 @@ Residual у `RawSigned` є основним внутрішнім предста�
   `../configuration/dp1.config.pipeline_configuration_c.md`.
 - Маршрут валідації:
   `../../../05-validation/cards/validation.dp1.radiometric_correction.inverse_median.md`.
+- Runtime-структура:
+  `../data_domains/dp1.domain.runtime.cyclic_frame_buffer.md`.
 - специфікує: `dp1.stage.radiometric_correction`.
 - варіант: `inverse_median`.
 - обмежено: `dp1.config.pipeline_configuration_c`.
+- використовує: `dp1.domain.runtime.cyclic_frame_buffer`.
 - валідовано через: `validation.dp1.radiometric_correction.inverse_median`.

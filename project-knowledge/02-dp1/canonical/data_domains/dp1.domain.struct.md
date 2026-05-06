@@ -21,7 +21,8 @@ Struct domain описує семантичну роль структурова�
 
 - Об'єкти Struct domain не є фінальним DP1 -> DP2 measurement payload.
 - Конкретні C++ representations мають визначатися в окремих implementation tasks.
-- `Candidate` і `Segment` є MVP structures у цьому домені.
+- `Candidate`, `Segment` і `ValidatedObject` є canonical structures у цьому
+  домені.
 
 ## Theorem / Contract
 
@@ -31,12 +32,15 @@ Struct domain описує семантичну роль структурова�
 - geometry має вказувати coordinate system або relation до source frame;
 - candidates є provisional hypotheses, а не validated objects;
 - segments є refined regions, а не final measurements;
+- validated objects є результатом object filtering, але не final measurement
+  payload;
 - filtering decisions не мають втрачати source traceability, якщо інше явно не визначено stage spec.
 
-Canonical MVP structures:
+Canonical structures:
 
 - `dp1.domain.struct.candidate`.
 - `dp1.domain.struct.segment`.
+- `dp1.domain.struct.validated_object`.
 
 ## Interpretation
 
@@ -44,7 +48,7 @@ Struct domain є мостом між pixel/mask semantics і measurement semanti
 
 ## Failure cases
 
-- `Candidate` або `Segment` трактується як final measurement.
+- `Candidate`, `Segment` або `ValidatedObject` трактується як final measurement.
 - Object geometry втрачає relation до frame/source mask.
 - Stage передає unstructured rectangles без identity/source metadata.
 
@@ -55,12 +59,12 @@ Struct domain є мостом між pixel/mask semantics і measurement semanti
 
 ## Open questions
 
-- Чи потрібна окрема `object` structure після filtering, чи для MVP достатньо filtered `Candidate`/`Segment` structures.
 - Standard quality flags для struct-domain objects.
 
 ## Connections
 
 - has_structure: dp1.domain.struct.candidate
 - has_structure: dp1.domain.struct.segment
+- has_structure: dp1.domain.struct.validated_object
 - derived_from: dp1.domain.mask
 - feeds: dp1.domain.measurement

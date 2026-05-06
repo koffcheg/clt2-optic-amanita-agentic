@@ -29,6 +29,8 @@ status: "draft"
 - вибрану реалізацію для кожного етапу;
 - рівень складності;
 - параметри;
+- input route DP1 instance: `U8` або `U16` carrier і фактичну бітність;
+- processing route і allowed internal formats;
 - дозволені домени даних;
 - обмеження під час виконання;
 - вимоги до профілювання;
@@ -42,6 +44,22 @@ status: "draft"
 {
   "schema_version": "1.0",
   "profile": "RT-5|RT-20|custom",
+  "input_route": {
+    "pixel_format": "U8|U16",
+    "bit_depth": "8|10|12|14|16",
+    "pixel_range": {
+      "min_value": 0,
+      "max_value": 255,
+      "black_level": 0,
+      "saturation_level": 255
+    }
+  },
+  "processing_route": {
+    "radiometric_output_format": "F32|S16|S32|U8|U16",
+    "processing_format": "F32|S16|S32|U8|U16",
+    "mask_format": "MaskU8",
+    "range_policy": "RawSensorRange|NormalizedFloat|SignedResidual|ClippedToInputRange|ScaledToInputRange"
+  },
   "pipeline": {
     "prep": {
       "enabled": true,
@@ -99,6 +117,158 @@ status: "draft"
 Профіль `RT-5` допускає лише `L0` і частково доведені `L1`-варіанти. Профіль
 `RT-20` допускає `L1` і `L2`-варіанти за умови проходження часової валідації.
 
+Typed canonical config model для code generation має існувати незалежно від
+JSON representation. JSON є serialization/authoring form, але C++ генерація
+має спиратися на typed fields:
+
+```cpp
+struct StageConfig {
+    bool enabled = false;
+    std::string variant;
+    std::string level;
+    ParameterMap parameters;
+};
+
+struct InputRouteConfig {
+    PixelFormat pixel_format = PixelFormat::U16;
+    InputBitDepth bit_depth = InputBitDepth::Bit16;
+    PixelRange pixel_range;
+};
+
+struct ProcessingRouteConfig {
+    PixelFormat radiometric_output_format = PixelFormat::S32;
+    PixelFormat processing_format = PixelFormat::F32;
+    PixelFormat mask_format = PixelFormat::MaskU8;
+    RangePolicy range_policy = RangePolicy::SignedResidual;
+};
+
+struct PrepRouteConfig {
+    std::string variant;
+    int tile_width = 0;
+    int tile_height = 0;
+    int overlap_x = 0;
+    int overlap_y = 0;
+};
+
+struct RuntimeLimitsConfig {
+    int worker_count = 1;
+    int max_candidates_per_tile = 0;
+    int max_segments_per_tile = 0;
+    int max_validated_objects_per_tile = 0;
+    int max_measurements_per_frame = 0;
+};
+
+struct PipelineConfig {
+    std::string schema_version;
+    std::string profile;
+    InputRouteConfig input_route;
+    ProcessingRouteConfig processing_route;
+    PrepRouteConfig prep_route;
+    RuntimeLimitsConfig runtime_limits;
+    StageConfig prep;
+    StageConfig radiometric;
+    StageConfig enhancement;
+    StageConfig matched_filter;
+    StageConfig candidate_extraction;
+    StageConfig segmentation;
+    StageConfig object_filtering;
+    StageConfig measurement;
+};
+```
+
+Threshold-like parameters мають використовувати `ThresholdConfig` із
+`dp1.domain.threshold`, а не untyped numeric values.
+
+`input_route` і `processing_route` фіксують pixel/range route DP1 instance на
+startup. Спосіб просторової підготовки кадру задає `pipeline.prep.variant`, а
+не `processing_route`.
+
+`prep.variant` підтримує кілька варіантів:
+
+- `full_frame` — обробка всього кадру як одного processing unit;
+- `roi` — обробка одного або кількох явно заданих ROI;
+- `tiles` — обробка через `TileDesc[]`, tile-local buffers і merge;
+- `adaptive_roi` — динамічний вибір ROI за окремою stage spec.
+
+Кожен варіант `prep` має мати власне мале ТЗ / stage spec з memory policy,
+coordinate policy і validation rules.
+
+Приклад `U8` instance:
+
+```json
+{
+  "input_route": {
+    "pixel_format": "U8",
+    "bit_depth": 8,
+    "pixel_range": {
+      "min_value": 0,
+      "max_value": 255,
+      "black_level": 0,
+      "saturation_level": 255
+    }
+  },
+  "processing_route": {
+    "radiometric_output_format": "S16",
+    "processing_format": "F32",
+    "mask_format": "MaskU8",
+    "range_policy": "SignedResidual"
+  },
+  "pipeline": {
+    "prep": {
+      "enabled": true,
+      "variant": "tiles",
+      "level": "L1",
+      "parameters": {
+        "tile_width": 256,
+        "tile_height": 256,
+        "overlap_x": 16,
+        "overlap_y": 16
+      }
+    }
+  }
+}
+```
+
+Приклад `U16` carrier з 12-bit sensor data:
+
+```json
+{
+  "input_route": {
+    "pixel_format": "U16",
+    "bit_depth": 12,
+    "pixel_range": {
+      "min_value": 0,
+      "max_value": 4095,
+      "black_level": 0,
+      "saturation_level": 4095
+    }
+  },
+  "processing_route": {
+    "radiometric_output_format": "S32",
+    "processing_format": "F32",
+    "mask_format": "MaskU8",
+    "range_policy": "SignedResidual"
+  },
+  "pipeline": {
+    "prep": {
+      "enabled": true,
+      "variant": "tiles",
+      "level": "L1",
+      "parameters": {
+        "tile_width": 256,
+        "tile_height": 256,
+        "overlap_x": 16,
+        "overlap_y": 16
+      }
+    }
+  }
+}
+```
+
+Route selection не є algorithm implementation. Stage implementation має явно
+оголошувати supported route, наприклад `RadiometricU8` або `RadiometricU16`,
+але використовувати ті самі canonical structures.
+
 Для `radiometric.variant = "inverse_median"` параметри визначає
 `dp1.stage_spec.radiometric_correction.inverse_median`.
 
@@ -116,7 +286,7 @@ status: "draft"
         "mode": "FixedK3|FixedK5",
         "stride": 1,
         "output_median_frame": false,
-        "output_dynamic_range_mode": "RawSigned|ClipToInputRange|ShiftToPositive|ScaleToInputRange"
+        "output_dynamic_range_mode": "RawSigned|ClipToInputRange"
       }
     }
   }
@@ -128,7 +298,8 @@ status: "draft"
 - внутрішній pipeline output за замовчуванням - `RawSigned`;
 - рекомендований користувацький або compatibility output - `ClipToInputRange`;
 - якщо `inverse_median` вимкнено у конфігурації при старті програми, пам'ять під
-  циклічний буфер кадрів не виділяється;
+  циклічний буфер кадрів за контрактом
+  `dp1.domain.runtime.cyclic_frame_buffer` не виділяється;
 - runtime disable/re-enable потребує окремого рішення у
   `dp1.stage_spec.radiometric_correction.inverse_median`.
 
@@ -142,20 +313,34 @@ status: "draft"
 - Швидкий шлях обходить правила доменів даних.
 - Конфігурація не містить усіх основних етапів.
 - Перетворення форматів або stateful-моделі не відображені у параметрах.
+- DP1 instance змінює `input_route` між кадрами без explicit reconfiguration
+  і buffer reallocation policy.
+- `prep.variant` вимагає одного memory/coordinate route, а implementation
+  використовує інший без explicit stage spec.
+- Tile-specific structures використовуються для `full_frame`, `roi` або
+  `adaptive_roi` без явного binding у відповідній stage spec.
 
 ## Typical misuse
 
 - Трактувати конфігурацію як необов’язкову runtime-декорацію.
 - Міняти поведінку через приховані прапорці поза `C`.
+- Вибирати 8-bit або 16-bit algorithm implementation через `cv::Mat::type()`
+  без route metadata.
 
 ## Open questions
 
 - Точна схема і формат валідації.
 - Формальний перелік параметрів для кожного `variant`.
 - Політика сумісності `schema_version`.
+- Формальний registry supported routes для кожної stage implementation.
 
 ## Connections
 
 - uses: dp1.pipeline.formal_model
 - constrained_by: dp1.domain.conversion_rules
+- constrained_by: dp1.domain.pixel_format
+- constrained_by: dp1.domain.threshold
+- constrained_by: dp1.domain.memory_ownership
+- constrained_by: dp1.domain.coordinates
+- references: dp1.domain.runtime.cyclic_frame_buffer
 - configures: dp1.stage_spec.radiometric_correction.inverse_median

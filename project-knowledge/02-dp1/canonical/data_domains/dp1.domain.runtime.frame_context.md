@@ -1,8 +1,6 @@
 ---
 id: dp1.domain.runtime.frame_context
-title:
-  uk: "Runtime-контекст кадру DP1"
-  en: "DP1 runtime frame context"
+title: "Runtime-контекст кадру DP1"
 tags: [dp1, canonical, data-domain, runtime, structure, frame-context]
 kind: data-domain-card
 source_role: canonical
@@ -38,6 +36,54 @@ status: "draft"
 
 `FrameContext` не має містити primary image buffers, masks, candidates, segments або measurements як hidden payload.
 
+Рекомендована C++ форма:
+
+```cpp
+struct FrameContext {
+    std::uint64_t frame_id = 0;
+    std::string pipeline_run_id;
+    const PipelineConfig *config_ref = nullptr;
+    int worker_count = 0;
+    PixelFormat input_format = PixelFormat::U16;
+    InputBitDepth input_bit_depth = InputBitDepth::Bit16;
+    std::vector<StageStatus> stage_statuses;
+    std::vector<ProfileEvent> profiling_trace;
+    std::vector<DiagnosticMessage> diagnostics;
+};
+```
+
+## Поля
+
+| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
+|---|---|---|---|---|
+| `frame_id` | `std::uint64_t` | Зв'язок із `FramePacket`. | Validation, trace. | 8 B |
+| `pipeline_run_id` | `std::string` | Ідентифікатор запуску pipeline. | Reproducibility, logs. | ~24 B + payload |
+| `config_ref` | `const PipelineConfig*` | Active configuration `C`. | Stage parameters, route selection. | 8 B |
+| `worker_count` | `int` | Кількість tile workers для кадру. | Profiling, memory accounting. | 4 B |
+| `input_format` | `PixelFormat` | Route-level input carrier. | Перевірка, що stage route узгоджений із frame. | 4 B |
+| `input_bit_depth` | `InputBitDepth` | Route-level input bit depth. | Threshold/range validation. | 4 B |
+| `stage_statuses` | `std::vector<StageStatus>` | Bounded status per stage. | Error handling, stage audit. | ~24 B + capacity |
+| `profiling_trace` | `std::vector<ProfileEvent>` | Frame-level timing events. | Performance analysis. | ~24 B + capacity |
+| `diagnostics` | `std::vector<DiagnosticMessage>` | Structured warnings/errors. | Debug without image payloads. | ~24 B + capacity |
+
+## Пам'ять
+
+`FrameContext` є small metadata object. Він не володіє image buffers і не має
+масштабуватися з розміром кадру. Його vector fields мають бути bounded policy
+через config або runtime limits.
+
+## Етапи
+
+`FrameContext` передається всім stages як context, але output stages мають бути
+явними domain structures:
+
+```text
+FramePacket + FrameContext
+  -> TileDesc[]
+  -> TileRawView + TileContext per worker
+  -> TileResult[]
+```
+
 ## Interpretation
 
 `FrameContext` дозволяє передавати службову інформацію між stages без забруднення domain objects. Він потрібен для tracing, profiling, diagnostics, route selection і відтворюваності.
@@ -69,3 +115,5 @@ status: "draft"
 - constrains: dp1.pipeline.stage_contract
 - references: dp1.config.pipeline_configuration_c
 - uses: dp1.domain.pixel_format
+- constrained_by: dp1.domain.identity
+- constrained_by: dp1.domain.time

@@ -1,8 +1,6 @@
 ---
 id: dp1.domain.runtime.tile_desc
-title:
-  uk: "Опис tile/ROI для DP1"
-  en: "DP1 tile descriptor"
+title: "Опис tile/ROI для DP1"
 tags: [dp1, canonical, data-domain, runtime, tile, parallelism]
 kind: data-domain-card
 source_role: canonical
@@ -36,6 +34,44 @@ status: "draft"
 - optional `border_policy` — required overlap semantics для filters/morphology.
 
 `TileDesc` має бути cheap to copy/pass між workers.
+
+Рекомендована C++ форма:
+
+```cpp
+struct TileDesc {
+    int tile_id = -1;
+    std::uint64_t frame_id = 0;
+    cv::Rect roi;
+    cv::Rect roi_with_border;
+    cv::Rect valid_area;
+    cv::Point origin_px{0, 0};
+    BorderPolicy border_policy;
+};
+```
+
+## Поля
+
+| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
+|---|---|---|---|---|
+| `tile_id` | `int` | Стабільний id tile. | Work scheduling, result ordering. | 4 B |
+| `frame_id` | `std::uint64_t` | Source frame identity. | Validation, merge trace. | 8 B |
+| `roi` | `cv::Rect` | Основна область tile у frame-global coordinates. | Ownership of valid output area. | 16 B |
+| `roi_with_border` | `cv::Rect` | Область читання з overlap/border. | Filters, morphology, neighborhood operations. | 16 B |
+| `valid_area` | `cv::Rect` | Border-safe область прийняття result. | Crop candidates/segments/measurements. | 16 B |
+| `origin_px` | `cv::Point` | Local-to-global offset. | Coordinate transform. | 8 B |
+| `border_policy` | `BorderPolicy` | Правила overlap і edge behavior. | Stage correctness near tile borders. | implementation-specific |
+
+## Пам'ять
+
+`TileDesc` не містить image payload. Орієнтовний розмір — 80-100 B. Навіть
+сотні tiles коштують лише десятки KB.
+
+## Етапи
+
+- `prep` створює `TileDesc[]`.
+- Scheduler роздає `TileDesc` workers.
+- Worker створює `TileRawView` через `roi_with_border`.
+- `merge` використовує `valid_area` і `origin_px`.
 
 ## Interpretation
 
