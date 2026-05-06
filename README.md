@@ -255,3 +255,27 @@ sudo apt-get install libjansson-dev
 3. Запустити DP2, потім DP1 на цільовому датасеті.
 4. Перевірити артефакти в `runs/dp1/<run_name>` і `runs/dp2/<run_name>`.
 5. Передати короткий handoff: що змінено, яким профілем зібрано, які команди запуску, де outputs.
+
+---
+
+## Currency Dashboard test assignment
+
+The full test-assignment deliverable is consolidated into one downloadable folder:
+
+```text
+currency-dashboard/
+```
+
+That folder is a standalone Laravel + Vue 3 MVP and includes its own `README.md` plus `LLM_INSTRUCTIONS.md`.
+
+Quick start after downloading only `currency-dashboard/`:
+
+```bash
+cd currency-dashboard
+cp .env.example .env
+composer install
+php artisan key:generate
+php artisan serve --host=127.0.0.1 --port=8000
+```
+
+Open `http://127.0.0.1:8000`. See `currency-dashboard/README.md` for API checks, refresh commands, implemented scope and limitations.
