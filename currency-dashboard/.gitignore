@@ -1,0 +1,5 @@
+/vendor
+/.env
+/storage/app/currency-dashboard/state.json
+/storage/logs/*.log
+/bootstrap/cache/*.php
