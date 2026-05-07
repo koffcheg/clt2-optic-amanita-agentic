@@ -13,7 +13,7 @@ This section defines target DP1 architecture independently from legacy `datapro1
 3. `pipeline/dp1.pipeline.formal_model.md`
 4. `pipeline/dp1.pipeline.stage_contract.md`
 5. `pipeline/dp1.pipeline.stage_domain_bindings.md`
-6. `data_domains/*.md`
+6. `data_domains/*.md` and `data_domains/structures/**/*.md`
 7. `stages/*.md`
 8. `stage_specs/*.md`
 9. `configuration/dp1.config.pipeline_configuration_c.md`
@@ -38,8 +38,20 @@ Data-domain cards define the canonical domains and boundary structures that
 move through stages. Algorithms must reference these cards instead of inventing
 local frame, mask, candidate, segment, or measurement structures.
 
-Stage-domain bindings define which domain structures each stage may read and emit.
-They prevent agents from using domain structures in the wrong stage or hiding outputs in runtime context.
+Stage-interface cards define the authoritative per-stage domain bindings:
+which domain structures each stage may read and emit. The stage-domain binding
+pipeline card links those eight stage cards and keeps cross-stage route,
+tile/merge, and hidden-output consistency rules.
+
+## Single-Camera DP1 Instance Invariant
+
+One active DP1 instance accepts one camera/source input. A `FramePacket`,
+`FrameContext`, stage invocation, tile merge, and frame-level
+`MeasurementRecord[]` output all belong to one `camera_id` / `source_id`.
+
+Multi-camera scenarios are represented by multiple DP1 instances or by a
+downstream DP2/orchestration aggregation boundary. Canonical DP1 cards do not
+define a multi-camera input container inside one DP1 instance.
 
 ## Current data domains
 
@@ -62,27 +74,27 @@ They prevent agents from using domain structures in the wrong stage or hiding ou
 
 ## Current domain structures
 
-- `data_domains/dp1.domain.raw.frame_packet.md` - `FramePacket` structure in Raw/Input domain.
-- `data_domains/dp1.domain.raw.tile_raw_view.md` - `TileRawView` read-only ROI view in Raw/Input domain.
-- `data_domains/dp1.domain.processing.frame.md` - `ProcessingFrame` structure in Processing domain.
-- `data_domains/dp1.domain.processing.tile_processing_frame.md` - `TileProcessingFrame` tile-local processing payload in Processing domain.
-- `data_domains/dp1.domain.mask.binary_mask.md` - `BinaryMask` structure in Mask domain.
-- `data_domains/dp1.domain.mask.tile_binary_mask.md` - `TileBinaryMask` tile-local binary mask payload in Mask domain.
-- `data_domains/dp1.domain.struct.candidate.md` - `Candidate` structure in Struct domain.
-- `data_domains/dp1.domain.struct.segment.md` - `Segment` structure in Struct domain.
-- `data_domains/dp1.domain.struct.validated_object.md` - `ValidatedObject` structure emitted by object filtering in Struct domain.
-- `data_domains/dp1.domain.measurement.record.md` - `MeasurementRecord` structure in Measurement domain.
+- `data_domains/structures/raw/dp1.domain.raw.frame_packet.md` - `FramePacket` structure in Raw/Input domain.
+- `data_domains/structures/raw/dp1.domain.raw.tile_raw_view.md` - `TileRawView` read-only ROI view in Raw/Input domain.
+- `data_domains/structures/processing/dp1.domain.processing.frame.md` - `ProcessingFrame` structure in Processing domain.
+- `data_domains/structures/processing/dp1.domain.processing.tile_processing_frame.md` - `TileProcessingFrame` tile-local processing payload in Processing domain.
+- `data_domains/structures/mask/dp1.domain.mask.binary_mask.md` - `BinaryMask` structure in Mask domain.
+- `data_domains/structures/mask/dp1.domain.mask.tile_binary_mask.md` - `TileBinaryMask` tile-local binary mask payload in Mask domain.
+- `data_domains/structures/struct/dp1.domain.struct.candidate.md` - `Candidate` structure in Struct domain.
+- `data_domains/structures/struct/dp1.domain.struct.segment.md` - `Segment` structure in Struct domain.
+- `data_domains/structures/struct/dp1.domain.struct.validated_object.md` - `ValidatedObject` structure emitted by object filtering in Struct domain.
+- `data_domains/structures/measurement/dp1.domain.measurement.record.md` - `MeasurementRecord` structure in Measurement domain.
 
 ## Current runtime / tile-local execution structures
 
 These cards describe target execution-support structures for AI-coder context.
 They do not implement parallelism and do not claim current runtime support.
 
-- `data_domains/dp1.domain.runtime.frame_context.md` - `FrameContext` for per-frame runtime/config/profiling context.
-- `data_domains/dp1.domain.runtime.cyclic_frame_buffer.md` - `CyclicFrameBuffer` for bounded reusable frame-history state owned by stateful stages.
-- `data_domains/dp1.domain.runtime.tile_desc.md` - `TileDesc` for ROI/tile + border/valid-area description.
-- `data_domains/dp1.domain.runtime.tile_context.md` - `TileContext` for per-worker reusable tile-local buffers and diagnostics.
-- `data_domains/dp1.domain.runtime.tile_result.md` - `TileResult` for tile-local outputs before merge.
+- `data_domains/structures/runtime/dp1.domain.runtime.frame_context.md` - `FrameContext` for per-frame runtime/config/profiling context.
+- `data_domains/structures/runtime/dp1.domain.runtime.cyclic_frame_buffer.md` - `CyclicFrameBuffer` for bounded reusable frame-history state owned by stateful stages.
+- `data_domains/structures/runtime/dp1.domain.runtime.tile_desc.md` - `TileDesc` for ROI/tile + border/valid-area description.
+- `data_domains/structures/runtime/dp1.domain.runtime.tile_context.md` - `TileContext` for per-worker reusable tile-local buffers and diagnostics.
+- `data_domains/structures/runtime/dp1.domain.runtime.tile_result.md` - `TileResult` for tile-local outputs before merge.
 
 ## Prep Execution Variants
 
@@ -118,7 +130,7 @@ structure names such as `raw16` or `proc32`.
 
 ## Current pipeline bindings
 
-- `pipeline/dp1.pipeline.stage_domain_bindings.md` - canonical matrix of stage inputs, runtime context, and allowed outputs.
+- `pipeline/dp1.pipeline.stage_domain_bindings.md` - cross-stage binding overview with links to the eight authoritative stage-interface binding sections, plus pipeline-level tile/merge and hidden-output rules.
 
 ## Current stage specifications
 

@@ -422,7 +422,7 @@ Residual у `RawSigned` є основним внутрішнім предста�
 - Маршрут валідації:
   `../../../05-validation/cards/validation.dp1.radiometric_correction.inverse_median.md`.
 - Runtime-структура:
-  `../data_domains/dp1.domain.runtime.cyclic_frame_buffer.md`.
+  `../data_domains/structures/runtime/dp1.domain.runtime.cyclic_frame_buffer.md`.
 - специфікує: `dp1.stage.radiometric_correction`.
 - варіант: `inverse_median`.
 - обмежено: `dp1.config.pipeline_configuration_c`.

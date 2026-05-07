@@ -5,7 +5,7 @@ tags: [dp1, canonical, data-domain, processing, structure]
 kind: data-domain-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.processing.frame.md"
+  file: "project-knowledge/02-dp1/canonical/data_domains/structures/processing/dp1.domain.processing.frame.md"
 status: "draft"
 ---
 
@@ -59,17 +59,54 @@ struct ProcessingFrame {
 
 ## Поля
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `frame_id` | `std::uint64_t` | Ідентичність source frame. | Validation, tracing. | 8 B |
-| `source_frame_id` | optional `std::uint64_t` | Relation до `FramePacket`. | Audit, reproducibility. | ~16 B |
-| `image` | `cv::Mat` | Processing pixels. | Residual, enhancement, detector response. | header ~96 B + payload |
-| `pixel_format` | `PixelFormat` | `F32`, `S16`, `S32` або explicit fast route. | Algorithm route validation. | 4 B |
-| `value_range` | `PixelRange` | Numeric range після conversion. | Thresholds, clipping, photometry. | ~32 B |
-| `processing_domain` | `ProcessingDomain` | Семантика image payload. | Забороняє змішування residual/enhanced/response. | 4 B |
-| `range_policy` | `RangePolicy` | Як трактувати значення. | Signed residual, normalization. | 4 B |
-| `geometry` | `FrameGeometry` | Розмір і origin representation. | Coordinate validation. | ~16 B |
-| `coordinate_space` | `CoordinateSpace` | Frame-global або tile-local. | Merge/geometry correctness. | 4 B |
+```yaml
+fields:
+  - name: "`frame_id`"
+    type: "`std::uint64_t`"
+    purpose: "Ідентичність source frame."
+    used_for: "Validation, tracing."
+    memory: "8 B"
+  - name: "`source_frame_id`"
+    type: "optional `std::uint64_t`"
+    purpose: "Relation до `FramePacket`."
+    used_for: "Audit, reproducibility."
+    memory: "~16 B"
+  - name: "`image`"
+    type: "`cv::Mat`"
+    purpose: "Processing pixels."
+    used_for: "Residual, enhancement, detector response."
+    memory: "header ~96 B + payload"
+  - name: "`pixel_format`"
+    type: "`PixelFormat`"
+    purpose: "`F32`, `S16`, `S32` або explicit fast route."
+    used_for: "Algorithm route validation."
+    memory: "4 B"
+  - name: "`value_range`"
+    type: "`PixelRange`"
+    purpose: "Numeric range після conversion."
+    used_for: "Thresholds, clipping, photometry."
+    memory: "~32 B"
+  - name: "`processing_domain`"
+    type: "`ProcessingDomain`"
+    purpose: "Семантика image payload."
+    used_for: "Забороняє змішування residual/enhanced/response."
+    memory: "4 B"
+  - name: "`range_policy`"
+    type: "`RangePolicy`"
+    purpose: "Як трактувати значення."
+    used_for: "Signed residual, normalization."
+    memory: "4 B"
+  - name: "`geometry`"
+    type: "`FrameGeometry`"
+    purpose: "Розмір і origin representation."
+    used_for: "Coordinate validation."
+    memory: "~16 B"
+  - name: "`coordinate_space`"
+    type: "`CoordinateSpace`"
+    purpose: "Frame-global або tile-local."
+    used_for: "Merge/geometry correctness."
+    memory: "4 B"
+```
 
 ## Пам'ять
 

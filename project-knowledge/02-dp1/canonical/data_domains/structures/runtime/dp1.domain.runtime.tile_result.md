@@ -5,7 +5,7 @@ tags: [dp1, canonical, data-domain, runtime, tile, parallelism]
 kind: data-domain-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.runtime.tile_result.md"
+  file: "project-knowledge/02-dp1/canonical/data_domains/structures/runtime/dp1.domain.runtime.tile_result.md"
 status: "draft"
 ---
 
@@ -54,18 +54,59 @@ struct TileResult {
 
 ## Поля
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `tile_id` | `int` | Source tile id. | Merge ordering, diagnostics. | 4 B |
-| `frame_id` | `std::uint64_t` | Source frame id. | Validation. | 8 B |
-| `valid_area` | `cv::Rect` | Border-safe area. | Crop/filter tile outputs. | 16 B |
-| `origin_px` | `cv::Point` | Local-to-global offset. | Coordinate transform. | 8 B |
-| `candidate_results` | `std::vector<Candidate>` | Optional intermediate tile candidates. | Diagnostics/merge support. | ~24 B + payload |
-| `segment_results` | `std::vector<Segment>` | Optional intermediate tile segments. | Diagnostics/merge support. | ~24 B + payload |
-| `validated_object_results` | `std::vector<ValidatedObject>` | Optional tile validated objects. | Merge/diagnostics before measurement. | ~24 B + payload |
-| `measurement_results` | `std::vector<MeasurementRecord>` | Main tile output. | Frame-level merge and DP2 handoff. | ~24 B + payload |
-| `diagnostics` | `std::vector<DiagnosticMessage>` | Tile warnings/errors. | Report/debug. | bounded |
-| `profiling_summary` | `TileProfilingSummary` | Tile timing summary. | Performance analysis. | implementation-specific |
+```yaml
+fields:
+  - name: "`tile_id`"
+    type: "`int`"
+    purpose: "Source tile id."
+    used_for: "Merge ordering, diagnostics."
+    memory: "4 B"
+  - name: "`frame_id`"
+    type: "`std::uint64_t`"
+    purpose: "Source frame id."
+    used_for: "Validation."
+    memory: "8 B"
+  - name: "`valid_area`"
+    type: "`cv::Rect`"
+    purpose: "Border-safe area."
+    used_for: "Crop/filter tile outputs."
+    memory: "16 B"
+  - name: "`origin_px`"
+    type: "`cv::Point`"
+    purpose: "Local-to-global offset."
+    used_for: "Coordinate transform."
+    memory: "8 B"
+  - name: "`candidate_results`"
+    type: "`std::vector<Candidate>`"
+    purpose: "Optional intermediate tile candidates."
+    used_for: "Diagnostics/merge support."
+    memory: "~24 B + payload"
+  - name: "`segment_results`"
+    type: "`std::vector<Segment>`"
+    purpose: "Optional intermediate tile segments."
+    used_for: "Diagnostics/merge support."
+    memory: "~24 B + payload"
+  - name: "`validated_object_results`"
+    type: "`std::vector<ValidatedObject>`"
+    purpose: "Optional tile validated objects."
+    used_for: "Merge/diagnostics before measurement."
+    memory: "~24 B + payload"
+  - name: "`measurement_results`"
+    type: "`std::vector<MeasurementRecord>`"
+    purpose: "Main tile output."
+    used_for: "Frame-level merge and DP2 handoff."
+    memory: "~24 B + payload"
+  - name: "`diagnostics`"
+    type: "`std::vector<DiagnosticMessage>`"
+    purpose: "Tile warnings/errors."
+    used_for: "Report/debug."
+    memory: "bounded"
+  - name: "`profiling_summary`"
+    type: "`TileProfilingSummary`"
+    purpose: "Tile timing summary."
+    used_for: "Performance analysis."
+    memory: "implementation-specific"
+```
 
 ## Пам'ять
 

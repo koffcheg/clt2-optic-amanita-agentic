@@ -5,7 +5,7 @@ tags: [dp1, canonical, data-domain, runtime, tile, parallelism]
 kind: data-domain-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.runtime.tile_desc.md"
+  file: "project-knowledge/02-dp1/canonical/data_domains/structures/runtime/dp1.domain.runtime.tile_desc.md"
 status: "draft"
 ---
 
@@ -51,15 +51,44 @@ struct TileDesc {
 
 ## Поля
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `tile_id` | `int` | Стабільний id tile. | Work scheduling, result ordering. | 4 B |
-| `frame_id` | `std::uint64_t` | Source frame identity. | Validation, merge trace. | 8 B |
-| `roi` | `cv::Rect` | Основна область tile у frame-global coordinates. | Ownership of valid output area. | 16 B |
-| `roi_with_border` | `cv::Rect` | Область читання з overlap/border. | Filters, morphology, neighborhood operations. | 16 B |
-| `valid_area` | `cv::Rect` | Border-safe область прийняття result. | Crop candidates/segments/measurements. | 16 B |
-| `origin_px` | `cv::Point` | Local-to-global offset. | Coordinate transform. | 8 B |
-| `border_policy` | `BorderPolicy` | Правила overlap і edge behavior. | Stage correctness near tile borders. | implementation-specific |
+```yaml
+fields:
+  - name: "`tile_id`"
+    type: "`int`"
+    purpose: "Стабільний id tile."
+    used_for: "Work scheduling, result ordering."
+    memory: "4 B"
+  - name: "`frame_id`"
+    type: "`std::uint64_t`"
+    purpose: "Source frame identity."
+    used_for: "Validation, merge trace."
+    memory: "8 B"
+  - name: "`roi`"
+    type: "`cv::Rect`"
+    purpose: "Основна область tile у frame-global coordinates."
+    used_for: "Ownership of valid output area."
+    memory: "16 B"
+  - name: "`roi_with_border`"
+    type: "`cv::Rect`"
+    purpose: "Область читання з overlap/border."
+    used_for: "Filters, morphology, neighborhood operations."
+    memory: "16 B"
+  - name: "`valid_area`"
+    type: "`cv::Rect`"
+    purpose: "Border-safe область прийняття result."
+    used_for: "Crop candidates/segments/measurements."
+    memory: "16 B"
+  - name: "`origin_px`"
+    type: "`cv::Point`"
+    purpose: "Local-to-global offset."
+    used_for: "Coordinate transform."
+    memory: "8 B"
+  - name: "`border_policy`"
+    type: "`BorderPolicy`"
+    purpose: "Правила overlap і edge behavior."
+    used_for: "Stage correctness near tile borders."
+    memory: "implementation-specific"
+```
 
 ## Пам'ять
 

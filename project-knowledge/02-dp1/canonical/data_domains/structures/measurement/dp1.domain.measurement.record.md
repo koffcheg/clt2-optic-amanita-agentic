@@ -5,7 +5,7 @@ tags: [dp1, canonical, data-domain, measurement, structure]
 kind: data-domain-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.measurement.record.md"
+  file: "project-knowledge/02-dp1/canonical/data_domains/structures/measurement/dp1.domain.measurement.record.md"
 status: "draft"
 ---
 
@@ -20,6 +20,8 @@ status: "draft"
 - Measurement має містити координати, геометрію, фотометрію та downstream metadata, потрібні DP2.
 - Точна payload schema має бути узгоджена з `protocols.dp1_dp2.measurement_handoff`.
 - Конкретна C++ структура має визначатися окремою implementation task.
+- Frame-level `MeasurementRecord[]` output одного DP1 instance належить одному
+  `camera_id` / `source_id`.
 
 ## Theorem / Contract
 
@@ -40,6 +42,10 @@ status: "draft"
 - optional `source_segment_id` — зв'язок із segment, використаним для measurement.
 
 Measurement має бути sufficient для downstream DP2 interpretation without requiring DP1 debug images, masks, or temporary buffers.
+
+`camera_id` у `MeasurementRecord` позначає active source camera поточного DP1
+instance. Якщо DP2 отримує measurements від кількох камер, це має бути результатом
+кількох DP1 instances або окремої downstream aggregation boundary.
 
 Рекомендована C++ форма:
 
@@ -70,30 +76,100 @@ struct MeasurementRecord {
 
 ## Поля `PhotometryStats`
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `mean_intensity` | `float` | Середня яскравість object region. | Object quality, DP2 interpretation. | 4 B |
-| `max_intensity` | `float` | Максимальна яскравість region. | Peak/saturation checks. | 4 B |
-| `stddev_intensity` | `float` | Розкид яскравості. | Contrast/noise quality. | 4 B |
-| `source_format` | `PixelFormat` | Carrier, з якого рахували photometry. | Correct interpretation of stats. | 4 B |
-| `source_bit_depth` | `InputBitDepth` | Фактична source бітність. | Scale/range interpretation у DP2. | 4 B |
+```yaml
+fields:
+  - name: "`mean_intensity`"
+    type: "`float`"
+    purpose: "Середня яскравість object region."
+    used_for: "Object quality, DP2 interpretation."
+    memory: "4 B"
+  - name: "`max_intensity`"
+    type: "`float`"
+    purpose: "Максимальна яскравість region."
+    used_for: "Peak/saturation checks."
+    memory: "4 B"
+  - name: "`stddev_intensity`"
+    type: "`float`"
+    purpose: "Розкид яскравості."
+    used_for: "Contrast/noise quality."
+    memory: "4 B"
+  - name: "`source_format`"
+    type: "`PixelFormat`"
+    purpose: "Carrier, з якого рахували photometry."
+    used_for: "Correct interpretation of stats."
+    memory: "4 B"
+  - name: "`source_bit_depth`"
+    type: "`InputBitDepth`"
+    purpose: "Фактична source бітність."
+    used_for: "Scale/range interpretation у DP2."
+    memory: "4 B"
+```
 
 ## Поля `MeasurementRecord`
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `measurement_id` | `std::uint64_t` | Stable final id. | DP2 tracking/input relation. | 8 B |
-| `frame_id` | `std::uint64_t` | Source frame. | DP2 timeline, validation. | 8 B |
-| `camera_id` | `int` | Source camera/DP1 instance. | Multi-instance DP2 handoff. | 4 B |
-| `source_object_id` | `std::uint64_t` | Relation до accepted `ValidatedObject`. | Audit/debug, object-filtering trace. | 8 B |
-| `source_segment_id` | `std::uint64_t` | Relation до source segment. | Audit/debug. | 8 B |
-| `time_ref` | `TimestampRef` | Timestamp для result. | Latency і DP2 temporal logic. | ~16 B |
-| `position_px` | `cv::Point2f` | Object position у pixels. | DP2 input, tracking seed. | 8 B |
-| `bbox_px` | `cv::Rect` | Bounding geometry. | DP2 filtering/debug, duplicate suppression. | 16 B |
-| `area_px` | `int` | Area of measured region. | Quality/filtering. | 4 B |
-| `photometry` | `PhotometryStats` | Brightness statistics. | Quality, downstream interpretation. | ~20 B |
-| `coordinate_space` | `CoordinateSpace` | Final output має бути frame-global. | Protocol correctness. | 4 B |
-| `quality_flags` | `std::uint32_t` | Validity/quality flags. | DP2 decisions, partial/border flags. | 4 B |
+```yaml
+fields:
+  - name: "`measurement_id`"
+    type: "`std::uint64_t`"
+    purpose: "Stable final id."
+    used_for: "DP2 tracking/input relation."
+    memory: "8 B"
+  - name: "`frame_id`"
+    type: "`std::uint64_t`"
+    purpose: "Source frame."
+    used_for: "DP2 timeline, validation."
+    memory: "8 B"
+  - name: "`camera_id`"
+    type: "`int`"
+    purpose: "Active source camera поточного DP1 instance."
+    used_for: "Multi-instance DP2 handoff."
+    memory: "4 B"
+  - name: "`source_object_id`"
+    type: "`std::uint64_t`"
+    purpose: "Relation до accepted `ValidatedObject`."
+    used_for: "Audit/debug, object-filtering trace."
+    memory: "8 B"
+  - name: "`source_segment_id`"
+    type: "`std::uint64_t`"
+    purpose: "Relation до source segment."
+    used_for: "Audit/debug."
+    memory: "8 B"
+  - name: "`time_ref`"
+    type: "`TimestampRef`"
+    purpose: "Timestamp для result."
+    used_for: "Latency і DP2 temporal logic."
+    memory: "~16 B"
+  - name: "`position_px`"
+    type: "`cv::Point2f`"
+    purpose: "Object position у pixels."
+    used_for: "DP2 input, tracking seed."
+    memory: "8 B"
+  - name: "`bbox_px`"
+    type: "`cv::Rect`"
+    purpose: "Bounding geometry."
+    used_for: "DP2 filtering/debug, duplicate suppression."
+    memory: "16 B"
+  - name: "`area_px`"
+    type: "`int`"
+    purpose: "Area of measured region."
+    used_for: "Quality/filtering."
+    memory: "4 B"
+  - name: "`photometry`"
+    type: "`PhotometryStats`"
+    purpose: "Brightness statistics."
+    used_for: "Quality, downstream interpretation."
+    memory: "~20 B"
+  - name: "`coordinate_space`"
+    type: "`CoordinateSpace`"
+    purpose: "Final output має бути frame-global."
+    used_for: "Protocol correctness."
+    memory: "4 B"
+  - name: "`quality_flags`"
+    type: "`std::uint32_t`"
+    purpose: "Validity/quality flags."
+    used_for: "DP2 decisions, partial/border flags."
+    memory: "4 B"
+```
 
 Орієнтовний розмір одного `MeasurementRecord`: 100-140 B залежно від alignment.
 
@@ -111,6 +187,8 @@ frame-level `std::vector<MeasurementRecord>`.
 - `merge` перетворює coordinates у `FrameGlobal`, прибирає border duplicates і
   формує frame-level measurements.
 - DP1 -> DP2 handoff споживає тільки frame-level `MeasurementRecord[]`.
+- Один frame-level output не має змішувати measurements різних камер без
+  окремого protocol/aggregation contract.
 
 ## Interpretation
 
@@ -120,6 +198,7 @@ frame-level `std::vector<MeasurementRecord>`.
 
 - Внутрішні маски або visualization images передаються як canonical DP2 input.
 - Measurement lacks frame/time/source identity.
+- Frame-level measurement batch змішує кілька `camera_id` як один DP1 output.
 - Геометрія видається без coordinate-system metadata.
 - Фотометрія рахується з display/debug buffer замість measurement domain.
 

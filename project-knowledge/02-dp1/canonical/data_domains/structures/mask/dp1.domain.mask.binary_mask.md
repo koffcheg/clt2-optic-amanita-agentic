@@ -5,7 +5,7 @@ tags: [dp1, canonical, data-domain, mask, structure]
 kind: data-domain-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.mask.binary_mask.md"
+  file: "project-knowledge/02-dp1/canonical/data_domains/structures/mask/dp1.domain.mask.binary_mask.md"
 status: "draft"
 ---
 
@@ -57,16 +57,49 @@ struct BinaryMask {
 
 ## Поля
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `frame_id` | `std::uint64_t` | Source frame identity. | Validation, trace. | 8 B |
-| `source_ref` | `std::string` | Relation до processing output або stage output. | Audit, debugging. | ~24 B + payload |
-| `mask` | `cv::Mat` | Binary mask payload. | Components, contours, segmentation. | header ~96 B + payload |
-| `pixel_format` | `PixelFormat` | Має бути `MaskU8`. | Validation. | 4 B |
-| `geometry` | `FrameGeometry` | Geometry mask representation. | Coordinate checks. | ~16 B |
-| `background_value` | `std::uint8_t` | Background convention. | Mask validation. | 1 B |
-| `foreground_value` | `std::uint8_t` | Foreground convention. | Components/contours. | 1 B |
-| `coordinate_space` | `CoordinateSpace` | Frame-global або tile-local. | Merge correctness. | 4 B |
+```yaml
+fields:
+  - name: "`frame_id`"
+    type: "`std::uint64_t`"
+    purpose: "Source frame identity."
+    used_for: "Validation, trace."
+    memory: "8 B"
+  - name: "`source_ref`"
+    type: "`std::string`"
+    purpose: "Relation до processing output або stage output."
+    used_for: "Audit, debugging."
+    memory: "~24 B + payload"
+  - name: "`mask`"
+    type: "`cv::Mat`"
+    purpose: "Binary mask payload."
+    used_for: "Components, contours, segmentation."
+    memory: "header ~96 B + payload"
+  - name: "`pixel_format`"
+    type: "`PixelFormat`"
+    purpose: "Має бути `MaskU8`."
+    used_for: "Validation."
+    memory: "4 B"
+  - name: "`geometry`"
+    type: "`FrameGeometry`"
+    purpose: "Geometry mask representation."
+    used_for: "Coordinate checks."
+    memory: "~16 B"
+  - name: "`background_value`"
+    type: "`std::uint8_t`"
+    purpose: "Background convention."
+    used_for: "Mask validation."
+    memory: "1 B"
+  - name: "`foreground_value`"
+    type: "`std::uint8_t`"
+    purpose: "Foreground convention."
+    used_for: "Components/contours."
+    memory: "1 B"
+  - name: "`coordinate_space`"
+    type: "`CoordinateSpace`"
+    purpose: "Frame-global або tile-local."
+    used_for: "Merge correctness."
+    memory: "4 B"
+```
 
 ## Пам'ять
 

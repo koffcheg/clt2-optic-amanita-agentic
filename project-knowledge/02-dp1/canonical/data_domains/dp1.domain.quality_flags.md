@@ -32,16 +32,33 @@ using RejectFlags = std::uint32_t;
 
 Initial canonical bit registry:
 
-| Bit | Flag | Role |
-|---|---|---|
-| `0` | `BorderTouched` | Object/segment торкається tile або frame border. |
-| `1` | `TooSmall` | Area менше config minimum. |
-| `2` | `TooLarge` | Area більше config maximum. |
-| `3` | `LowContrast` | Photometry/response contrast lower than threshold. |
-| `4` | `Saturated` | Source pixels або photometry мають saturation. |
-| `5` | `ShapeInvalid` | Shape/geometry criteria failed. |
-| `6` | `PartialFrame` | Result formed from partial/incomplete frame area. |
-| `7` | `DuplicateSuppressed` | Merge detected duplicate/border overlap. |
+```yaml
+flags:
+  - bit: "`0`"
+    name: "`BorderTouched`"
+    role: "Object/segment торкається tile або frame border."
+  - bit: "`1`"
+    name: "`TooSmall`"
+    role: "Area менше config minimum."
+  - bit: "`2`"
+    name: "`TooLarge`"
+    role: "Area більше config maximum."
+  - bit: "`3`"
+    name: "`LowContrast`"
+    role: "Photometry/response contrast lower than threshold."
+  - bit: "`4`"
+    name: "`Saturated`"
+    role: "Source pixels або photometry мають saturation."
+  - bit: "`5`"
+    name: "`ShapeInvalid`"
+    role: "Shape/geometry criteria failed."
+  - bit: "`6`"
+    name: "`PartialFrame`"
+    role: "Result formed from partial/incomplete frame area."
+  - bit: "`7`"
+    name: "`DuplicateSuppressed`"
+    role: "Merge detected duplicate/border overlap."
+```
 
 `quality_flags` описують bounded properties result. `reject_flags` описують
 причини rejection у `ValidatedObject`.

@@ -8,7 +8,7 @@ kind: stage-interface-card
 source_role: canonical
 source:
   file: "project-knowledge/02-dp1/canonical/stages/dp1.stage.radiometric_correction.md"
-  lines: "1-130"
+  lines: "1-170"
 status: "draft"
 ---
 
@@ -63,6 +63,34 @@ Output має явно задавати:
 - `range_policy`;
 - `value_range`;
 - `coordinate_space`.
+
+## Domain bindings
+
+```yaml
+frame_level_binding:
+  allowed_input:
+    - "dp1.domain.raw.frame_packet"
+    - "dp1.domain.processing.frame"
+  runtime_context: "dp1.domain.runtime.frame_context"
+  allowed_output: "dp1.domain.processing.frame"
+  notes: "Формує corrected/residual processing representation; concrete carrier залежить від route."
+route_specific_carriers:
+  - route: "full_frame"
+    input_carrier: "FramePacket або ProcessingFrame"
+    output_carrier: "ProcessingFrame"
+  - route: "roi"
+    input_carrier: "ROI/view над FramePacket або ProcessingFrame"
+    output_carrier: "ProcessingFrame або ROI-scoped processing representation, якщо це визначено stage spec"
+  - route: "tiles"
+    input_carrier: "TileRawView або TileProcessingFrame"
+    runtime_context: "TileContext + FrameContext"
+    output_carrier: "TileProcessingFrame"
+```
+
+Вихід має бути explicit Processing-domain carrier з
+`processing_domain = RadiometricResidual` або `RadiometricCorrected`.
+Етап не має мутувати `FramePacket.image`, видавати candidates/masks/measurements
+або перетворювати internal background buffers на canonical output.
 
 ## Complexity variants
 
@@ -131,6 +159,12 @@ residual, режими приведення виходу та вимоги ва�
 ## Connections
 
 - uses: dp1.domain.processing
+- uses: dp1.domain.raw.frame_packet
+- uses: dp1.domain.raw.tile_raw_view
+- uses: dp1.domain.processing.frame
+- uses: dp1.domain.processing.tile_processing_frame
+- uses: dp1.domain.runtime.frame_context
+- uses: dp1.domain.runtime.tile_context
 - constrained_by: dp1.domain.conversion_rules
 - specified_by: dp1.stage_spec.radiometric_correction.inverse_median
 - feeds: dp1.stage.enhancement

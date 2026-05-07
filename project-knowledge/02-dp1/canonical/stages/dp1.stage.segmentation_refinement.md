@@ -8,7 +8,7 @@ kind: stage-interface-card
 source_role: canonical
 source:
   file: "project-knowledge/02-dp1/canonical/stages/dp1.stage.segmentation_refinement.md"
-  lines: "1-130"
+  lines: "1-133"
 status: "draft"
 ---
 
@@ -40,6 +40,32 @@ connected components для подальшої фільтрації.
 ## Outputs
 
 Контури або connected components з metadata, достатніми для object filtering.
+
+## Domain bindings
+
+```yaml
+frame_level_binding:
+  allowed_input:
+    - "dp1.domain.mask.binary_mask"
+    - "optional dp1.domain.struct.candidate"
+  runtime_context: "dp1.domain.runtime.frame_context"
+  allowed_output: "dp1.domain.struct.segment"
+  notes: "Segment уточнює candidate/region."
+route_specific_carriers:
+  - route: "full_frame"
+    input_carrier: "BinaryMask + optional Candidate[]"
+    output_carrier: "Segment[]"
+  - route: "roi"
+    input_carrier: "ROI-scoped BinaryMask + optional Candidate[]"
+    output_carrier: "Segment[] з explicit coordinate metadata"
+  - route: "tiles"
+    input_carrier: "TileBinaryMask + optional Candidate[]"
+    runtime_context: "TileContext + FrameContext"
+    output_carrier: "Segment[]"
+```
+
+У tile route coordinates лишаються tile-local до merge/globalization.
+Етап не має виконувати photometric measurement або final target acceptance.
 
 ## Complexity variants
 
@@ -92,7 +118,16 @@ connected components для подальшої фільтрації.
 
 Canonical-представлення компоненти.
 
+Чи має `segmentation_refinement` приймати mask-only route, чи тільки
+`Candidate[] + BinaryMask`.
+
 ## Connections
 
 - feeds: dp1.stage.object_filtering
 - uses: dp1.domain.mask
+- uses: dp1.domain.mask.binary_mask
+- uses: dp1.domain.mask.tile_binary_mask
+- uses: dp1.domain.struct.candidate
+- produces: dp1.domain.struct.segment
+- uses: dp1.domain.runtime.frame_context
+- uses: dp1.domain.runtime.tile_context

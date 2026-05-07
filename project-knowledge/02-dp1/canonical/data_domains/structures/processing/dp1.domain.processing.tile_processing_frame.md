@@ -5,7 +5,7 @@ tags: [dp1, canonical, data-domain, processing, structure, tile, memory]
 kind: data-domain-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.processing.tile_processing_frame.md"
+  file: "project-knowledge/02-dp1/canonical/data_domains/structures/processing/dp1.domain.processing.tile_processing_frame.md"
 status: "draft"
 ---
 
@@ -48,18 +48,59 @@ struct TileProcessingFrame {
 
 ## Поля
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `frame_id` | `std::uint64_t` | Зв'язок із source frame. | Validation, profiling, merge trace. | 8 B |
-| `tile_id` | `int` | Зв'язок із source tile. | Tile profiling, duplicate handling. | 4 B |
-| `image` | `cv::Mat` | Processing pixels для одного tile. | Radiometric output, enhancement, matched filtering, thresholding. | header ~96 B; payload у `TileContext` |
-| `pixel_format` | `PixelFormat` | Carrier processing values. | Allowed conversions і algorithm route validation. | 4 B |
-| `value_range` | `PixelRange` | Numeric range після conversion/residual. | Thresholds, clipping/scaling, photometry if selected. | ~32 B |
-| `processing_domain` | `ProcessingDomain` | Семантика payload. | Перевірка, що stage читає residual/enhanced/response. | 4 B |
-| `range_policy` | `RangePolicy` | Правила інтерпретації значень. | Signed residual, normalized float, clipped output. | 4 B |
-| `valid_area` | `cv::Rect` | Border-safe output area. | Crop перед candidate/segment/measurement acceptance. | 16 B |
-| `origin_px` | `cv::Point` | Local-to-global offset. | Geometry transform. | 8 B |
-| `coordinate_space` | `CoordinateSpace` | Tile-local або frame-global coordinates. | Merge correctness. | 4 B |
+```yaml
+fields:
+  - name: "`frame_id`"
+    type: "`std::uint64_t`"
+    purpose: "Зв'язок із source frame."
+    used_for: "Validation, profiling, merge trace."
+    memory: "8 B"
+  - name: "`tile_id`"
+    type: "`int`"
+    purpose: "Зв'язок із source tile."
+    used_for: "Tile profiling, duplicate handling."
+    memory: "4 B"
+  - name: "`image`"
+    type: "`cv::Mat`"
+    purpose: "Processing pixels для одного tile."
+    used_for: "Radiometric output, enhancement, matched filtering, thresholding."
+    memory: "header ~96 B; payload у `TileContext`"
+  - name: "`pixel_format`"
+    type: "`PixelFormat`"
+    purpose: "Carrier processing values."
+    used_for: "Allowed conversions і algorithm route validation."
+    memory: "4 B"
+  - name: "`value_range`"
+    type: "`PixelRange`"
+    purpose: "Numeric range після conversion/residual."
+    used_for: "Thresholds, clipping/scaling, photometry if selected."
+    memory: "~32 B"
+  - name: "`processing_domain`"
+    type: "`ProcessingDomain`"
+    purpose: "Семантика payload."
+    used_for: "Перевірка, що stage читає residual/enhanced/response."
+    memory: "4 B"
+  - name: "`range_policy`"
+    type: "`RangePolicy`"
+    purpose: "Правила інтерпретації значень."
+    used_for: "Signed residual, normalized float, clipped output."
+    memory: "4 B"
+  - name: "`valid_area`"
+    type: "`cv::Rect`"
+    purpose: "Border-safe output area."
+    used_for: "Crop перед candidate/segment/measurement acceptance."
+    memory: "16 B"
+  - name: "`origin_px`"
+    type: "`cv::Point`"
+    purpose: "Local-to-global offset."
+    used_for: "Geometry transform."
+    memory: "8 B"
+  - name: "`coordinate_space`"
+    type: "`CoordinateSpace`"
+    purpose: "Tile-local або frame-global coordinates."
+    used_for: "Merge correctness."
+    memory: "4 B"
+```
 
 ## Пам'ять
 

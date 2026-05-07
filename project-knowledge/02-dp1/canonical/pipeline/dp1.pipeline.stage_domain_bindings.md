@@ -13,9 +13,12 @@ status: "draft"
 
 ## Definition
 
-Ця картка задає canonical matrix прив'язки DP1 stages до дозволених input/context/output domains і structures.
+Ця картка задає pipeline-level огляд прив'язки DP1 stages до дозволених
+input/context/output domains і structures.
 
-Мета картки — показати AI-кодеру, які структури дозволені на вході та виході кожного етапу.
+Мета картки — з'єднати stage-interface cards і data-domain cards, не
+дублюючи повний per-stage contract. Джерелом істини для per-stage domain
+bindings є відповідні stage-interface cards.
 
 ## Assumptions
 
@@ -24,6 +27,8 @@ status: "draft"
 - `prep.variant` має кілька canonical routes: `full_frame`, `roi`, `tiles`,
   `adaptive_roi`. Tile-local structures описують тільки route
   `prep.variant = "tiles"` і не замінюють stage specs для інших варіантів.
+- Один DP1 stage invocation працює в межах одного active `camera_id` /
+  `source_id`; multi-camera aggregation не є внутрішнім stage contract DP1.
 
 ## Theorem / Contract
 
@@ -38,60 +43,128 @@ process(input, context, config) -> output
 - `context` має бути runtime context, а не контейнером stage output;
 - `output` має бути explicit domain/structure output;
 - internal buffers не мають ставати canonical output без явного domain contract.
+- `input`, `context` і `output` мають бути узгоджені за одним
+  `camera_id`/`source_id` у межах поточного DP1 instance.
 
-## Canonical stage-domain binding matrix
+## Stage-interface binding sources
 
-| Stage | Дозволений input | Runtime context | Дозволений output | Примітки |
-|---|---|---|---|---|
-| `prep` | `dp1.domain.raw.frame_packet` | `dp1.domain.runtime.frame_context` | `dp1.domain.raw.frame_packet` або `dp1.domain.processing.frame` | Підготовка source data та ROI/tile route. Без candidates/masks/measurements. |
-| `radiometric_correction` | `dp1.domain.raw.frame_packet` або `dp1.domain.processing.frame` залежно від `prep.variant` | `dp1.domain.runtime.frame_context` | `dp1.domain.processing.frame` | Формує corrected/residual processing representation; concrete carrier залежить від route. |
-| `enhancement` | `dp1.domain.processing.frame` | `dp1.domain.runtime.frame_context` | `dp1.domain.processing.frame` | Покращує processing representation. |
-| `matched_filtering` | `dp1.domain.processing.frame` | `dp1.domain.runtime.frame_context` | `dp1.domain.processing.frame` | Detector/response representation лишається в Processing domain. |
-| `candidate_extraction` | `dp1.domain.processing.frame` | `dp1.domain.runtime.frame_context` | `dp1.domain.mask.binary_mask` + `dp1.domain.struct.candidate` | Candidate є provisional, а не validated object. |
-| `segmentation_refinement` | `dp1.domain.mask.binary_mask` + optional `dp1.domain.struct.candidate` | `dp1.domain.runtime.frame_context` | `dp1.domain.struct.segment` | Segment уточнює candidate/region. |
-| `object_filtering` | `dp1.domain.struct.candidate` або `dp1.domain.struct.segment` | `dp1.domain.runtime.frame_context` | `dp1.domain.struct.validated_object` | Filtering формує explicit validated-object records, але не measurement payload. |
-| `measurement` | `dp1.domain.struct.validated_object` + optional `dp1.domain.struct.segment` + optional `dp1.domain.raw.frame_packet` або `dp1.domain.processing.frame` для photometry | `dp1.domain.runtime.frame_context` | `dp1.domain.measurement.record` | Фінальний продуктовий output DP1 для DP1 -> DP2 handoff. |
-| `visualization` | Будь-який explicit domain object, потрібний для display/debug | `dp1.domain.runtime.frame_context` | visualization artifact у `dp1.domain.visualization` | Visualization output не має подаватися назад у computation без explicit stage spec. |
+```yaml
+stage_interface_binding_sources:
+  - stage: "prep"
+    card: "../stages/dp1.stage.prep.md"
+    id: "dp1.stage.prep"
+  - stage: "radiometric_correction"
+    card: "../stages/dp1.stage.radiometric_correction.md"
+    id: "dp1.stage.radiometric_correction"
+  - stage: "enhancement"
+    card: "../stages/dp1.stage.enhancement.md"
+    id: "dp1.stage.enhancement"
+  - stage: "matched_filtering"
+    card: "../stages/dp1.stage.matched_filtering.md"
+    id: "dp1.stage.matched_filtering"
+  - stage: "candidate_extraction"
+    card: "../stages/dp1.stage.candidate_extraction.md"
+    id: "dp1.stage.candidate_extraction"
+  - stage: "segmentation_refinement"
+    card: "../stages/dp1.stage.segmentation_refinement.md"
+    id: "dp1.stage.segmentation_refinement"
+  - stage: "object_filtering"
+    card: "../stages/dp1.stage.object_filtering.md"
+    id: "dp1.stage.object_filtering"
+  - stage: "measurement"
+    card: "../stages/dp1.stage.measurement.md"
+    id: "dp1.stage.measurement"
+```
+
+Stage-interface cards визначають точні allowed input/context/output domains,
+route-specific carriers і stage-local заборони. Ця pipeline card перевіряє, що
+ці bindings сумісні між собою, з data-domain cards і з tile/merge route.
+
+`Visualization` поки не входить до восьми main DP1 detection/measurement stage
+cards. Артефакт visualization належить `dp1.domain.visualization` і не має
+подаватися назад в обчислення без explicit stage spec.
 
 ## Prep variant bindings
 
-| Prep variant | Роль | Потрібне окреме ТЗ |
-|---|---|---|
-| `full_frame` | Весь кадр є одним processing unit. | Full-frame memory ownership, allowed full-frame buffers, coordinate policy. |
-| `roi` | Обробляються явно задані ROI. | ROI schema, bounds validation, local/global coordinates, optional split policy. |
-| `tiles` | Frame або ROI розбивається на `TileDesc[]`. | Tile grid, border/overlap, valid area, tile merge, duplicate suppression. |
-| `adaptive_roi` | ROI вибираються динамічно. | ROI source, state/fallback policy, miss-risk validation. |
+```yaml
+prep_variant_bindings:
+  - variant: "`full_frame`"
+    role: "Весь кадр є одним processing unit."
+    required_stage_spec_scope: "Full-frame memory ownership, allowed full-frame buffers, coordinate policy."
+  - variant: "`roi`"
+    role: "Обробляються явно задані ROI."
+    required_stage_spec_scope: "ROI schema, bounds validation, local/global coordinates, optional split policy."
+  - variant: "`tiles`"
+    role: "Frame або ROI розбивається на `TileDesc[]`."
+    required_stage_spec_scope: "Tile grid, border/overlap, valid area, tile merge, duplicate suppression."
+  - variant: "`adaptive_roi`"
+    role: "ROI вибираються динамічно."
+    required_stage_spec_scope: "ROI source, state/fallback policy, miss-risk validation."
+```
 
 ## Tile execution binding
 
 Tile-local execution support structures використовуються для
 `prep.variant = "tiles"` без зміни semantic stage contracts:
 
-| Runtime structure | Роль | Не можна використовувати як |
-|---|---|---|
-| `dp1.domain.runtime.tile_desc` | опис tile/ROI, border, valid area | image buffer або stage output |
-| `dp1.domain.raw.tile_raw_view` | read-only ROI view на `FramePacket.image` | owner image memory або mutable output |
-| `dp1.domain.processing.tile_processing_frame` | tile-local processing payload | full-frame default buffer або mask |
-| `dp1.domain.mask.tile_binary_mask` | tile-local binary mask payload | photometry source або grayscale processing frame |
-| `dp1.domain.runtime.tile_context` | per-worker reusable buffers і diagnostics | global mutable state або final output |
-| `dp1.domain.runtime.tile_result` | explicit tile-local results перед merge | final DP1 output без merge |
+```yaml
+tile_execution_structures:
+  - structure: "`dp1.domain.runtime.tile_desc`"
+    role: "опис tile/ROI, border, valid area"
+    forbidden_as: "image buffer або stage output"
+  - structure: "`dp1.domain.raw.tile_raw_view`"
+    role: "read-only ROI view на `FramePacket.image`"
+    forbidden_as: "owner image memory або mutable output"
+  - structure: "`dp1.domain.processing.tile_processing_frame`"
+    role: "tile-local processing payload"
+    forbidden_as: "full-frame default buffer або mask"
+  - structure: "`dp1.domain.mask.tile_binary_mask`"
+    role: "tile-local binary mask payload"
+    forbidden_as: "photometry source або grayscale processing frame"
+  - structure: "`dp1.domain.runtime.tile_context`"
+    role: "per-worker reusable buffers і diagnostics"
+    forbidden_as: "global mutable state або final output"
+  - structure: "`dp1.domain.runtime.tile_result`"
+    role: "explicit tile-local results перед merge"
+    forbidden_as: "final DP1 output без merge"
+```
 
 Tile-local outputs мають бути обрізані за valid area, перетворені в global coordinates і merged перед тим, як стати frame-level `MeasurementRecord` output.
 
-## Tiles variant stage binding matrix
+## Tiles variant pipeline route
 
-| Stage | Tile-local input | Runtime owner/context | Tile-local output | Примітки |
-|---|---|---|---|---|
-| `prep` | `FramePacket` | `FrameContext` | `TileDesc[]` | Будує tile grid, border і valid area. |
-| scheduler / worker setup | `FramePacket` + `TileDesc` | `TileContext` | `TileRawView` | `TileRawView.image` є ROI view, не clone. |
-| `radiometric_correction` | `TileRawView` або `TileProcessingFrame` | `TileContext` + `FrameContext` | `TileProcessingFrame` | Implementation route може бути U8-specific або U16-specific; output має explicit processing metadata. |
-| `enhancement` | `TileProcessingFrame` | `TileContext` + `FrameContext` | `TileProcessingFrame` | Працює з processing payload, не з raw frame напряму. |
-| `matched_filtering` | `TileProcessingFrame` | `TileContext` + `FrameContext` | `TileProcessingFrame` | Output має `processing_domain=DetectorResponse`. |
-| `candidate_extraction` | `TileProcessingFrame` | `TileContext` + `FrameContext` | `TileBinaryMask` + `Candidate[]` | Mask не є photometry source. |
-| `segmentation_refinement` | `TileBinaryMask` + optional `Candidate[]` | `TileContext` + `FrameContext` | `Segment[]` | Coordinates лишаються tile-local до merge/globalization. |
-| `object_filtering` | `Candidate[]` або `Segment[]` + optional processing/raw ref | `TileContext` + `FrameContext` | `ValidatedObject[]` | Не формує DP2 payload. |
-| `measurement` | accepted `ValidatedObject[]` + optional `Segment[]` + `TileRawView` або `TileProcessingFrame` photometry ref | `TileContext` + `FrameContext` | `MeasurementRecord[]` | Tile-local results перед `TileResult`. |
-| `merge` | `TileResult[]` | frame-level merge context | frame-level `MeasurementRecord[]` | Crop by `valid_area`, transform coordinates, suppress border duplicates. |
+```yaml
+tile_pipeline_route:
+  - step: "prep"
+    binding_source: "../stages/dp1.stage.prep.md"
+    pipeline_output: "TileDesc[]"
+    notes: "Будує tile grid, border і valid area."
+  - step: "scheduler / worker setup"
+    tile_local_input: "`FramePacket` + `TileDesc`"
+    runtime_owner_context: "`TileContext`"
+    tile_local_output: "`TileRawView`"
+    notes: "`TileRawView.image` є ROI view, не clone."
+  - step: "radiometric_correction"
+    binding_source: "../stages/dp1.stage.radiometric_correction.md"
+  - step: "enhancement"
+    binding_source: "../stages/dp1.stage.enhancement.md"
+  - step: "matched_filtering"
+    binding_source: "../stages/dp1.stage.matched_filtering.md"
+  - step: "candidate_extraction"
+    binding_source: "../stages/dp1.stage.candidate_extraction.md"
+  - step: "segmentation_refinement"
+    binding_source: "../stages/dp1.stage.segmentation_refinement.md"
+  - step: "object_filtering"
+    binding_source: "../stages/dp1.stage.object_filtering.md"
+  - step: "measurement"
+    binding_source: "../stages/dp1.stage.measurement.md"
+    pipeline_output: "tile-local MeasurementRecord[] перед TileResult/merge"
+  - step: "merge"
+    tile_local_input: "`TileResult[]`"
+    runtime_owner_context: "frame-level merge context"
+    tile_local_output: "frame-level `MeasurementRecord[]`"
+    notes: "Crop by `valid_area`, transform coordinates, suppress border duplicates. Merge об'єднує tiles одного frame/source, не різні камери."
+```
 
 Memory route для `prep.variant = "tiles"`:
 
@@ -115,9 +188,14 @@ full raw frame
 
 ## Interpretation
 
-Stage cards визначають межі відповідальності. Data-domain cards визначають дозволені semantic objects. Ця binding matrix з'єднує обидва шари, щоб implementation task могла обмежити, що кожен stage має право читати і видавати.
+Stage cards визначають межі відповідальності і per-stage domain bindings.
+Data-domain cards визначають дозволені semantic objects. Ця pipeline card
+з'єднує обидва шари, щоб implementation task могла обмежити, що кожен stage
+має право читати і видавати.
 
-Stage specs можуть звужувати дозволені domains, але не мають розширювати їх без оновлення цієї binding matrix або окремо погодженої task card.
+Stage specs можуть звужувати дозволені domains, але не мають розширювати їх
+без оновлення відповідної stage-interface card, цієї pipeline overview card
+або окремо погодженої task card.
 
 ## Failure cases
 
@@ -126,6 +204,7 @@ Stage specs можуть звужувати дозволені domains, але �
   explicit `ValidatedObject[]`.
 - `FrameContext` зберігає candidates, segments, masks або measurements як прихований output.
 - Tile execution пише напряму в global measurement output без `TileResult` і merge semantics.
+- Stage або tile merge змішує frames/results різних камер як один DP1 output.
 - Visualization image використовується як computation input.
 - Tile-specific structures використовуються для `full_frame`, `roi` або
   `adaptive_roi` без explicit stage spec.
@@ -156,7 +235,11 @@ Stage specs можуть звужувати дозволені domains, але �
 - uses: dp1.domain.struct.segment
 - uses: dp1.domain.struct.validated_object
 - uses: dp1.domain.measurement.record
-- informs: dp1.stage.candidate_extraction
-- informs: dp1.stage.segmentation_refinement
-- informs: dp1.stage.object_filtering
-- informs: dp1.stage.measurement
+- links: dp1.stage.prep
+- links: dp1.stage.radiometric_correction
+- links: dp1.stage.enhancement
+- links: dp1.stage.matched_filtering
+- links: dp1.stage.candidate_extraction
+- links: dp1.stage.segmentation_refinement
+- links: dp1.stage.object_filtering
+- links: dp1.stage.measurement

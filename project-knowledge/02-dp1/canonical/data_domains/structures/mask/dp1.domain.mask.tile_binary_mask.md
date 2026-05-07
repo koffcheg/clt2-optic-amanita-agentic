@@ -5,7 +5,7 @@ tags: [dp1, canonical, data-domain, mask, structure, tile]
 kind: data-domain-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.mask.tile_binary_mask.md"
+  file: "project-knowledge/02-dp1/canonical/data_domains/structures/mask/dp1.domain.mask.tile_binary_mask.md"
 status: "draft"
 ---
 
@@ -42,16 +42,49 @@ struct TileBinaryMask {
 
 ## Поля
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `frame_id` | `std::uint64_t` | Зв'язок із source frame. | Validation, merge trace. | 8 B |
-| `tile_id` | `int` | Зв'язок із source tile. | Tile diagnostics, duplicate handling. | 4 B |
-| `mask` | `cv::Mat` | Binary pixels одного tile. | Connected components, contours, segmentation refinement. | header ~96 B; payload у `TileContext` |
-| `valid_area` | `cv::Rect` | Border-safe mask area. | Crop перед candidates/segments acceptance. | 16 B |
-| `origin_px` | `cv::Point` | Local-to-global offset. | Transform geometry. | 8 B |
-| `background_value` | `std::uint8_t` | Значення background. | Mask validation. | 1 B |
-| `foreground_value` | `std::uint8_t` | Значення foreground. | Components/contours extraction. | 1 B |
-| `coordinate_space` | `CoordinateSpace` | Tile-local або frame-global. | Merge correctness. | 4 B |
+```yaml
+fields:
+  - name: "`frame_id`"
+    type: "`std::uint64_t`"
+    purpose: "Зв'язок із source frame."
+    used_for: "Validation, merge trace."
+    memory: "8 B"
+  - name: "`tile_id`"
+    type: "`int`"
+    purpose: "Зв'язок із source tile."
+    used_for: "Tile diagnostics, duplicate handling."
+    memory: "4 B"
+  - name: "`mask`"
+    type: "`cv::Mat`"
+    purpose: "Binary pixels одного tile."
+    used_for: "Connected components, contours, segmentation refinement."
+    memory: "header ~96 B; payload у `TileContext`"
+  - name: "`valid_area`"
+    type: "`cv::Rect`"
+    purpose: "Border-safe mask area."
+    used_for: "Crop перед candidates/segments acceptance."
+    memory: "16 B"
+  - name: "`origin_px`"
+    type: "`cv::Point`"
+    purpose: "Local-to-global offset."
+    used_for: "Transform geometry."
+    memory: "8 B"
+  - name: "`background_value`"
+    type: "`std::uint8_t`"
+    purpose: "Значення background."
+    used_for: "Mask validation."
+    memory: "1 B"
+  - name: "`foreground_value`"
+    type: "`std::uint8_t`"
+    purpose: "Значення foreground."
+    used_for: "Components/contours extraction."
+    memory: "1 B"
+  - name: "`coordinate_space`"
+    type: "`CoordinateSpace`"
+    purpose: "Tile-local або frame-global."
+    used_for: "Merge correctness."
+    memory: "4 B"
+```
 
 ## Пам'ять
 

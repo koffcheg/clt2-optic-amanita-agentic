@@ -43,14 +43,27 @@ Canonical DP1 має розрізняти фактичну бітність inpu
 
 Мінімальні route metadata для structures:
 
-| Concept | Canonical fields | Навіщо |
-|---|---|---|
-| Pixel carrier | `pixel_format`, `input_format`, `processing_format` | Визначає storage carrier і allowed conversions. |
-| Input bit depth | `bit_depth`, `input_bit_depth`, `source_bit_depth` | Визначає фактичну розрядність сенсора. |
-| Pixel range | `pixel_range`, `value_range` | Визначає min/max/black/saturation values для thresholds і photometry. |
-| Range policy | `range_policy` | Визначає numeric semantics після residual/conversion. |
-| Processing domain | `processing_domain` | Відрізняє residual, enhanced frame і detector response. |
-| Coordinate space | `coordinate_space` | Відрізняє tile-local і frame-global coordinates. |
+```yaml
+route_metadata:
+  - concept: "Pixel carrier"
+    canonical_fields: "`pixel_format`, `input_format`, `processing_format`"
+    purpose: "Визначає storage carrier і allowed conversions."
+  - concept: "Input bit depth"
+    canonical_fields: "`bit_depth`, `input_bit_depth`, `source_bit_depth`"
+    purpose: "Визначає фактичну розрядність сенсора."
+  - concept: "Pixel range"
+    canonical_fields: "`pixel_range`, `value_range`"
+    purpose: "Визначає min/max/black/saturation values для thresholds і photometry."
+  - concept: "Range policy"
+    canonical_fields: "`range_policy`"
+    purpose: "Визначає numeric semantics після residual/conversion."
+  - concept: "Processing domain"
+    canonical_fields: "`processing_domain`"
+    purpose: "Відрізняє residual, enhanced frame і detector response."
+  - concept: "Coordinate space"
+    canonical_fields: "`coordinate_space`"
+    purpose: "Відрізняє tile-local і frame-global coordinates."
+```
 
 Рекомендовані helper structures для майбутнього C++ DTO:
 

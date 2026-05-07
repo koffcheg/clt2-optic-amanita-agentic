@@ -5,7 +5,7 @@ tags: [dp1, canonical, data-domain, runtime, tile, parallelism]
 kind: data-domain-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.runtime.tile_context.md"
+  file: "project-knowledge/02-dp1/canonical/data_domains/structures/runtime/dp1.domain.runtime.tile_context.md"
 status: "draft"
 ---
 
@@ -57,18 +57,59 @@ struct TileContext {
 
 ## Поля
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `worker_id` | `int` | Ідентифікує owner worker. | Profiling, diagnostics. | 4 B |
-| `processing_buffer_a` | `cv::Mat` | Основний reusable processing buffer. | Radiometric, enhancement, matched filtering. | header ~96 B + tile payload |
-| `processing_buffer_b` | `cv::Mat` | Другий reusable processing buffer. | Non-inplace або ping-pong stage execution. | header ~96 B + tile payload |
-| `mask_buffer` | `cv::Mat` | Reusable binary mask buffer. | Candidate extraction, segmentation. | header ~96 B + tile payload |
-| `candidate_buffer` | `std::vector<Candidate>` | Reusable candidate storage. | Connected components output. | ~24 B + capacity |
-| `segment_buffer` | `std::vector<Segment>` | Reusable segment storage. | Segmentation/contours/filtering. | ~24 B + capacity |
-| `validated_object_buffer` | `std::vector<ValidatedObject>` | Reusable validated-object storage. | Object filtering output. | ~24 B + capacity |
-| `measurement_buffer` | `std::vector<MeasurementRecord>` | Reusable measurement storage. | Tile measurement output. | ~24 B + capacity |
-| `diagnostics` | `std::vector<DiagnosticMessage>` | Tile-local warnings/errors. | Debug without image payload. | bounded |
-| `profiling_trace` | `std::vector<ProfileEvent>` | Tile-local timings. | Performance analysis. | bounded |
+```yaml
+fields:
+  - name: "`worker_id`"
+    type: "`int`"
+    purpose: "Ідентифікує owner worker."
+    used_for: "Profiling, diagnostics."
+    memory: "4 B"
+  - name: "`processing_buffer_a`"
+    type: "`cv::Mat`"
+    purpose: "Основний reusable processing buffer."
+    used_for: "Radiometric, enhancement, matched filtering."
+    memory: "header ~96 B + tile payload"
+  - name: "`processing_buffer_b`"
+    type: "`cv::Mat`"
+    purpose: "Другий reusable processing buffer."
+    used_for: "Non-inplace або ping-pong stage execution."
+    memory: "header ~96 B + tile payload"
+  - name: "`mask_buffer`"
+    type: "`cv::Mat`"
+    purpose: "Reusable binary mask buffer."
+    used_for: "Candidate extraction, segmentation."
+    memory: "header ~96 B + tile payload"
+  - name: "`candidate_buffer`"
+    type: "`std::vector<Candidate>`"
+    purpose: "Reusable candidate storage."
+    used_for: "Connected components output."
+    memory: "~24 B + capacity"
+  - name: "`segment_buffer`"
+    type: "`std::vector<Segment>`"
+    purpose: "Reusable segment storage."
+    used_for: "Segmentation/contours/filtering."
+    memory: "~24 B + capacity"
+  - name: "`validated_object_buffer`"
+    type: "`std::vector<ValidatedObject>`"
+    purpose: "Reusable validated-object storage."
+    used_for: "Object filtering output."
+    memory: "~24 B + capacity"
+  - name: "`measurement_buffer`"
+    type: "`std::vector<MeasurementRecord>`"
+    purpose: "Reusable measurement storage."
+    used_for: "Tile measurement output."
+    memory: "~24 B + capacity"
+  - name: "`diagnostics`"
+    type: "`std::vector<DiagnosticMessage>`"
+    purpose: "Tile-local warnings/errors."
+    used_for: "Debug without image payload."
+    memory: "bounded"
+  - name: "`profiling_trace`"
+    type: "`std::vector<ProfileEvent>`"
+    purpose: "Tile-local timings."
+    used_for: "Performance analysis."
+    memory: "bounded"
+```
 
 ## Пам'ять
 

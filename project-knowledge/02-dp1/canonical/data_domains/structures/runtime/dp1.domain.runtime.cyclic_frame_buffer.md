@@ -5,7 +5,7 @@ tags: [dp1, canonical, data-domain, runtime, structure, buffer, frame]
 kind: data-domain-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.runtime.cyclic_frame_buffer.md"
+  file: "project-knowledge/02-dp1/canonical/data_domains/structures/runtime/dp1.domain.runtime.cyclic_frame_buffer.md"
 status: "draft"
 ---
 
@@ -65,14 +65,39 @@ filled_count == capacity
 
 ## Поля
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `capacity` | `int` | Розмір обмеженого вікна. | Часові фільтри, моделі фону, історія кадрів. | 4 B |
-| `slots` | array/vector буферів кадрів | Володіє пам'яттю кадрів вікна. | Доступ до останніх або відібраних кадрів. | `capacity * frame payload` |
-| `next_slot` | `int` | Вказує наступний slot для перезапису. | O(1) додавання з перезаписом. | 4 B |
-| `filled_count` | `int` | Відстежує прогрів і валідність повного вікна. | Заборона читання неповного вікна. | 4 B |
-| `logical_frame_index` | optional `uint64` | Зв'язок із потоком кадрів. | Валідація, trace, політика відбору. | 8 B |
-| `selected_frame_index` | optional `uint64` | Зв'язок із відібраними кадрами. | Часове прорідження, diagnostics. | 8 B |
+```yaml
+fields:
+  - name: "`capacity`"
+    type: "`int`"
+    purpose: "Розмір обмеженого вікна."
+    used_for: "Часові фільтри, моделі фону, історія кадрів."
+    memory: "4 B"
+  - name: "`slots`"
+    type: "array/vector буферів кадрів"
+    purpose: "Володіє пам'яттю кадрів вікна."
+    used_for: "Доступ до останніх або відібраних кадрів."
+    memory: "`capacity * frame payload`"
+  - name: "`next_slot`"
+    type: "`int`"
+    purpose: "Вказує наступний slot для перезапису."
+    used_for: "O(1) додавання з перезаписом."
+    memory: "4 B"
+  - name: "`filled_count`"
+    type: "`int`"
+    purpose: "Відстежує прогрів і валідність повного вікна."
+    used_for: "Заборона читання неповного вікна."
+    memory: "4 B"
+  - name: "`logical_frame_index`"
+    type: "optional `uint64`"
+    purpose: "Зв'язок із потоком кадрів."
+    used_for: "Валідація, trace, політика відбору."
+    memory: "8 B"
+  - name: "`selected_frame_index`"
+    type: "optional `uint64`"
+    purpose: "Зв'язок із відібраними кадрами."
+    used_for: "Часове прорідження, diagnostics."
+    memory: "8 B"
+```
 
 ## Пам'ять
 

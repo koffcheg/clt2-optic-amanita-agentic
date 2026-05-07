@@ -5,7 +5,7 @@ tags: [dp1, canonical, data-domain, struct, segment]
 kind: data-domain-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.struct.segment.md"
+  file: "project-knowledge/02-dp1/canonical/data_domains/structures/struct/dp1.domain.struct.segment.md"
 status: "draft"
 ---
 
@@ -55,17 +55,54 @@ struct Segment {
 
 ## Поля
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `segment_id` | `std::uint64_t` | Stable id refined region. | Traceability, measurement source. | 8 B |
-| `frame_id` | `std::uint64_t` | Source frame. | Validation, diagnostics. | 8 B |
-| `tile_id` | `int` | Source tile. | Border duplicate handling, profiling. | 4 B |
-| `candidate_id` | `std::uint64_t` | Relation до source candidate. | Audit, debugging, source trace. | 8 B |
-| `bbox_px` | `cv::Rect` | Bounding box segment. | Geometry filtering, measurement ROI. | 16 B |
-| `area_px` | `int` | Площа segment region. | Filtering, measurement. | 4 B |
-| `contour_px` | `std::vector<cv::Point>` | Shape representation. | Moments, rotated bbox, geometry filters. | ~24 B + 8 B per point |
-| `quality_flags` | `std::uint32_t` | Bounded quality/reject flags. | Segmentation/filtering diagnostics. | 4 B |
-| `coordinate_space` | `CoordinateSpace` | Tile-local або frame-global. | Merge/measurement correctness. | 4 B |
+```yaml
+fields:
+  - name: "`segment_id`"
+    type: "`std::uint64_t`"
+    purpose: "Stable id refined region."
+    used_for: "Traceability, measurement source."
+    memory: "8 B"
+  - name: "`frame_id`"
+    type: "`std::uint64_t`"
+    purpose: "Source frame."
+    used_for: "Validation, diagnostics."
+    memory: "8 B"
+  - name: "`tile_id`"
+    type: "`int`"
+    purpose: "Source tile."
+    used_for: "Border duplicate handling, profiling."
+    memory: "4 B"
+  - name: "`candidate_id`"
+    type: "`std::uint64_t`"
+    purpose: "Relation до source candidate."
+    used_for: "Audit, debugging, source trace."
+    memory: "8 B"
+  - name: "`bbox_px`"
+    type: "`cv::Rect`"
+    purpose: "Bounding box segment."
+    used_for: "Geometry filtering, measurement ROI."
+    memory: "16 B"
+  - name: "`area_px`"
+    type: "`int`"
+    purpose: "Площа segment region."
+    used_for: "Filtering, measurement."
+    memory: "4 B"
+  - name: "`contour_px`"
+    type: "`std::vector<cv::Point>`"
+    purpose: "Shape representation."
+    used_for: "Moments, rotated bbox, geometry filters."
+    memory: "~24 B + 8 B per point"
+  - name: "`quality_flags`"
+    type: "`std::uint32_t`"
+    purpose: "Bounded quality/reject flags."
+    used_for: "Segmentation/filtering diagnostics."
+    memory: "4 B"
+  - name: "`coordinate_space`"
+    type: "`CoordinateSpace`"
+    purpose: "Tile-local або frame-global."
+    used_for: "Merge/measurement correctness."
+    memory: "4 B"
+```
 
 Base size без contour payload: приблизно 80 B. `contour_px` є потенційно
 дорогим: 100 points коштують приблизно 800 B payload.

@@ -5,7 +5,7 @@ tags: [dp1, canonical, data-domain, raw, structure, tile, bit-depth]
 kind: data-domain-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.raw.tile_raw_view.md"
+  file: "project-knowledge/02-dp1/canonical/data_domains/structures/raw/dp1.domain.raw.tile_raw_view.md"
 status: "draft"
 ---
 
@@ -43,16 +43,49 @@ struct TileRawView {
 
 ## Поля
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `frame_id` | `std::uint64_t` | Зв'язує tile з source frame. | Перевірка, merge, diagnostics. | 8 B |
-| `tile_id` | `int` | Ідентифікує tile у межах кадру. | Профілювання, duplicate handling, debug trace. | 4 B |
-| `image` | `cv::Mat` | ROI view на raw pixels у `FramePacket.image`. | Input для radiometric route і photometry reference. | header ~96 B; payload не належить structure |
-| `pixel_format` | `PixelFormat` | Вказує carrier: `U8` або `U16`. | Вибір allowed algorithm implementation і validation. | 4 B |
-| `bit_depth` | `InputBitDepth` | Вказує фактичну сенсорну розрядність. | Threshold normalization, range validation, photometry. | 4 B |
-| `pixel_range` | `PixelRange` | Вказує min/max/black/saturation levels. | Conversion, signed residual, photometry stats. | ~32 B |
-| `valid_area` | `cv::Rect` | Позначає border-safe область tile. | Crop output, segmentation, measurement acceptance. | 16 B |
-| `origin_px` | `cv::Point` | Local-to-global offset. | Перетворення координат candidates/segments/measurements. | 8 B |
+```yaml
+fields:
+  - name: "`frame_id`"
+    type: "`std::uint64_t`"
+    purpose: "Зв'язує tile з source frame."
+    used_for: "Перевірка, merge, diagnostics."
+    memory: "8 B"
+  - name: "`tile_id`"
+    type: "`int`"
+    purpose: "Ідентифікує tile у межах кадру."
+    used_for: "Профілювання, duplicate handling, debug trace."
+    memory: "4 B"
+  - name: "`image`"
+    type: "`cv::Mat`"
+    purpose: "ROI view на raw pixels у `FramePacket.image`."
+    used_for: "Input для radiometric route і photometry reference."
+    memory: "header ~96 B; payload не належить structure"
+  - name: "`pixel_format`"
+    type: "`PixelFormat`"
+    purpose: "Вказує carrier: `U8` або `U16`."
+    used_for: "Вибір allowed algorithm implementation і validation."
+    memory: "4 B"
+  - name: "`bit_depth`"
+    type: "`InputBitDepth`"
+    purpose: "Вказує фактичну сенсорну розрядність."
+    used_for: "Threshold normalization, range validation, photometry."
+    memory: "4 B"
+  - name: "`pixel_range`"
+    type: "`PixelRange`"
+    purpose: "Вказує min/max/black/saturation levels."
+    used_for: "Conversion, signed residual, photometry stats."
+    memory: "~32 B"
+  - name: "`valid_area`"
+    type: "`cv::Rect`"
+    purpose: "Позначає border-safe область tile."
+    used_for: "Crop output, segmentation, measurement acceptance."
+    memory: "16 B"
+  - name: "`origin_px`"
+    type: "`cv::Point`"
+    purpose: "Local-to-global offset."
+    used_for: "Перетворення координат candidates/segments/measurements."
+    memory: "8 B"
+```
 
 ## Пам'ять
 

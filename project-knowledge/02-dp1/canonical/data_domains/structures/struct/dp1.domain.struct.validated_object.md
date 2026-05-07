@@ -5,7 +5,7 @@ tags: [dp1, canonical, data-domain, struct, validated-object]
 kind: data-domain-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.struct.validated_object.md"
+  file: "project-knowledge/02-dp1/canonical/data_domains/structures/struct/dp1.domain.struct.validated_object.md"
 status: "draft"
 ---
 
@@ -34,7 +34,7 @@ status: "draft"
 
 - `object_id` — stable local identifier validated-object output.
 - `frame_id` — source frame.
-- `camera_id` — source camera або DP1 instance.
+- `camera_id` — active source camera поточного DP1 instance.
 - `tile_id` — source tile для tile route або `-1` для frame-global route.
 - `source_kind` — чи object походить із `Candidate`, `Segment` або майбутнього
   canonical source.
@@ -86,24 +86,89 @@ struct ValidatedObject {
 
 ## Поля
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `object_id` | `std::uint64_t` | Stable id validated-object output. | Measurement relation, trace. | 8 B |
-| `frame_id` | `std::uint64_t` | Source frame. | Validation, diagnostics. | 8 B |
-| `camera_id` | `int` | Source camera/DP1 instance. | Multi-camera trace. | 4 B |
-| `tile_id` | `int` | Source tile. | Border duplicate handling. | 4 B |
-| `source_kind` | `ObjectSourceKind` | Upstream source type. | Correct source lookup. | 1 B |
-| `source_candidate_id` | `std::uint64_t` | Relation до source candidate. | Audit/debug. | 8 B |
-| `source_segment_id` | `std::uint64_t` | Relation до source segment. | Measurement geometry/shape lookup. | 8 B |
-| `bbox_px` | `cv::Rect` | Compact object bounds. | Filtering, measurement ROI. | 16 B |
-| `centroid_px` | `cv::Point2f` | Compact object center. | L0 measurement, merge. | 8 B |
-| `area_px` | `int` | Object area. | Filtering, quality. | 4 B |
-| `detection_score` | `float` | Upstream detector score, якщо є. | Ranking, diagnostics. | 4 B |
-| `validation_score` | `float` | Filtering confidence/score. | Acceptance diagnostics. | 4 B |
-| `status` | `ObjectValidationStatus` | Accepted/rejected result. | Measurement selection. | 1 B |
-| `quality_flags` | `std::uint32_t` | Bounded quality flags. | DP1 diagnostics, DP2 interpretation if propagated. | 4 B |
-| `reject_flags` | `std::uint32_t` | Bounded reject reasons. | Filtering trace. | 4 B |
-| `coordinate_space` | `CoordinateSpace` | Tile-local або frame-global coordinates. | Merge correctness. | 4 B |
+```yaml
+fields:
+  - name: "`object_id`"
+    type: "`std::uint64_t`"
+    purpose: "Stable id validated-object output."
+    used_for: "Measurement relation, trace."
+    memory: "8 B"
+  - name: "`frame_id`"
+    type: "`std::uint64_t`"
+    purpose: "Source frame."
+    used_for: "Validation, diagnostics."
+    memory: "8 B"
+  - name: "`camera_id`"
+    type: "`int`"
+    purpose: "Active source camera поточного DP1 instance."
+    used_for: "Identity validation, downstream trace."
+    memory: "4 B"
+  - name: "`tile_id`"
+    type: "`int`"
+    purpose: "Source tile."
+    used_for: "Border duplicate handling."
+    memory: "4 B"
+  - name: "`source_kind`"
+    type: "`ObjectSourceKind`"
+    purpose: "Upstream source type."
+    used_for: "Correct source lookup."
+    memory: "1 B"
+  - name: "`source_candidate_id`"
+    type: "`std::uint64_t`"
+    purpose: "Relation до source candidate."
+    used_for: "Audit/debug."
+    memory: "8 B"
+  - name: "`source_segment_id`"
+    type: "`std::uint64_t`"
+    purpose: "Relation до source segment."
+    used_for: "Measurement geometry/shape lookup."
+    memory: "8 B"
+  - name: "`bbox_px`"
+    type: "`cv::Rect`"
+    purpose: "Compact object bounds."
+    used_for: "Filtering, measurement ROI."
+    memory: "16 B"
+  - name: "`centroid_px`"
+    type: "`cv::Point2f`"
+    purpose: "Compact object center."
+    used_for: "L0 measurement, merge."
+    memory: "8 B"
+  - name: "`area_px`"
+    type: "`int`"
+    purpose: "Object area."
+    used_for: "Filtering, quality."
+    memory: "4 B"
+  - name: "`detection_score`"
+    type: "`float`"
+    purpose: "Upstream detector score, якщо є."
+    used_for: "Ranking, diagnostics."
+    memory: "4 B"
+  - name: "`validation_score`"
+    type: "`float`"
+    purpose: "Filtering confidence/score."
+    used_for: "Acceptance diagnostics."
+    memory: "4 B"
+  - name: "`status`"
+    type: "`ObjectValidationStatus`"
+    purpose: "Accepted/rejected result."
+    used_for: "Measurement selection."
+    memory: "1 B"
+  - name: "`quality_flags`"
+    type: "`std::uint32_t`"
+    purpose: "Bounded quality flags."
+    used_for: "DP1 diagnostics, DP2 interpretation if propagated."
+    memory: "4 B"
+  - name: "`reject_flags`"
+    type: "`std::uint32_t`"
+    purpose: "Bounded reject reasons."
+    used_for: "Filtering trace."
+    memory: "4 B"
+  - name: "`coordinate_space`"
+    type: "`CoordinateSpace`"
+    purpose: "Tile-local або frame-global coordinates."
+    used_for: "Merge correctness."
+    memory: "4 B"
+```
 
 Орієнтовний розмір одного `ValidatedObject`: 96-128 B залежно від alignment.
 

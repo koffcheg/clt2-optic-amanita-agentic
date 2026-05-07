@@ -5,7 +5,7 @@ tags: [dp1, canonical, data-domain, struct, candidate]
 kind: data-domain-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.struct.candidate.md"
+  file: "project-knowledge/02-dp1/canonical/data_domains/structures/struct/dp1.domain.struct.candidate.md"
 status: "draft"
 ---
 
@@ -58,19 +58,64 @@ struct Candidate {
 
 ## Поля
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `candidate_id` | `std::uint64_t` | Stable id hypothesis. | Traceability, relation to segment. | 8 B |
-| `frame_id` | `std::uint64_t` | Source frame. | Validation, diagnostics. | 8 B |
-| `tile_id` | `int` | Source tile. | Border duplicate handling, profiling. | 4 B |
-| `component_id` | `int` | Connected component id у source mask. | Source relation, debugging. | 4 B |
-| `bbox_px` | `cv::Rect` | Bounding box candidate. | Area/geometry filtering, ROI for segmentation. | 16 B |
-| `centroid_px` | `cv::Point2f` | Центр candidate. | L0 measurement, geometry filter. | 8 B |
-| `area_px` | `int` | Площа candidate у pixels. | Min/max area filtering. | 4 B |
-| `score` | `float` | Detector/candidate score, якщо stage spec задає. | Ranking, threshold diagnostics. | 4 B |
-| `status` | `CandidateStatus` | `provisional` або інший bounded pre-filter state. | Candidate trace. | 4 B |
-| `quality_flags` | `std::uint32_t` | Bounded flags замість free-form text. | Reject reasons, border flags, saturation flags. | 4 B |
-| `coordinate_space` | `CoordinateSpace` | Tile-local або frame-global coordinates. | Merge correctness. | 4 B |
+```yaml
+fields:
+  - name: "`candidate_id`"
+    type: "`std::uint64_t`"
+    purpose: "Stable id hypothesis."
+    used_for: "Traceability, relation to segment."
+    memory: "8 B"
+  - name: "`frame_id`"
+    type: "`std::uint64_t`"
+    purpose: "Source frame."
+    used_for: "Validation, diagnostics."
+    memory: "8 B"
+  - name: "`tile_id`"
+    type: "`int`"
+    purpose: "Source tile."
+    used_for: "Border duplicate handling, profiling."
+    memory: "4 B"
+  - name: "`component_id`"
+    type: "`int`"
+    purpose: "Connected component id у source mask."
+    used_for: "Source relation, debugging."
+    memory: "4 B"
+  - name: "`bbox_px`"
+    type: "`cv::Rect`"
+    purpose: "Bounding box candidate."
+    used_for: "Area/geometry filtering, ROI for segmentation."
+    memory: "16 B"
+  - name: "`centroid_px`"
+    type: "`cv::Point2f`"
+    purpose: "Центр candidate."
+    used_for: "L0 measurement, geometry filter."
+    memory: "8 B"
+  - name: "`area_px`"
+    type: "`int`"
+    purpose: "Площа candidate у pixels."
+    used_for: "Min/max area filtering."
+    memory: "4 B"
+  - name: "`score`"
+    type: "`float`"
+    purpose: "Detector/candidate score, якщо stage spec задає."
+    used_for: "Ranking, threshold diagnostics."
+    memory: "4 B"
+  - name: "`status`"
+    type: "`CandidateStatus`"
+    purpose: "`provisional` або інший bounded pre-filter state."
+    used_for: "Candidate trace."
+    memory: "4 B"
+  - name: "`quality_flags`"
+    type: "`std::uint32_t`"
+    purpose: "Bounded flags замість free-form text."
+    used_for: "Reject reasons, border flags, saturation flags."
+    memory: "4 B"
+  - name: "`coordinate_space`"
+    type: "`CoordinateSpace`"
+    purpose: "Tile-local або frame-global coordinates."
+    used_for: "Merge correctness."
+    memory: "4 B"
+```
 
 Орієнтовний розмір одного `Candidate`: 72-96 B залежно від alignment і enum
 representation.

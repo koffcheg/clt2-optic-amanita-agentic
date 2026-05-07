@@ -24,6 +24,10 @@ Canonical-межа протоколу для передачі від DP1 до DP
 
 DP1 передає DP2 дані з домену вимірювань.
 
+Один DP1 instance формує handoff payload для одного active camera/source input.
+Multi-camera interpretation, synchronization або fusion належить DP2 /
+downstream boundary, якщо окремий canonical protocol card не визначить інше.
+
 Корисне навантаження вимірювань має містити смисли, потрібні downstream:
 - ідентичність кадру та час;
 - ідентичність камери або джерела;
@@ -53,6 +57,8 @@ Legacy TCP/RPC cards описують лише стару поведінку т�
 - DP2 вимагає debug-артефакти DP1 як canonical-вхід.
 - Legacy-серіалізація `cv::Mat` трактується як цільовий протокол.
 - Корисне навантаження вимірювань не містить metadata координат або часу.
+- DP1 payload змішує measurements кількох камер без окремого aggregation /
+  protocol contract.
 
 ## Typical misuse
 

@@ -5,7 +5,7 @@ tags: [dp1, canonical, data-domain, raw, structure, frame]
 kind: data-domain-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.raw.frame_packet.md"
+  file: "project-knowledge/02-dp1/canonical/data_domains/structures/raw/dp1.domain.raw.frame_packet.md"
 status: "draft"
 ---
 
@@ -20,6 +20,8 @@ status: "draft"
 - `cv::Mat` може бути storage carrier для image payload.
 - Semantic meaning кадру визначається не лише carrier type, а також `pixel_format`, geometry, source metadata і route context.
 - Фактичні поля C++ structure мають бути підтверджені окремою implementation task.
+- Один `FramePacket` належить рівно одному camera/source input поточного DP1
+  instance.
 
 ## Theorem / Contract
 
@@ -37,6 +39,10 @@ status: "draft"
 - `acquisition_time` — optional camera/exposure timestamp.
 
 `FramePacket` не має містити algorithm-specific outputs: masks, candidates, segments, measurements або tile-local working buffers.
+
+`FramePacket` не є контейнером для кількох камер. Multi-camera scenario має
+бути представлений кількома DP1 instances або downstream aggregation boundary.
+DP1 stages обробляють один `FramePacket` як один frame/source tuple.
 
 Рекомендована C++ форма:
 
@@ -57,18 +63,59 @@ struct FramePacket {
 
 ## Поля
 
-| Поле | Тип | Навіщо | Для яких обчислень | Пам'ять |
-|---|---|---|---|---|
-| `frame_id` | `std::uint64_t` | Стабільний id кадру в межах DP1 instance. | Зв'язує `TileDesc`, `TileResult`, `MeasurementRecord`, logs. | 8 B |
-| `camera_id` | `int` | Ідентифікатор камери/DP1 instance. | DP2 handoff, multi-instance diagnostics. | 4 B |
-| `source_id` | `std::string` | Optional текстовий id source. | Logs, source routing, reproducibility. | ~24 B + payload |
-| `image` | `cv::Mat` | Full-frame raw carrier. | ROI views для `TileRawView`; raw photometry reference. | header ~96 B + full-frame payload |
-| `pixel_format` | `PixelFormat` | Storage carrier: `U8` або `U16`. | Route validation, algorithm implementation selection. | 4 B |
-| `bit_depth` | `InputBitDepth` | Фактична бітність сенсора. | Threshold scaling, residual range, photometry. | 4 B |
-| `pixel_range` | `PixelRange` | Min/max/black/saturation metadata. | Conversion, normalization, quality flags. | ~32 B |
-| `geometry` | `FrameGeometry` | Розмір і origin кадру. | Tile grid, ROI validation, coordinate transforms. | ~16 B |
-| `ingest_time` | `TimestampRef` | Час прийому кадру в DP1. | Latency/profiling. | ~16 B |
-| `acquisition_time` | optional `TimestampRef` | Час експозиції з камери, якщо доступний. | DP2 timeline, synchronization. | ~24 B |
+```yaml
+fields:
+  - name: "`frame_id`"
+    type: "`std::uint64_t`"
+    purpose: "Стабільний id кадру в межах DP1 instance."
+    used_for: "Зв'язує `TileDesc`, `TileResult`, `MeasurementRecord`, logs."
+    memory: "8 B"
+  - name: "`camera_id`"
+    type: "`int`"
+    purpose: "Ідентифікатор камери/DP1 instance."
+    used_for: "DP2 handoff, multi-instance diagnostics."
+    memory: "4 B"
+  - name: "`source_id`"
+    type: "`std::string`"
+    purpose: "Optional текстовий id source."
+    used_for: "Logs, source routing, reproducibility."
+    memory: "~24 B + payload"
+  - name: "`image`"
+    type: "`cv::Mat`"
+    purpose: "Full-frame raw carrier."
+    used_for: "ROI views для `TileRawView`; raw photometry reference."
+    memory: "header ~96 B + full-frame payload"
+  - name: "`pixel_format`"
+    type: "`PixelFormat`"
+    purpose: "Storage carrier: `U8` або `U16`."
+    used_for: "Route validation, algorithm implementation selection."
+    memory: "4 B"
+  - name: "`bit_depth`"
+    type: "`InputBitDepth`"
+    purpose: "Фактична бітність сенсора."
+    used_for: "Threshold scaling, residual range, photometry."
+    memory: "4 B"
+  - name: "`pixel_range`"
+    type: "`PixelRange`"
+    purpose: "Min/max/black/saturation metadata."
+    used_for: "Conversion, normalization, quality flags."
+    memory: "~32 B"
+  - name: "`geometry`"
+    type: "`FrameGeometry`"
+    purpose: "Розмір і origin кадру."
+    used_for: "Tile grid, ROI validation, coordinate transforms."
+    memory: "~16 B"
+  - name: "`ingest_time`"
+    type: "`TimestampRef`"
+    purpose: "Час прийому кадру в DP1."
+    used_for: "Latency/profiling."
+    memory: "~16 B"
+  - name: "`acquisition_time`"
+    type: "optional `TimestampRef`"
+    purpose: "Час експозиції з камери, якщо доступний."
+    used_for: "DP2 timeline, synchronization."
+    memory: "~24 B"
+```
 
 ## Пам'ять
 
@@ -98,6 +145,7 @@ memory policy має бути задана відповідною stage spec. Я
 ## Failure cases
 
 - Stage записує algorithm output назад у `FramePacket` metadata.
+- Один `FramePacket` змішує image payload або metadata кількох камер.
 - `frame_id` змінюється між stages без явної remapping policy.
 - Pixel format виводиться лише з `cv::Mat::type()` без canonical metadata.
 
