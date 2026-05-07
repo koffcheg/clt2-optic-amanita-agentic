@@ -114,9 +114,12 @@ explicit stage spec.
 - `TileRawView.image` read-only.
 - `pixel_format`, `bit_depth` і `pixel_range` мають бути успадковані з
   `FramePacket`.
-- `valid_area` не має виходити за межі `image`.
+- `valid_area` виражений у tile-local coordinates відносно
+  `TileDesc.roi_with_border` згідно з `dp1.domain.coordinates` і не має
+  виходити за межі `image`.
 - Algorithm implementation не має виводити повну semantics тільки з
   `image.type()`.
+- `image` може бути OpenCV submatrix і не має гарантувати `isContinuous()`.
 
 ## Failure cases
 
@@ -124,6 +127,7 @@ explicit stage spec.
 - ROI створюється як deep copy для кожного tile.
 - `CV_16UC1` input трактується як `Bit16`, хоча route задає `Bit12`.
 - Tile-local coordinates видаються як frame-global без `origin_px`.
+- Stage code обробляє ROI view як continuous buffer без перевірки.
 
 ## Typical misuse
 
@@ -141,6 +145,7 @@ explicit stage spec.
 - derived_from: dp1.domain.raw.frame_packet
 - scoped_by: dp1.domain.runtime.tile_desc
 - uses: dp1.domain.pixel_format
+- constrained_by: dp1.domain.opencv_invariants
 - constrained_by: dp1.domain.memory_ownership
 - constrained_by: dp1.domain.coordinates
 - feeds: dp1.stage.radiometric_correction

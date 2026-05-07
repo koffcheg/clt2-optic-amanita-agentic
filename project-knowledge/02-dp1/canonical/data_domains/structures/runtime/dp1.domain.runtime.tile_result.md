@@ -35,6 +35,11 @@ status: "draft"
 
 `TileResult` має явно визначати, чи coordinates є tile-local або frame-global до merge.
 
+Production route має переносити мінімальний structural payload, потрібний для
+merge і final output. `candidate_results`, `segment_results` і
+`validated_object_results` є optional/debug payload, якщо merge потребує тільки
+`measurement_results`.
+
 Рекомендована C++ форма:
 
 ```cpp
@@ -114,6 +119,8 @@ fields:
 outputs. `candidate_results`, `segment_results` і `validated_object_results`
 можуть бути optional у production, якщо final merge потребує тільки
 `measurement_results`.
+Vectors мають передаватися move/transfer semantics у future implementation, а
+не копіюватися без потреби між `TileContext` і `TileResult`.
 
 ## Interpretation
 
@@ -125,12 +132,17 @@ outputs. `candidate_results`, `segment_results` і `validated_object_results`
 TileResult[] -> crop/filter by valid_area -> transform to global coordinates -> remove border duplicates -> frame-level MeasurementRecord[]
 ```
 
+Формули globalization і coordinate-space правила визначає
+`dp1.domain.coordinates`; ця картка не дублює їх.
+
 ## Failure cases
 
 - Tile-local outputs додаються глобально без coordinate transform.
 - Border duplicates не видаляються.
 - Detections із invalid border-area приймаються як final measurements.
 - Tile worker пише напряму в global measurement output без `TileResult`/merge contract.
+- TileResult копіює всі intermediate vectors у production route без
+  debug/merge потреби.
 
 ## Typical misuse
 
@@ -143,6 +155,7 @@ TileResult[] -> crop/filter by valid_area -> transform to global coordinates -> 
 - Чи globally merge-яться candidates/segments/validated objects, чи тільки
   measurements.
 - Merge ordering і determinism requirements.
+- Exact move-only або transfer ownership policy для future C++ DTO.
 
 ## Connections
 

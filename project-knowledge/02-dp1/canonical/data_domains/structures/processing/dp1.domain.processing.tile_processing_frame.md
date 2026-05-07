@@ -21,7 +21,8 @@ enhanced frame або detector response у межах одного tile.
 
 - Payload `image` зазвичай посилається на `TileContext.processing_buffer_a` або
   `TileContext.processing_buffer_b`.
-- Route може бути `F32`, `S16`, `S32` або explicit compatibility route,
+- Canonical route за замовчуванням використовує `F32`.
+- Route може бути `S16`, `S32` або explicit compatibility route,
   визначений stage spec і configuration `C`.
 - `processing_domain` має явно розрізняти `RadiometricResidual`,
   `RadiometricCorrected`, `EnhancedFrame` і `DetectorResponse`.
@@ -39,7 +40,7 @@ struct TileProcessingFrame {
     PixelFormat pixel_format = PixelFormat::F32;
     PixelRange value_range;
     ProcessingDomain processing_domain = ProcessingDomain::RadiometricResidual;
-    RangePolicy range_policy = RangePolicy::NormalizedFloat;
+    RangePolicy range_policy = RangePolicy::SignedResidual;
     cv::Rect valid_area;
     cv::Point origin_px{0, 0};
     CoordinateSpace coordinate_space = CoordinateSpace::TileLocal;
@@ -131,12 +132,17 @@ fields:
 - Не містить candidates, segments або measurements.
 - Full-frame allocation не належить route `prep.variant = "tiles"`, якщо окрема stage spec не дозволяє її явно.
 - `pixel_format` і `range_policy` мають відповідати stage spec.
+- `image` має відповідати `dp1.domain.opencv_invariants`.
+- `valid_area` виражений у tile-local coordinates відносно `roi_with_border`
+  згідно з `dp1.domain.coordinates`.
+- `MaskU8` не є допустимим `TileProcessingFrame.pixel_format`.
 
 ## Failure cases
 
 - Detector response записується як raw frame.
 - Signed residual silently clipped без `RangePolicy`.
 - Tile-local processing output використовується без `valid_area` crop.
+- ROI/submatrix payload обробляється як continuous buffer без перевірки.
 
 ## Typical misuse
 
@@ -152,6 +158,7 @@ fields:
 - belongs_to: dp1.domain.processing
 - derived_from: dp1.domain.raw.tile_raw_view
 - uses: dp1.domain.pixel_format
+- constrained_by: dp1.domain.opencv_invariants
 - constrained_by: dp1.domain.memory_ownership
 - constrained_by: dp1.domain.coordinates
 - constrained_by: dp1.domain.threshold

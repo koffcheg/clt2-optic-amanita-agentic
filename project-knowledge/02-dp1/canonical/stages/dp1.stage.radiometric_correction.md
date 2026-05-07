@@ -114,8 +114,10 @@ route_specific_carriers:
 
 Обов’язкові поля: `enabled`, `variant`, `level`, `parameters`.
 
-Допустимі `variant`: `mean_subtraction`, `gaussian_subtraction`,
+Допустимі `variant`: `mean_subtraction`, `gaussian_subtraction`, `median`,
 `inverse_median`, `adaptive_background`, `band_pass`, `per_tile_background`.
+
+`variant` має бути зареєстрований у `dp1.config.stage_variant_registry`.
 
 ## Timing / profiling
 

@@ -47,11 +47,16 @@ struct Segment {
     std::uint64_t candidate_id = 0;
     cv::Rect bbox_px;
     int area_px = 0;
-    std::vector<cv::Point> contour_px;
+    std::optional<std::vector<cv::Point>> contour_px;
     std::uint32_t quality_flags = 0;
     CoordinateSpace coordinate_space = CoordinateSpace::TileLocal;
 };
 ```
+
+У production RT route повний `contour_px` не є mandatory payload. L0/L1 мають
+надавати compact geometry (`bbox_px`, `area_px`, centroid або shape stats, якщо
+вони визначені stage-interface card). Повний contour дозволений для L2/L3,
+debug trace або variant, де shape analysis явно потребує contour.
 
 ## Поля
 
@@ -149,6 +154,7 @@ object. Він може використовуватися на етапах obj
 - Required segmentation quality flags.
 - Чи дозволені multi-component segments.
 - Чи потрібен окремий compact shape representation без повного contour.
+- Exact `ShapeStats` structure для compact production route.
 
 ## Connections
 

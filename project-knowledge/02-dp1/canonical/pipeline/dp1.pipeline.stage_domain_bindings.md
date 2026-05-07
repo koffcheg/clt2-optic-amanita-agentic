@@ -20,6 +20,10 @@ input/context/output domains і structures.
 дублюючи повний per-stage contract. Джерелом істини для per-stage domain
 bindings є відповідні stage-interface cards.
 
+Cross-stage compatibility matrix винесено у
+`dp1.pipeline.stage_io_matrix`. Ця картка описує binding sources і tile/merge
+route, а Stage I/O Matrix задає послідовний input/output flow між етапами.
+
 ## Assumptions
 
 - Це knowledge-only binding matrix, а не claim про поточну реалізацію в `datapro1_v2`.
@@ -163,7 +167,7 @@ tile_pipeline_route:
     tile_local_input: "`TileResult[]`"
     runtime_owner_context: "frame-level merge context"
     tile_local_output: "frame-level `MeasurementRecord[]`"
-    notes: "Crop by `valid_area`, transform coordinates, suppress border duplicates. Merge об'єднує tiles одного frame/source, не різні камери."
+    notes: "Crop by `valid_area`, transform coordinates згідно з `dp1.domain.coordinates`, suppress border duplicates. Merge об'єднує tiles одного frame/source, не різні камери."
 ```
 
 Memory route для `prep.variant = "tiles"`:
@@ -224,6 +228,7 @@ Stage specs можуть звужувати дозволені domains, але �
 ## Connections
 
 - uses: dp1.pipeline.stage_contract
+- uses: dp1.pipeline.stage_io_matrix
 - uses: dp1.domain.raw.frame_packet
 - uses: dp1.domain.raw.tile_raw_view
 - uses: dp1.domain.runtime.frame_context

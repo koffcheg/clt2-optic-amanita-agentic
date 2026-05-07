@@ -37,6 +37,9 @@ DP1-local вимоги відповідності для canonical DP1 knowledge
 - коректність домену вимірювань;
 - використання canonical-межі протоколу для DP1 -> DP2 handoff;
 - вибір реалізацій через конфігурацію `C`;
+- перевірку `variant` через `dp1.config.stage_variant_registry`;
+- відповідність stage input/output до `dp1.pipeline.stage_io_matrix`;
+- дотримання `dp1.domain.opencv_invariants` для всіх `cv::Mat` carriers;
 - відтворюваність результатів;
 - доступність профілювання для кожного етапу;
 - дотримання рівнів складності.
@@ -52,6 +55,8 @@ DP1-local вимоги відповідності для canonical DP1 knowledge
 - Код етапу існує без специфікації етапу.
 - Legacy-протокол трактується як canonical handoff.
 - DP1-local requirements використовуються як заміна execution validation route.
+- Code generation починається без stage contract checks і без registered
+  variant.
 
 ## Typical misuse
 
@@ -66,5 +71,9 @@ DP1-local вимоги відповідності для canonical DP1 knowledge
 ## Connections
 
 - uses: dp1.pipeline.stage_contract
+- uses: dp1.pipeline.stage_io_matrix
+- uses: dp1.config.stage_variant_registry
+- uses: dp1.domain.opencv_invariants
 - uses: protocols.dp1_dp2.measurement_handoff
+- extended_by: dp1.validation.stage_contract_checks
 - executed_by: validation.dp1.canonical_conformance

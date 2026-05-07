@@ -96,7 +96,9 @@ debug-зображення, masks і temporary processing buffers не є DP1 ->
 Обов’язкові поля: `enabled`, `variant`, `level`, `parameters`.
 
 Допустимі `variant`: `centroid_bbox`, `photometry_basic`,
-`moments_subpixel`.
+`rotated_bbox_moments_subpixel`.
+
+`variant` має бути зареєстрований у `dp1.config.stage_variant_registry`.
 
 ## Timing / profiling
 

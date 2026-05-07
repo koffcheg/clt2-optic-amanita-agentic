@@ -38,6 +38,10 @@ status: "draft"
 - дозволені швидкі шляхи;
 - заборону неявних перетворень.
 
+Назви `stage`, дозволені `variant` і розділення `variant` / `level`
+визначає `dp1.config.stage_variant_registry`. Ця картка задає форму `C`, але
+не є registry допустимих algorithm families.
+
 Базова форма DSL:
 
 ```json
@@ -55,10 +59,10 @@ status: "draft"
     }
   },
   "processing_route": {
-    "radiometric_output_format": "F32|S16|S32|U8|U16",
-    "processing_format": "F32|S16|S32|U8|U16",
+    "radiometric_output_format": "F32|S16|S32",
+    "processing_format": "F32",
     "mask_format": "MaskU8",
-    "range_policy": "RawSensorRange|NormalizedFloat|SignedResidual|ClippedToInputRange|ScaledToInputRange"
+    "range_policy": "SignedResidual|NormalizedFloat|DetectorResponse|ClippedToInputRange"
   },
   "pipeline": {
     "prep": {
@@ -69,7 +73,7 @@ status: "draft"
     },
     "radiometric": {
       "enabled": true,
-      "variant": "mean_subtraction|gaussian_subtraction|inverse_median|adaptive_background|band_pass|per_tile_background",
+      "variant": "mean_subtraction|gaussian_subtraction|median|inverse_median|adaptive_background|band_pass|per_tile_background",
       "level": "L0|L1|L2|L3|Lx",
       "parameters": {}
     },
@@ -81,7 +85,7 @@ status: "draft"
     },
     "matched_filter": {
       "enabled": true,
-      "variant": "gaussian_quasi|fixed_kernel|template|adaptive_kernel|psf_fit",
+      "variant": "gaussian|kernel|template|adaptive_kernel|psf_fit",
       "level": "L0|L1|L2|L3|Lx",
       "parameters": {}
     },
@@ -99,13 +103,13 @@ status: "draft"
     },
     "object_filtering": {
       "enabled": true,
-      "variant": "area|geometry|shape_photometry",
+      "variant": "area|geom_basic|shape_photometry",
       "level": "L0|L1|L2|L3|Lx",
       "parameters": {}
     },
     "measurement": {
       "enabled": true,
-      "variant": "centroid_bbox|photometry_basic|moments_subpixel",
+      "variant": "centroid_bbox|photometry_basic|rotated_bbox_moments_subpixel",
       "level": "L0|L1|L2|L3|Lx",
       "parameters": {}
     }
@@ -136,7 +140,7 @@ struct InputRouteConfig {
 };
 
 struct ProcessingRouteConfig {
-    PixelFormat radiometric_output_format = PixelFormat::S32;
+    PixelFormat radiometric_output_format = PixelFormat::F32;
     PixelFormat processing_format = PixelFormat::F32;
     PixelFormat mask_format = PixelFormat::MaskU8;
     RangePolicy range_policy = RangePolicy::SignedResidual;
@@ -179,6 +183,15 @@ struct PipelineConfig {
 Threshold-like parameters мають використовувати `ThresholdConfig` із
 `dp1.domain.threshold`, а не untyped numeric values.
 
+Canonical processing route за замовчуванням:
+
+- Raw/Input: `U8` або `U16`, з actual `InputBitDepth`;
+- Processing: `F32` / `CV_32FC1`;
+- Mask: `MaskU8` / `CV_8UC1`;
+- `S16` і `S32`: тільки explicit signed residual route;
+- `U8` або `U16` у Processing domain: тільки explicit fast/compatibility route,
+  якщо це дозволено stage-interface card або stage spec.
+
 `input_route` і `processing_route` фіксують pixel/range route DP1 instance на
 startup. Спосіб просторової підготовки кадру задає `pipeline.prep.variant`, а
 не `processing_route`.
@@ -208,7 +221,7 @@ coordinate policy і validation rules.
     }
   },
   "processing_route": {
-    "radiometric_output_format": "S16",
+    "radiometric_output_format": "F32",
     "processing_format": "F32",
     "mask_format": "MaskU8",
     "range_policy": "SignedResidual"
@@ -244,7 +257,7 @@ coordinate policy і validation rules.
     }
   },
   "processing_route": {
-    "radiometric_output_format": "S32",
+    "radiometric_output_format": "F32",
     "processing_format": "F32",
     "mask_format": "MaskU8",
     "range_policy": "SignedResidual"
@@ -312,6 +325,7 @@ Route selection не є algorithm implementation. Stage implementation має я
 - Реалізація етапу жорстко закодована.
 - Швидкий шлях обходить правила доменів даних.
 - Конфігурація не містить усіх основних етапів.
+- `variant` використовується як `level` або навпаки.
 - Перетворення форматів або stateful-моделі не відображені у параметрах.
 - DP1 instance змінює `input_route` між кадрами без explicit reconfiguration
   і buffer reallocation policy.
@@ -332,13 +346,16 @@ Route selection не є algorithm implementation. Stage implementation має я
 - Точна схема і формат валідації.
 - Формальний перелік параметрів для кожного `variant`.
 - Політика сумісності `schema_version`.
-- Формальний registry supported routes для кожної stage implementation.
+- Формальний registry supported routes для кожної stage implementation за межами
+  stage-interface level.
 
 ## Connections
 
 - uses: dp1.pipeline.formal_model
+- uses: dp1.config.stage_variant_registry
 - constrained_by: dp1.domain.conversion_rules
 - constrained_by: dp1.domain.pixel_format
+- constrained_by: dp1.domain.common_types
 - constrained_by: dp1.domain.threshold
 - constrained_by: dp1.domain.memory_ownership
 - constrained_by: dp1.domain.coordinates

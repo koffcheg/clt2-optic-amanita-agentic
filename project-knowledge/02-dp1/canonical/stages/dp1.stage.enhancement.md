@@ -105,6 +105,7 @@ route_specific_carriers:
 - не змішувати з matched filtering;
 - не створювати binary mask;
 - зберігати сигнал, потрібний для detector response і photometry.
+- `variant` має бути зареєстрований у `dp1.config.stage_variant_registry`.
 
 ## Failure cases
 

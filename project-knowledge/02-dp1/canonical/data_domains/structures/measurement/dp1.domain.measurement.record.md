@@ -27,6 +27,7 @@ status: "draft"
 
 `MeasurementRecord` має мінімально містити або посилатися на:
 
+- `schema_version` — версія структури measurement payload або batch schema.
 - `measurement_id` — stable identifier measurement output.
 - `frame_id` — кадр, з якого сформовано measurement.
 - `source_id` або `camera_id` — зв'язок із джерелом/camera.
@@ -59,9 +60,11 @@ struct PhotometryStats {
 };
 
 struct MeasurementRecord {
+    std::uint32_t schema_version = 1;
     std::uint64_t measurement_id = 0;
     std::uint64_t frame_id = 0;
     int camera_id = -1;
+    std::string source_id;
     std::uint64_t source_object_id = 0;
     std::uint64_t source_segment_id = 0;
     TimestampRef time_ref;
@@ -72,6 +75,7 @@ struct MeasurementRecord {
     CoordinateSpace coordinate_space = CoordinateSpace::FrameGlobal;
     std::uint32_t quality_flags = 0;
 };
+
 ```
 
 ## Поля `PhotometryStats`
@@ -109,6 +113,11 @@ fields:
 
 ```yaml
 fields:
+  - name: "`schema_version`"
+    type: "`std::uint32_t`"
+    purpose: "Версія measurement schema."
+    used_for: "DP1 -> DP2 compatibility і migration."
+    memory: "4 B"
   - name: "`measurement_id`"
     type: "`std::uint64_t`"
     purpose: "Stable final id."
@@ -124,6 +133,11 @@ fields:
     purpose: "Active source camera поточного DP1 instance."
     used_for: "Multi-instance DP2 handoff."
     memory: "4 B"
+  - name: "`source_id`"
+    type: "`std::string`"
+    purpose: "Stable source identity, якщо numeric camera_id недостатній."
+    used_for: "Audit, DP2 interpretation, logs."
+    memory: "~24 B + payload"
   - name: "`source_object_id`"
     type: "`std::uint64_t`"
     purpose: "Relation до accepted `ValidatedObject`."
@@ -180,6 +194,10 @@ fields:
 потім переносяться в `TileResult.measurement_results`, після merge — у
 frame-level `std::vector<MeasurementRecord>`.
 
+Frame-level batch/payload schema належить `protocols.dp1_dp2.measurement_handoff`.
+Protocol card може посилатися на `MeasurementRecord`, але не навпаки визначати
+runtime або serialization behavior у цій structure card.
+
 ## Етапи
 
 - `measurement` створює tile-local `MeasurementRecord[]` з accepted
@@ -213,6 +231,8 @@ frame-level `std::vector<MeasurementRecord>`.
 - Required calibration metadata.
 - Required units for coordinates and photometry.
 - Error/partial-frame semantics for DP2 handoff.
+- Exact relation між `MeasurementRecord.schema_version` і protocol-level batch
+  `schema_version`.
 
 ## Connections
 
@@ -224,4 +244,5 @@ frame-level `std::vector<MeasurementRecord>`.
 - constrained_by: dp1.domain.time
 - constrained_by: dp1.domain.coordinates
 - constrained_by: dp1.domain.quality_flags
+- constrained_by: dp1.domain.common_types
 - feeds: protocols.dp1_dp2.measurement_handoff

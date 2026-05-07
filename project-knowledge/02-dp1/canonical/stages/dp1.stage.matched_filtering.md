@@ -86,8 +86,10 @@ route_specific_carriers:
 
 Обов’язкові поля: `enabled`, `variant`, `level`, `parameters`.
 
-Допустимі `variant`: `gaussian_quasi`, `fixed_kernel`, `template`,
-`adaptive_kernel`, `psf_fit`.
+Допустимі `variant`: `gaussian`, `kernel`, `template`, `adaptive_kernel`,
+`psf_fit`.
+
+`variant` має бути зареєстрований у `dp1.config.stage_variant_registry`.
 
 ## Timing / profiling
 

@@ -38,6 +38,22 @@ Rules:
   frame-global final outputs, якщо stage spec не визначає інший explicit route.
 - Border/overlap outputs мають проходити valid-area crop і duplicate
   suppression перед final measurement.
+- `cv::Rect` використовує OpenCV half-open convention:
+  `x <= px < x + width`, `y <= py < y + height`; right/bottom boundary не
+  включається.
+- У tile route `valid_area` виражений у tile-local coordinates відносно
+  `TileDesc.roi_with_border`.
+- Формула tile-local to frame-global для point:
+  `global.x = tile_desc.roi_with_border.x + local.x`;
+  `global.y = tile_desc.roi_with_border.y + local.y`.
+- Формула tile-local to frame-global для `cv::Rect`:
+  `global.x = tile_desc.roi_with_border.x + local.x`;
+  `global.y = tile_desc.roi_with_border.y + local.y`;
+  `width` і `height` не змінюються.
+- `centroid_px` з floating coordinates має позначати координату у pixel
+  coordinate system. Якщо centroid обчислюється з integer pixel region, stage
+  spec має визначити, чи використовується pixel-center convention `x + 0.5`,
+  `y + 0.5`, або OpenCV moments convention.
 
 ## Interpretation
 
@@ -49,6 +65,9 @@ shared synchronization. Frame-global result формується після dete
 - Tile-local bbox видається як frame-global.
 - Border duplicate стає final measurement.
 - `origin_px` або `valid_area` втрачені між stages.
+- Inclusive rectangle convention використано замість OpenCV half-open
+  convention.
+- Tile-local `valid_area` помилково трактується як frame-global.
 
 ## Typical misuse
 
@@ -60,6 +79,7 @@ shared synchronization. Frame-global result формується після dete
 
 - Exact duplicate suppression policy.
 - Чи потрібен окремий `CoordinateTransformRef`.
+- Єдина centroid convention для всіх measurement variants.
 
 ## Connections
 
@@ -71,3 +91,4 @@ shared synchronization. Frame-global result формується після dete
 - constrains: dp1.domain.struct.validated_object
 - constrains: dp1.domain.measurement.record
 - constrains: dp1.pipeline.stage_domain_bindings
+- constrains: dp1.pipeline.stage_io_matrix

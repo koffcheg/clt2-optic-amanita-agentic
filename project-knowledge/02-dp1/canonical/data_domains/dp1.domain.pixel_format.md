@@ -33,6 +33,12 @@ Canonical DP1 має мінімально розрізняти такі форм
 
 Формат має бути явно заданий у data object або route-level metadata. Неявне виведення semantics тільки з `cv::Mat::type()` недостатнє для canonical contract.
 
+Canonical processing route за замовчуванням використовує `F32` /
+`CV_32FC1`. `S16` і `S32` дозволені тільки як explicit signed residual route.
+`U8` або `U16` у Processing domain дозволені тільки як explicit
+fast/compatibility route, якщо це окремо зафіксовано у stage-interface card або
+future stage spec.
+
 Canonical DP1 має розрізняти фактичну бітність input окремо від OpenCV carrier:
 
 - `Bit8` — 8-bit camera/input data.
@@ -95,13 +101,16 @@ enum class ProcessingDomain {
     RadiometricResidual,
     RadiometricCorrected,
     EnhancedFrame,
-    DetectorResponse
+    DetectorResponse,
+    LocalContrastResponse,
+    BackgroundEstimate
 };
 
 enum class RangePolicy {
     RawSensorRange,
     NormalizedFloat,
     SignedResidual,
+    DetectorResponse,
     ClippedToInputRange,
     ScaledToInputRange
 };
@@ -113,11 +122,7 @@ struct PixelRange {
     double saturation_level = 0.0;
 };
 
-struct FrameGeometry {
-    int width = 0;
-    int height = 0;
-    cv::Point origin_px{0, 0};
-};
+// FrameGeometry визначено у `dp1.domain.common_types`.
 ```
 
 ## Поля службових структур
@@ -134,12 +139,9 @@ struct FrameGeometry {
 `PixelRange.saturation_level` задає рівень насичення для photometry, quality
 flags і reject logic.
 
-`FrameGeometry.width` і `FrameGeometry.height` задають геометрію кадру або
-tile-scoped representation.
-
-`FrameGeometry.origin_px` задає origin representation у frame-global
-coordinates. Для full-frame `FramePacket` це зазвичай `(0, 0)`. Для tile-local
-structures це offset `TileDesc.origin_px`.
+`FrameGeometry` не визначається у цій картці. Єдиним canonical source для
+`FrameGeometry` є `dp1.domain.common_types`; coordinate semantics додатково
+обмежуються `dp1.domain.coordinates`.
 
 ## Розділення структур і алгоритмів
 
@@ -163,7 +165,16 @@ FramePacket { pixel_format=U16, bit_depth=Bit10|Bit12|Bit14|Bit16 }
 
 `F32` використовується для normalized або detector-response представлень, коли алгоритму потрібен scalar domain, що не є raw pixel domain.
 
+Для `ProcessingDomain::RadiometricResidual` default `RangePolicy` має бути
+`SignedResidual`, якщо route не задає інше явно. Для
+`ProcessingDomain::DetectorResponse` default має бути `DetectorResponse` або
+explicit `NormalizedFloat`, якщо response нормалізується.
+
 `MaskU8` не є intensity image. Це domain-specific carrier для mask semantics.
+
+Visualization domain використовує формат вхідного кадру поточного DP1 route:
+`U8` / `CV_8UC1` або `U16` / `CV_16UC1`. Окремий RGB/BGR carrier не є
+canonical pixel format для DP1 visualization.
 
 `S16` і `S32` потрібні для signed residual routes, зокрема для stage specs, де
 residual не має втрачати від'ємні значення до downstream processing.
@@ -196,6 +207,9 @@ residual не має втрачати від'ємні значення до down
 
 ## Connections
 
+- constrains: dp1.domain.opencv_invariants
+- uses: dp1.domain.common_types
+- constrained_by: dp1.domain.coordinates
 - constrains: dp1.domain.raw.frame_packet
 - constrains: dp1.domain.raw.tile_raw_view
 - constrains: dp1.domain.processing.frame

@@ -102,6 +102,8 @@ downstream validation/classification.
 MOG2/KNN або інші stateful background models мають мати явного власника стану,
 правила reset/update і облік часу оновлення.
 
+`variant` має бути зареєстрований у `dp1.config.stage_variant_registry`.
+
 ## Must not do
 
 Фінальна валідація об’єктів або downstream-вимірювання.

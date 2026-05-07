@@ -28,6 +28,10 @@ status: "draft"
 - foreground value: `255`, якщо stage spec явно не визначає іншу binary convention;
 - geometry: така сама, як у source frame / processing representation, якщо remapping не заданий явно.
 
+OpenCV functions часто трактують будь-яке non-zero значення як foreground.
+Canonical stage output має нормалізувати foreground до `255`, якщо stage spec
+явно не дозволяє internal `0/1` route.
+
 `BinaryMask` має мінімально містити або посилатися на:
 
 - `frame_id`;
@@ -125,6 +129,7 @@ Binary masks можуть використовуватись для connected co
 - Mask трактується як intensity image.
 - Foreground convention відрізняється між stages без явного contract.
 - Geometry mask відрізняється від source frame без transform metadata.
+- `CV_8UC1` mask передається як Processing-domain intensity image.
 
 ## Typical misuse
 
@@ -140,6 +145,7 @@ Binary masks можуть використовуватись для connected co
 
 - belongs_to: dp1.domain.mask
 - uses: dp1.domain.pixel_format
+- constrained_by: dp1.domain.opencv_invariants
 - constrained_by: dp1.domain.coordinates
 - derived_from: dp1.domain.processing.frame
 - may_produce: dp1.domain.struct.candidate

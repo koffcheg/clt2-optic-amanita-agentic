@@ -96,6 +96,8 @@ route_specific_carriers:
 
 Допустимі `variant`: `full_frame`, `roi`, `tiles`, `adaptive_roi`.
 
+`variant` має бути зареєстрований у `dp1.config.stage_variant_registry`.
+
 ## Timing / profiling
 
 Профілювати час підготовки, кількість tiles, витрати на копіювання, витрати на
@@ -113,6 +115,8 @@ border/overlap і перетворення форматів.
 - відсутність зайвих копій;
 - коректна геометрія координат;
 - traceability від локальних координат tiles до глобальних координат кадру.
+- `prep.variant = "tiles"` має відповідати `dp1.pipeline.stage_io_matrix` і
+  `dp1.domain.coordinates`.
 
 ## Failure cases
 
@@ -124,7 +128,7 @@ border/overlap і перетворення форматів.
 
 ## Open questions
 
-Canonical-схема перетворення координат.
+- Exact duplicate suppression policy після tile merge.
 
 ## Connections
 
@@ -134,4 +138,6 @@ Canonical-схема перетворення координат.
 - may_produce: dp1.domain.processing.frame
 - may_produce: dp1.domain.runtime.tile_desc
 - uses: dp1.domain.conversion_rules
+- constrained_by: dp1.config.stage_variant_registry
+- constrained_by: dp1.pipeline.stage_io_matrix
 - feeds: dp1.stage.radiometric_correction

@@ -88,6 +88,8 @@ route_specific_carriers:
 Допустимі `variant`: `single_morphology`, `open_close_contours`,
 `connected_components`, `multi_step_morphology`.
 
+`variant` має бути зареєстрований у `dp1.config.stage_variant_registry`.
+
 ## Timing / profiling
 
 Профілювати час morphology, кількість contours/components, розмір kernel,

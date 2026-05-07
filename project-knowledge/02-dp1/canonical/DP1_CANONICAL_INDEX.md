@@ -13,13 +13,16 @@ This section defines target DP1 architecture independently from legacy `datapro1
 3. `pipeline/dp1.pipeline.formal_model.md`
 4. `pipeline/dp1.pipeline.stage_contract.md`
 5. `pipeline/dp1.pipeline.stage_domain_bindings.md`
-6. `data_domains/*.md` and `data_domains/structures/**/*.md`
-7. `stages/*.md`
-8. `stage_specs/*.md`
+6. `pipeline/dp1.pipeline.stage_io_matrix.md`
+7. `data_domains/*.md` and `data_domains/structures/**/*.md`
+8. `stages/*.md`
 9. `configuration/dp1.config.pipeline_configuration_c.md`
-10. `configuration/dp1.config.complexity_levels.md`
-11. `validation/dp1.validation.canonical_conformance.md`
-12. `../../04-protocols/cards/protocols.dp1_dp2.measurement_handoff.md`
+10. `configuration/dp1.config.stage_variant_registry.md`
+11. `configuration/dp1.config.complexity_levels.md`
+12. `stage_specs/*.md`
+13. `validation/dp1.validation.canonical_conformance.md`
+14. `validation/dp1.validation.stage_contract_checks.md`
+15. `../../04-protocols/cards/protocols.dp1_dp2.measurement_handoff.md`
 
 ## Code generation rule
 
@@ -61,7 +64,9 @@ define a multi-camera input container inside one DP1 instance.
 - `data_domains/dp1.domain.struct.md` - Struct domain for candidates, segments, and intermediate object-like structures.
 - `data_domains/dp1.domain.measurement.md` - Measurement domain for final DP1 product output and DP1 -> DP2 handoff.
 - `data_domains/dp1.domain.visualization.md` - Visualization domain for display/debug rendering outputs.
+- `data_domains/dp1.domain.runtime.md` - Runtime/context/tile execution support domain.
 - `data_domains/dp1.domain.pixel_format.md` - Shared pixel-format, input bit-depth, range-policy, and route metadata vocabulary used by the domains.
+- `data_domains/dp1.domain.common_types.md` - Shared status, route, geometry, profiling, diagnostics, and parameter vocabulary.
 
 ## Current domain policies
 
@@ -71,6 +76,7 @@ define a multi-camera input container inside one DP1 instance.
 - `data_domains/dp1.domain.threshold.md` - threshold units and range semantics for code generation.
 - `data_domains/dp1.domain.quality_flags.md` - compact quality/reject flag registry.
 - `data_domains/dp1.domain.coordinates.md` - tile-local/frame-global coordinate policy and merge boundary.
+- `data_domains/dp1.domain.opencv_invariants.md` - OpenCV `cv::Mat`, ROI, continuity, type, and rectangle invariants.
 
 ## Current domain structures
 
@@ -131,6 +137,18 @@ structure names such as `raw16` or `proc32`.
 ## Current pipeline bindings
 
 - `pipeline/dp1.pipeline.stage_domain_bindings.md` - cross-stage binding overview with links to the eight authoritative stage-interface binding sections, plus pipeline-level tile/merge and hidden-output rules.
+- `pipeline/dp1.pipeline.stage_io_matrix.md` - canonical input/output matrix for the eight DP1 stages and tile merge boundary.
+
+## Current configuration contracts
+
+- `configuration/dp1.config.pipeline_configuration_c.md` - canonical DP1 pipeline configuration `C`.
+- `configuration/dp1.config.stage_variant_registry.md` - registry of the eight fixed stages, allowed variants, and variant/level separation.
+- `configuration/dp1.config.complexity_levels.md` - canonical complexity-level vocabulary.
+
+## Current validation contracts
+
+- `validation/dp1.validation.canonical_conformance.md` - DP1-local canonical conformance requirements.
+- `validation/dp1.validation.stage_contract_checks.md` - stage contract checklist for future implementation review.
 
 ## Current stage specifications
 

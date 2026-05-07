@@ -93,7 +93,9 @@ spec. Етап не має формувати `MeasurementRecord` або пов�
 
 Обов’язкові поля: `enabled`, `variant`, `level`, `parameters`.
 
-Допустимі `variant`: `area`, `geometry`, `shape_photometry`.
+Допустимі `variant`: `area`, `geom_basic`, `shape_photometry`.
+
+`variant` має бути зареєстрований у `dp1.config.stage_variant_registry`.
 
 ## Timing / profiling
 

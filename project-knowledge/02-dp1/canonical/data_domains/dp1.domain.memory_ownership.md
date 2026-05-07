@@ -33,6 +33,12 @@ Canonical ownership rules:
 - `ProcessingFrame` owns full-frame processing payload only у `full_frame`,
   `roi` або explicitly specified routes.
 - `TileResult` переносить structural outputs, але не image buffers.
+- `TileRawView.image` є read-only by contract, навіть якщо `cv::Mat` API
+  технічно mutable.
+- `FrameContext` не володіє primary image buffers, masks, candidates, segments,
+  validated objects або measurements.
+- Runtime strings (`source_id`, `source_ref`, `pipeline_run_id`) не мають бути
+  hot-path identity mechanism без explicit interning або numeric-id policy.
 
 Shared mutable image buffers між workers заборонені без explicit synchronization
 contract в implementation task.
@@ -49,6 +55,7 @@ buffers.
 - Worker пише у shared processing buffer.
 - `TileResult` переносить `cv::Mat` payload.
 - Full-frame `F32` buffers створюються в tile route для кожного stage.
+- `FrameContext` використовується як прихований owner output vectors.
 
 ## Typical misuse
 
@@ -59,6 +66,7 @@ buffers.
 
 - Exact ownership enum для future C++ DTO.
 - Pooled allocation policy для `TileContext`.
+- Interned-string або numeric-id policy для runtime metadata.
 
 ## Connections
 
@@ -69,3 +77,4 @@ buffers.
 - constrains: dp1.domain.mask.tile_binary_mask
 - constrains: dp1.domain.runtime.tile_context
 - constrains: dp1.domain.runtime.tile_result
+- constrains: dp1.domain.opencv_invariants

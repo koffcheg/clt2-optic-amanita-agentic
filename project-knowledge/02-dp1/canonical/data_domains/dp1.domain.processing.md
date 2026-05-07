@@ -19,7 +19,13 @@ Processing domain описує canonical DP1 data object для кадру аб�
 
 ## Assumptions
 
-- Processing representation може використовувати `U8`, `U16` або `F32` route залежно від configuration `C` і stage spec.
+- Canonical processing representation за замовчуванням використовує `F32` /
+  `CV_32FC1`, як визначено у `dp1.config.pipeline_configuration_c`,
+  `dp1.domain.pixel_format` і `dp1.domain.processing.frame`.
+- `S16` і `S32` дозволені тільки як explicit signed residual route.
+- `U8` і `U16` у Processing domain дозволені тільки як explicit
+  fast/compatibility route, якщо це прямо дозволено configuration `C`,
+  stage-interface card або stage spec.
 - OpenCV carrier не визначає semantics без explicit pixel format і processing domain.
 - Code-level structure має бути підтверджена окремою implementation task.
 
@@ -30,7 +36,9 @@ Processing data object має мінімально містити або пос�
 - `frame_id` — ідентичність кадру, узгоджена з `FramePacket`.
 - `source_frame_ref` — optional reference на source `FramePacket`.
 - `image` — processing payload/storage carrier.
-- `pixel_format` — `U8`, `U16` або `F32`, defined by `dp1.domain.pixel_format`.
+- `pixel_format` — default `F32`; `S16` або `S32` тільки для explicit signed
+  residual route; `U8` або `U16` тільки для explicit fast/compatibility route,
+  defined by `dp1.domain.pixel_format`.
 - `processing_domain` — semantic label, наприклад `radiometric_corrected`, `enhanced`, `detector_response`.
 - `geometry` — width, height, coordinate origin policy.
 - `range_policy` — interpretation of scalar range, якщо це потрібно для route.
@@ -51,6 +59,8 @@ Processing domain є внутрішнім станом обчислень, а н
 - Detector response записується як raw frame без processing semantics.
 - `U8` і `U16` routes змішуються без explicit range policy.
 - Binary mask передається як processing domain object.
+- Processing domain card використовується як дозвіл на `U8/U16` processing без
+  explicit route у `C`.
 
 ## Typical misuse
 
@@ -69,6 +79,9 @@ Processing domain є внутрішнім станом обчислень, а н
 
 - derived_from: dp1.domain.raw.frame_packet
 - uses: dp1.domain.pixel_format
+- uses: dp1.domain.processing.frame
+- constrained_by: dp1.config.pipeline_configuration_c
+- constrained_by: dp1.domain.opencv_invariants
 - used_by: dp1.stage.radiometric_correction
 - used_by: dp1.stage.matched_filtering
 - may_feed: dp1.stage.candidate_extraction

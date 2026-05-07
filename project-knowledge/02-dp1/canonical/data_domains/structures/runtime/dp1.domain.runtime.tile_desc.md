@@ -33,6 +33,10 @@ status: "draft"
 - `origin_px` — tile origin у глобальних координатах кадру.
 - optional `border_policy` — required overlap semantics для filters/morphology.
 
+Coordinate rules визначає `dp1.domain.coordinates`. Ця structure лише несе
+поля `roi`, `roi_with_border`, `valid_area` і `origin_px`, потрібні для
+застосування canonical formulas.
+
 `TileDesc` має бути cheap to copy/pass між workers.
 
 Рекомендована C++ форма:
@@ -118,6 +122,8 @@ merge TileResult objects into global frame coordinates
 - Tile копіюється як image buffer замість опису через ROI metadata.
 - Border/overlap не враховано для filters або morphology.
 - Local coordinates видаються як global coordinates без transform.
+- `valid_area` записаний у frame-global coordinates і потім повторно
+  globalization зміщує output.
 
 ## Typical misuse
 
@@ -129,10 +135,14 @@ merge TileResult objects into global frame coordinates
 - Standard tile size і overlap policy.
 - Чи tile grid є static або config-driven.
 - Exact boundary behavior на краях кадру.
+- Exact duplicate suppression policy після merge.
 
 ## Connections
 
 - belongs_to: dp1.domain.runtime
 - describes_view_of: dp1.domain.raw.frame_packet
+- constrained_by: dp1.domain.common_types
+- constrained_by: dp1.domain.opencv_invariants
+- constrained_by: dp1.domain.coordinates
 - used_by: dp1.domain.runtime.tile_context
 - produces_scope_for: dp1.domain.runtime.tile_result
