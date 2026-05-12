@@ -24,7 +24,12 @@ Canonical-межа протоколу для передачі від DP1 до DP
 
 DP1 передає DP2 дані з домену вимірювань.
 
+Один DP1 instance формує handoff payload для одного active camera/source input.
+Multi-camera interpretation, synchronization або fusion належить DP2 /
+downstream boundary, якщо окремий canonical protocol card не визначить інше.
+
 Корисне навантаження вимірювань має містити смисли, потрібні downstream:
+- версію схеми payload або batch;
 - ідентичність кадру та час;
 - ідентичність камери або джерела;
 - координати об’єкта;
@@ -44,6 +49,30 @@ Canonical-протокол не повинен включати:
 
 Відповідальність DP2 починається зі споживання та інтерпретації canonical-входу в домені вимірювань.
 
+Frame-level handoff має споживати `MeasurementRecord[]` або future
+`FrameMeasurementBatch`. `FrameMeasurementBatch` потрібен, якщо handoff має
+нести `schema_version`, `pipeline_config_hash`, frame-level profile або
+batch-level metadata, які не повинні дублюватися у кожному `MeasurementRecord`.
+
+Protocol-level recommended structure:
+
+```cpp
+struct FrameMeasurementBatch {
+    std::uint32_t schema_version = 1;
+    std::uint64_t frame_id = 0;
+    int camera_id = -1;
+    std::string source_id;
+    TimestampRef time_ref;
+    std::string pipeline_config_hash;
+    std::vector<MeasurementRecord> records;
+    StageProfile frame_profile;
+};
+```
+
+`MeasurementRecord` визначений у `dp1.domain.measurement.record`. Ця protocol
+card визначає batch/payload boundary і може посилатися на measurement structure,
+але не змінює semantics Measurement domain.
+
 ## Interpretation
 
 Legacy TCP/RPC cards описують лише стару поведінку транспорту. Вони можуть допомагати аналізу міграції, але не є визначенням canonical-протоколу.
@@ -53,6 +82,8 @@ Legacy TCP/RPC cards описують лише стару поведінку т�
 - DP2 вимагає debug-артефакти DP1 як canonical-вхід.
 - Legacy-серіалізація `cv::Mat` трактується як цільовий протокол.
 - Корисне навантаження вимірювань не містить metadata координат або часу.
+- DP1 payload змішує measurements кількох камер без окремого aggregation /
+  protocol contract.
 
 ## Typical misuse
 
@@ -68,6 +99,7 @@ Legacy TCP/RPC cards описують лише стару поведінку т�
 ## Connections
 
 - source_domain: dp1.domain.measurement
+- payload_record: dp1.domain.measurement.record
 - consumed_by: dp2.input.measurement_domain
 - legacy_reference: dp1.net.dp1_tr_res2dp2_connection
 - legacy_reference: dp2.net.dp1_to_dp2_receive_path

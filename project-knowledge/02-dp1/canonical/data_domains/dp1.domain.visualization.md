@@ -14,7 +14,12 @@ status: "draft"
 
 ## Definition
 
-Домен візуалізації. Тип: `CV_8UC3`.
+Домен візуалізації DP1 є необов'язковим human-facing представленням
+canonical-стану обробки або вимірювань.
+
+Формат visualization frame має відповідати формату вхідного кадру поточного
+DP1 instance route: `U8` / `CV_8UC1` або `U16` / `CV_16UC1`. Canonical
+visualization domain не вводить окремий RGB/BGR carrier.
 
 ## Assumptions
 
@@ -24,6 +29,9 @@ status: "draft"
 
 Домен візуалізації не можна використовувати як джерело обчислень.
 
+Overlay, якщо він потрібен, має бути описаний як metadata або route-specific
+debug representation без зміни canonical image carrier на RGB/BGR.
+
 ## Interpretation
 
 Візуалізація є необов’язковим представленням canonical-стану обробки або вимірювань.
@@ -31,6 +39,7 @@ status: "draft"
 ## Failure cases
 
 - Передача намальованих overlay у виявлення.
+- Перетворення input `CV_16UC1` у `CV_8UC3` як canonical visualization output.
 
 ## Typical misuse
 
@@ -39,7 +48,10 @@ status: "draft"
 ## Open questions
 
 - Стандартні назви debug-представлень.
+- Exact overlay metadata schema.
 
 ## Connections
 
 - derived_from: dp1.domain.measurement
+- constrained_by: dp1.domain.pixel_format
+- constrained_by: dp1.domain.opencv_invariants

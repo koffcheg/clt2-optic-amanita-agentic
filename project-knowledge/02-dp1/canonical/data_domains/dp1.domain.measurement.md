@@ -1,46 +1,70 @@
 ---
 id: dp1.domain.measurement
 title:
-  uk: "Домен вимірювань DP1"
+  uk: "Measurement домен DP1"
   en: "DP1 Measurement domain"
-tags: [dp1, canonical, data-domain]
+tags: [dp1, canonical, data-domain, measurement]
 kind: data-domain-card
 source_role: canonical
 source:
   file: "project-knowledge/02-dp1/canonical/data_domains/dp1.domain.measurement.md"
-  lines: "1-120"
 status: "draft"
 ---
 
 ## Definition
 
-Структуровані дані вимірювань, не `cv::Mat`.
+Measurement domain описує семантичну роль фінального структурованого виходу DP1, який може передаватися через межу DP1 -> DP2.
+
+Цей домен не є контейнером для `cv::Mat`, debug-зображень, внутрішніх масок або тимчасових буферів обробки.
+
+Конкретна структура запису вимірювання описана окремою карткою `dp1.domain.measurement.record`.
 
 ## Assumptions
 
-Домен вимірювань зберігає координати, геометрію, фотометрію і downstream metadata, потрібні DP2.
+- Measurement domain має містити координати, геометрію, фотометрію та downstream metadata, потрібні для DP2.
+- Точна схема payload має бути узгоджена з `protocols.dp1_dp2.measurement_handoff`.
+- Конкретна C++ структура має визначатися окремою implementation task.
 
 ## Theorem / Contract
 
-Домен вимірювань є canonical-джерелом для передачі DP1 -> DP2.
+Для Measurement domain діють такі правила:
+
+- вихід вимірювань є structured data, а не `cv::Mat`;
+- вихід вимірювань є продуктовим результатом DP1, а не debug artifact;
+- вихід має містити достатньо identity/time/source/coordinate metadata для інтерпретації в DP2;
+- внутрішні маски, visualization images і temporary buffers не входять у canonical handoff;
+- measurement records можуть посилатися на source segments або raw/processing дані, використані для фотометрії.
+
+Canonical structure:
+
+- `dp1.domain.measurement.record`.
 
 ## Interpretation
 
-Це продуктовий вихід DP1, а не debug artifact.
+Measurement domain є canonical source domain для межі протоколу DP1 -> DP2. Це результат `measurement` stage, а не загальний контейнер для будь-яких structured objects.
 
 ## Failure cases
 
-- Надсилання внутрішніх масок або зображень візуалізації як canonical-входу DP2.
+- Внутрішні маски або visualization images передаються як canonical DP2 input.
+- Measurement не містить `frame_id`, time/source identity або coordinate metadata.
+- Геометрія видається без системи координат.
+- Фотометрія рахується з display/debug buffer замість Raw/Processing/Measurement domain.
 
 ## Typical misuse
 
-- Кодувати вимірювання як pixels.
+- Кодувати measurement як pixels.
+- Трактувати `Candidate` або `Segment` як final measurement без contract `measurement` stage.
 
 ## Open questions
 
-- Точні поля корисного навантаження та одиниці вимірювання.
+- Точна payload schema і versioning policy.
+- Обов'язкова calibration metadata.
+- Одиниці координат і фотометрії.
+- Семантика помилок і partial-frame cases для DP2 handoff.
 
 ## Connections
 
+- has_structure: dp1.domain.measurement.record
 - produced_by: dp1.stage.measurement
+- derived_from: dp1.domain.struct.segment
 - feeds: protocols.dp1_dp2.measurement_handoff

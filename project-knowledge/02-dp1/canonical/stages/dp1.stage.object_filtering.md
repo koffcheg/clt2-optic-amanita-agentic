@@ -8,7 +8,7 @@ kind: stage-interface-card
 source_role: canonical
 source:
   file: "project-knowledge/02-dp1/canonical/stages/dp1.stage.object_filtering.md"
-  lines: "1-130"
+  lines: "1-143"
 status: "draft"
 ---
 
@@ -27,19 +27,53 @@ status: "draft"
 ## Algorithmic idea
 
 Відфільтрувати псевдооб’єкти за площею, геометрією, shape descriptors і
-фотометричними правилами, не виконуючи downstream tracking.
+фотометричними правилами та видати `ValidatedObject[]`, не виконуючи downstream
+tracking.
 
 ## Inputs
 
-Уточнені сегментовані кандидати плюс photometric references із домену обробки.
+`Candidate[]` або `Segment[]` плюс optional photometric references із Raw або
+Processing domain, якщо variant цього потребує.
 
 ## Internal computation domain
 
-Структурований домен кандидатів/об’єктів і, де потрібно, домен обробки.
+Struct domain і, де потрібно, Raw або Processing domain для photometric
+criteria.
 
 ## Outputs
 
-Набір валідованих об’єктів.
+`ValidatedObject[]` у Struct domain. Accepted і rejected records мають бути
+позначені bounded status/flags, якщо route зберігає rejected records.
+
+## Domain bindings
+
+```yaml
+frame_level_binding:
+  allowed_input:
+    - "dp1.domain.struct.candidate"
+    - "dp1.domain.struct.segment"
+  optional_input:
+    - "dp1.domain.raw.frame_packet"
+    - "dp1.domain.processing.frame"
+  runtime_context: "dp1.domain.runtime.frame_context"
+  allowed_output: "dp1.domain.struct.validated_object"
+  notes: "Filtering формує explicit validated-object records, але не measurement payload."
+route_specific_carriers:
+  - route: "full_frame"
+    input_carrier: "Candidate[] або Segment[] + optional FramePacket/ProcessingFrame photometric reference"
+    output_carrier: "ValidatedObject[]"
+  - route: "roi"
+    input_carrier: "ROI-scoped Candidate[] або Segment[] + optional photometric reference"
+    output_carrier: "ValidatedObject[] з explicit coordinate/source metadata"
+  - route: "tiles"
+    input_carrier: "Candidate[] або Segment[] + optional TileRawView/TileProcessingFrame photometric reference"
+    runtime_context: "TileContext + FrameContext"
+    output_carrier: "ValidatedObject[]"
+```
+
+Photometric references дозволені тільки коли це явно потрібно variant/stage
+spec. Етап не має формувати `MeasurementRecord` або повертати відфільтровані
+`Candidate[]` / `Segment[]` як фінальний accepted output.
 
 ## Complexity variants
 
@@ -59,7 +93,9 @@ status: "draft"
 
 Обов’язкові поля: `enabled`, `variant`, `level`, `parameters`.
 
-Допустимі `variant`: `area`, `geometry`, `shape_photometry`.
+Допустимі `variant`: `area`, `geom_basic`, `shape_photometry`.
+
+`variant` має бути зареєстрований у `dp1.config.stage_variant_registry`.
 
 ## Timing / profiling
 
@@ -69,6 +105,8 @@ status: "draft"
 ## Must not do
 
 Змінювати raw data або визначати політику tracking у DP2.
+
+Формувати `MeasurementRecord` або DP1 -> DP2 payload.
 
 ## Constraints
 
@@ -94,5 +132,14 @@ Canonical-словник валідності об’єкта.
 ## Connections
 
 - feeds: dp1.stage.measurement
+- uses: dp1.domain.struct.candidate
+- uses: dp1.domain.struct.segment
+- produces: dp1.domain.struct.validated_object
 - uses: dp1.domain.processing
+- uses: dp1.domain.processing.frame
+- uses: dp1.domain.processing.tile_processing_frame
+- uses: dp1.domain.raw.frame_packet
+- uses: dp1.domain.raw.tile_raw_view
+- uses: dp1.domain.runtime.frame_context
+- uses: dp1.domain.runtime.tile_context
 - constrained_by: dp1.domain.conversion_rules

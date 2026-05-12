@@ -8,7 +8,7 @@ kind: stage-interface-card
 source_role: canonical
 source:
   file: "project-knowledge/02-dp1/canonical/stages/dp1.stage.radiometric_correction.md"
-  lines: "1-130"
+  lines: "1-170"
 status: "draft"
 ---
 
@@ -31,7 +31,15 @@ residual у processing domain.
 
 ## Inputs
 
-Домен обробки після підготовки.
+Semantic input належить до raw-like або processing representation після
+`prep`. Concrete carrier залежить від `prep.variant` і має бути явно
+задекларований route/config:
+
+| Route | Дозволений input carrier |
+|---|---|
+| `full_frame` | `FramePacket` або `ProcessingFrame` |
+| `roi` | ROI/view над `FramePacket` або `ProcessingFrame` |
+| `tiles` | `TileRawView` або `TileProcessingFrame` |
 
 ## Internal computation domain
 
@@ -40,8 +48,49 @@ residual у processing domain.
 
 ## Outputs
 
-Residual або скоригований домен обробки: `CV_32FC1` або явно задекларований
-`CV_8UC1`.
+Вихід завжди належить Processing domain. Concrete carrier залежить від route:
+
+| Route | Output carrier |
+|---|---|
+| `full_frame` | `ProcessingFrame` |
+| `roi` | `ProcessingFrame` або ROI-scoped processing representation, якщо це визначено stage spec |
+| `tiles` | `TileProcessingFrame` |
+
+Output має явно задавати:
+
+- `pixel_format` (`S16`, `S32`, `F32`, `U8` або `U16` відповідно до route);
+- `processing_domain` (`RadiometricResidual` або `RadiometricCorrected`);
+- `range_policy`;
+- `value_range`;
+- `coordinate_space`.
+
+## Domain bindings
+
+```yaml
+frame_level_binding:
+  allowed_input:
+    - "dp1.domain.raw.frame_packet"
+    - "dp1.domain.processing.frame"
+  runtime_context: "dp1.domain.runtime.frame_context"
+  allowed_output: "dp1.domain.processing.frame"
+  notes: "Формує corrected/residual processing representation; concrete carrier залежить від route."
+route_specific_carriers:
+  - route: "full_frame"
+    input_carrier: "FramePacket або ProcessingFrame"
+    output_carrier: "ProcessingFrame"
+  - route: "roi"
+    input_carrier: "ROI/view над FramePacket або ProcessingFrame"
+    output_carrier: "ProcessingFrame або ROI-scoped processing representation, якщо це визначено stage spec"
+  - route: "tiles"
+    input_carrier: "TileRawView або TileProcessingFrame"
+    runtime_context: "TileContext + FrameContext"
+    output_carrier: "TileProcessingFrame"
+```
+
+Вихід має бути explicit Processing-domain carrier з
+`processing_domain = RadiometricResidual` або `RadiometricCorrected`.
+Етап не має мутувати `FramePacket.image`, видавати candidates/masks/measurements
+або перетворювати internal background buffers на canonical output.
 
 ## Complexity variants
 
@@ -65,8 +114,10 @@ Residual або скоригований домен обробки: `CV_32FC1` �
 
 Обов’язкові поля: `enabled`, `variant`, `level`, `parameters`.
 
-Допустимі `variant`: `mean_subtraction`, `gaussian_subtraction`,
+Допустимі `variant`: `mean_subtraction`, `gaussian_subtraction`, `median`,
 `inverse_median`, `adaptive_background`, `band_pass`, `per_tile_background`.
+
+`variant` має бути зареєстрований у `dp1.config.stage_variant_registry`.
 
 ## Timing / profiling
 
@@ -92,7 +143,7 @@ residual, режими приведення виходу та вимоги ва�
 
 Критичні інваріанти:
 - background model і residual є різними сутностями;
-- етап працює у processing domain;
+- етап видає explicit Processing-domain carrier, а не мутує raw input;
 - фотометрично значущі операції не виконуються непомітно на `CV_8U`.
 
 ## Failure cases
@@ -110,6 +161,12 @@ residual, режими приведення виходу та вимоги ва�
 ## Connections
 
 - uses: dp1.domain.processing
+- uses: dp1.domain.raw.frame_packet
+- uses: dp1.domain.raw.tile_raw_view
+- uses: dp1.domain.processing.frame
+- uses: dp1.domain.processing.tile_processing_frame
+- uses: dp1.domain.runtime.frame_context
+- uses: dp1.domain.runtime.tile_context
 - constrained_by: dp1.domain.conversion_rules
 - specified_by: dp1.stage_spec.radiometric_correction.inverse_median
-- feeds: dp1.stage.enhancement_denoising
+- feeds: dp1.stage.enhancement

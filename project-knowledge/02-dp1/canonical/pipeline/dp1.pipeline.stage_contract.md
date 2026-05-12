@@ -65,6 +65,13 @@ process(input, context, config) -> output
 }
 ```
 
+`variant` має бути зареєстрований у `dp1.config.stage_variant_registry`.
+`level` має бути рівнем складності з `dp1.config.complexity_levels`, а не
+назвою algorithm variant.
+
+Stage output має бути explicit domain structure. Stage не має записувати
+primary result тільки у `FrameContext`.
+
 ## Interpretation
 
 Це контракт інтерфейсу, а не повна специфікація етапу. Сам по собі він не є
@@ -78,6 +85,8 @@ process(input, context, config) -> output
 - Прихований стан етапу, не задекларований у картці.
 - Витрати часу етапу не враховані у кадровій часовій моделі.
 - Варіант алгоритму вибрано поза конфігурацією `C`.
+- Primary output stage записаний у `FrameContext` замість explicit output.
+- `variant` і `level` змішані в configuration або stage card.
 
 ## Typical misuse
 
@@ -89,10 +98,13 @@ process(input, context, config) -> output
 - Стандартні поля контексту.
 - Точна схема записів профілювання та аудиту перетворень.
 - Пороги валідації для кожного рівня складності.
+- Exact function signatures для full-frame, ROI і tile routes.
 
 ## Connections
 
 - used_by: dp1.stage.prep
 - used_by: dp1.stage.measurement
 - constrains: dp1.config.pipeline_configuration_c
+- constrained_by: dp1.config.stage_variant_registry
+- constrained_by: dp1.pipeline.stage_io_matrix
 - constrained_by: dp1.domain.conversion_rules

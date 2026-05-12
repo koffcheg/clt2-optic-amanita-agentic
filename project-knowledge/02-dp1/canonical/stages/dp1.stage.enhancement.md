@@ -1,14 +1,14 @@
 ---
-id: dp1.stage.enhancement_denoising
+id: dp1.stage.enhancement
 title:
-  uk: "Етап підсилення та приглушення шуму DP1"
-  en: "DP1 Enhancement and denoising stage"
+  uk: "Етап підсилення DP1"
+  en: "DP1 Enhancement stage"
 tags: [dp1, canonical, stage]
 kind: stage-interface-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/stages/dp1.stage.enhancement_denoising.md"
-  lines: "1-130"
+  file: "project-knowledge/02-dp1/canonical/stages/dp1.stage.enhancement.md"
+  lines: "1-128"
 status: "draft"
 ---
 
@@ -40,6 +40,31 @@ status: "draft"
 ## Outputs
 
 Підсилений домен обробки: `CV_32FC1` або явно задекларований `CV_8UC1`.
+
+## Domain bindings
+
+```yaml
+frame_level_binding:
+  allowed_input: "dp1.domain.processing.frame"
+  runtime_context: "dp1.domain.runtime.frame_context"
+  allowed_output: "dp1.domain.processing.frame"
+  notes: "Покращує processing representation."
+route_specific_carriers:
+  - route: "full_frame"
+    input_carrier: "ProcessingFrame"
+    output_carrier: "ProcessingFrame"
+  - route: "roi"
+    input_carrier: "ROI-scoped processing representation, якщо це визначено stage spec"
+    output_carrier: "ROI-scoped processing representation, якщо це визначено stage spec"
+  - route: "tiles"
+    input_carrier: "TileProcessingFrame"
+    runtime_context: "TileContext + FrameContext"
+    output_carrier: "TileProcessingFrame"
+```
+
+Етап працює з processing payload, а не напряму з raw frame. Він не має
+створювати `BinaryMask`, `Candidate`, `ValidatedObject` або
+`MeasurementRecord`; raw input може з'являтися тільки через explicit stage spec.
 
 ## Complexity variants
 
@@ -80,6 +105,7 @@ status: "draft"
 - не змішувати з matched filtering;
 - не створювати binary mask;
 - зберігати сигнал, потрібний для detector response і photometry.
+- `variant` має бути зареєстрований у `dp1.config.stage_variant_registry`.
 
 ## Failure cases
 
@@ -97,3 +123,7 @@ status: "draft"
 
 - feeds: dp1.stage.matched_filtering
 - uses: dp1.domain.processing
+- uses: dp1.domain.processing.frame
+- uses: dp1.domain.processing.tile_processing_frame
+- uses: dp1.domain.runtime.frame_context
+- uses: dp1.domain.runtime.tile_context

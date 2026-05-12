@@ -23,6 +23,9 @@ fixtures, mocks, snapshots або golden files без окремого пого�
 ## Assumptions
 
 - Валідація спирається на `dp1.stage_spec.radiometric_correction.inverse_median`.
+- Поведінка cyclic frame buffer перевіряється як частина поведінки
+  `inverse_median`, а не як окремий тест reusable component без додаткового
+  погодження.
 - Тести можуть бути створені тільки після явного approval відповідно до
   `project-knowledge/00-governance/TESTING_POLICY.md`.
 - До approval на тести допустимі тільки review by code reading, build або ручні
@@ -47,8 +50,6 @@ fixtures, mocks, snapshots або golden files без окремого пого�
 - точну відповідність формулі `Residual_t = I_t - Med_t`;
 - `RawSigned`;
 - `ClipToInputRange`;
-- `ShiftToPositive`;
-- `ScaleToInputRange`;
 - відсутність динамічних алокацій у `processFrame`, якщо це можна
   інструментувати;
 - стабільну роботу на довгій послідовності кадрів;
@@ -62,10 +63,12 @@ fixtures, mocks, snapshots або golden files без окремого пого�
 Вимоги до коректності:
 - побітова рівність `Med_t` з еталонною реалізацією;
 - точна відповідність residual формулі `I_t - Med_t`;
-- коректне обмеження значень при `ClipToInputRange`;
+- коректне обмеження значень при `ClipToInputRange`: `R < 0 -> 0`,
+  `0 <= R <= U -> R`, `R > U -> U`;
+- межі `ClipToInputRange` беруться з типу вихідного зображення, а не з
+  `min(R)` / `max(R)` по кадру;
 - `RawSigned` не втрачає від'ємні значення;
-- `ShiftToPositive` і `ScaleToInputRange` виконуються тільки як явні режими
-  приведення.
+- `ClipToInputRange` не виконує min-max normalization і не масштабує residual.
 
 ## Interpretation
 
@@ -85,8 +88,13 @@ fixtures, mocks, snapshots або golden files без окремого пого�
   медіанного фільтру.
 - Reference algorithm використовує centered або майбутні кадри.
 - Порівнюється clipped output замість internal `RawSigned` residual.
+- `ClipToInputRange` перевіряється як min-max normalization по кадру замість
+  saturating cast до діапазону типу.
 - Warm-up стан трактується як валідний residual.
 - `stride` помилково трактується як row stride або memory stride.
+- Фізичний порядок slots циклічного буфера помилково трактується як хронологічний
+  порядок у перевірках, хоча для `inverse_median` median має бути
+  order-insensitive.
 - Runtime allocation не перевіряється для hot path, хоча реалізація заявляє
   realtime behavior.
 
@@ -108,4 +116,5 @@ fixtures, mocks, snapshots або golden files без окремого пого�
 
 - validates: dp1.stage_spec.radiometric_correction.inverse_median
 - validates: dp1.stage.radiometric_correction
+- references: dp1.domain.runtime.cyclic_frame_buffer
 - constrained_by: project-knowledge/00-governance/TESTING_POLICY.md
