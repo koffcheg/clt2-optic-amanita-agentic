@@ -50,6 +50,16 @@ fixtures, mocks, snapshots або golden files без окремого пого�
 - точну відповідність формулі `Residual_t = I_t - Med_t`;
 - `RawSigned`;
 - `ClipToInputRange`;
+- reset стану історії при зміні geometry, pixel format, input bit depth, range
+  policy або binning route;
+- що residual geometry відповідає фактичній geometry канонічного input після
+  Stage 0 / input normalization;
+- що сховище історії не використовує IPC/shared-memory transport slots як
+  довгоживучу пам'ять МКМФ;
+- що кадри, відібрані у temporal window, копіюються в algorithm-owned
+  `CyclicFrameBuffer`;
+- що borrowed current-frame view не зберігається після завершення часу життя
+  input boundary;
 - відсутність динамічних алокацій у `processFrame`, якщо це можна
   інструментувати;
 - стабільну роботу на довгій послідовності кадрів;
@@ -69,6 +79,11 @@ fixtures, mocks, snapshots або golden files без окремого пого�
   `min(R)` / `max(R)` по кадру;
 - `RawSigned` не втрачає від'ємні значення;
 - `ClipToInputRange` не виконує min-max normalization і не масштабує residual.
+- після reset через зміну geometry, pixel format, input bit depth, range policy
+  або binning route, перший валідний residual знову з'являється тільки після
+  заповнення нового temporal window;
+- зміна `binning.owner` або `binning.factor` не може повторно використовувати
+  попередній стан історії;
 
 ## Interpretation
 
@@ -81,6 +96,8 @@ fixtures, mocks, snapshots або golden files без окремого пого�
 - `FixedK3` / `FixedK5`;
 - causal + hold-last-median;
 - signed residual як внутрішній pipeline output.
+- обмежену algorithm-owned history у `CyclicFrameBuffer`, відокремлену від
+  borrowed transport/current-frame views.
 
 ## Failure cases
 
@@ -97,6 +114,12 @@ fixtures, mocks, snapshots або golden files без окремого пого�
   order-insensitive.
 - Runtime allocation не перевіряється для hot path, хоча реалізація заявляє
   realtime behavior.
+- Тест або review дозволяє реалізації використовувати IPC/shared-memory slots як
+  temporal history МКМФ.
+- Стан історії не скидається після зміни geometry, pixel format, input bit
+  depth, range policy або binning route.
+- Residual geometry помилково порівнюється з source-frame geometry, коли Stage 0
+  вже змінив geometry через binning.
 
 ## Typical misuse
 
@@ -117,4 +140,5 @@ fixtures, mocks, snapshots або golden files без окремого пого�
 - validates: dp1.stage_spec.radiometric_correction.inverse_median
 - validates: dp1.stage.radiometric_correction
 - references: dp1.domain.runtime.cyclic_frame_buffer
+- references: dp1.domain.memory_ownership
 - constrained_by: project-knowledge/00-governance/TESTING_POLICY.md

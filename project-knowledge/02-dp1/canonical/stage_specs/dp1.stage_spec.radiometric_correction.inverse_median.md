@@ -49,14 +49,20 @@ Residual_t(x, y) = I_t(x, y) - Med_t(x, y)
 - Вхідні кадри надходять послідовно у потоковому режимі.
 - Вхідний формат - один канал, градації сірого.
 - Підтримувані типи пікселя: `uint8` або `uint16`.
+- МКМФ отримує фактичний канонічний input після Stage 0 / input normalization і
+  після маршруту, який сформував full-frame, ROI або tile-local carrier.
 - Якщо у вхідному потоці застосовується бінування, МКМФ отримує фактичний формат
-  кадру після бінування.
+  і geometry кадру після бінування.
+- Якщо бінування виконує DP1, МКМФ працює з binned frame, яким володіє DP1.
+- Якщо бінування виконує камера, МКМФ працює з camera-binned frame, який Stage 0
+  прийняв як канонічний input і описав через metadata.
 
 Вхідний домен:
 - `dp1.domain.processing`.
 
 Обмеження runtime-формату і типу входу:
 - фактичний кадр після підготовки або бінування;
+- фактична geometry після Stage 0;
 - один канал;
 - `uint8` або `uint16`.
 
@@ -165,6 +171,11 @@ tmp.convertTo(out, CV_16U);
 Явне володіння змінним станом:
 - стан циклічного буфера, `Med_t`, ознаки валідності residual і службових даних
   належить реалізації `inverse_median`.
+- Часова історія МКМФ є пам'яттю алгоритмічної історії. Вона задається
+  контрактом `CyclicFrameBuffer` і не є IPC/shared-memory transport slot.
+- Кадри, що потрапляють у медіанне вікно, копіюються у `CyclicFrameBuffer`.
+  Така копія є алгоритмічно необхідним сховищем історії і не порушує zero-copy
+  transport policy для поточного кадру.
 
 Усі буфери для циклічного вікна, медіанного кадру та службових даних мають бути
 виділені під час конструювання або `reset()`. Заборонено створювати нові масиви,
@@ -288,9 +299,25 @@ residual.
 - `capacity = 3` для `FixedK3`;
 - `capacity = 5` для `FixedK5`;
 - у буфер записуються тільки кадри, відібрані за правилом `t % stride == 0`;
+- у буфер записується фактичний frame carrier після Stage 0 і route-specific
+  підготовки, тобто binned frame, якщо бінування вже застосоване камерою або
+  DP1;
 - `filled_count == capacity` є умовою валідності першого `Med_t`;
 - physical slot order дозволено використовувати напряму, оскільки temporal
   median не залежить від хронологічного порядку кадрів у вікні.
+
+Політика reset / reallocation для історії:
+- зміна geometry фактичного канонічного input скидає `CyclicFrameBuffer`,
+  інвалідовує `Med_t` і residual та потребує reallocation або повторної
+  прив'язки slots до нового розміру;
+- зміна pixel format, OpenCV type, input bit depth або range policy, що впливає
+  на layout або інтерпретацію значень, скидає history state;
+- зміна `binning.factor`, `binning.owner` або переходу між no-binning,
+  DP1-binning і camera-binning скидає стан історії;
+- residual geometry завжди відповідає geometry фактичного канонічного input після
+  Stage 0, а не обов'язково geometry початкового sensor/source frame;
+- відновлення coordinates до source frame, якщо потрібне downstream, належить
+  coordinate/merge policy і не змінює geometry MKMF residual.
 
 Медіанний фільтр сам не розширює діапазон яскравості: значення медіани належить
 множині вхідних значень відповідного пікселя. Розширення діапазону виникає на
@@ -341,6 +368,11 @@ Residual у `RawSigned` є основним внутрішнім предста�
 - Неявна зміна `stride` без визначеної політики стану буфера.
 - Продовження використовувати медіанний стан, набраний за попереднім `stride`,
   після зміни `stride` під час виконання.
+- Продовження використовувати стан історії після зміни geometry, pixel format,
+  input bit depth, range policy або binning route.
+- Використання IPC/shared-memory slot як довгоживучого сховища історії МКМФ.
+- Зберігання borrowed transport view у `CyclicFrameBuffer` замість копії
+  історії, якою володіє алгоритм.
 - Вибір між `FixedK3` і `FixedK5` всередині попіксельного циклу.
 - Втрата від'ємних значень residual через clipping у внутрішньому конвеєрі.
 
@@ -385,6 +417,11 @@ Residual у `RawSigned` є основним внутрішнім предста�
 - `Med_t` у форматі фактичного вхідного кадру;
 - residual `uint8 -> int16`;
 - residual `uint16 -> int32`;
+- reset історії при зміні geometry, pixel format, input bit depth, range policy
+  або binning route;
+- відокремлення borrowed current-frame view від сховища історії, яким володіє
+  алгоритм;
+- residual geometry відповідає фактичній geometry після Stage 0;
 - точну відповідність формулі `Residual_t = I_t - Med_t`;
 - `RawSigned`;
 - `ClipToInputRange`;
@@ -423,8 +460,11 @@ Residual у `RawSigned` є основним внутрішнім предста�
   `../../../05-validation/cards/validation.dp1.radiometric_correction.inverse_median.md`.
 - Runtime-структура:
   `../data_domains/structures/runtime/dp1.domain.runtime.cyclic_frame_buffer.md`.
+- Політика пам'яті:
+  `../data_domains/dp1.domain.memory_ownership.md`.
 - специфікує: `dp1.stage.radiometric_correction`.
 - варіант: `inverse_median`.
 - обмежено: `dp1.config.pipeline_configuration_c`.
 - використовує: `dp1.domain.runtime.cyclic_frame_buffer`.
+- обмежено: `dp1.domain.memory_ownership`.
 - валідовано через: `validation.dp1.radiometric_correction.inverse_median`.
