@@ -37,3 +37,4 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0015` - testing knowledge taxonomy and validation workflow restructuring - completed
 - `AMNT-0016` - canonical DP1 data-domain package for stage code generation - completed
 - `AMNT-0017` - align MKMF knowledge with Stage 0 and transport memory - completed
+- `AMNT-0018` - local canonicalization of inverse_median filter API - completed
