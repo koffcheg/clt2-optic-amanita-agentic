@@ -1,10 +1,12 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <string>
-#include <vector>
 
 #include <opencv2/core.hpp>
+
+#include "dp1v2/runtime/cyclic_frame_buffer.hpp"
 
 namespace dp1v2 {
 
@@ -16,8 +18,6 @@ enum class InverseMedianMode {
 enum class InverseMedianOutputMode {
     RawSigned,
     ClipToInputRange,
-    ShiftToPositive,
-    ScaleToInputRange,
 };
 
 enum class InverseMedianStatus {
@@ -26,12 +26,61 @@ enum class InverseMedianStatus {
     Valid,
 };
 
+enum class InverseMedianBinningOwner {
+    None,
+    Camera,
+    Dp1,
+};
+
+enum class InverseMedianPixelFormat {
+    Unknown,
+    U8,
+    U16,
+    S16,
+    S32,
+};
+
+enum class InverseMedianProcessingDomain {
+    Unknown,
+    RadiometricResidual,
+};
+
+enum class InverseMedianRangePolicy {
+    Unknown,
+    SignedResidual,
+    ClippedToInputRange,
+};
+
 struct InverseMedianConfig {
     bool enabled = true;
     InverseMedianMode mode = InverseMedianMode::FixedK3;
     int stride = 1;
     bool output_median_frame = false;
     InverseMedianOutputMode output_dynamic_range_mode = InverseMedianOutputMode::RawSigned;
+};
+
+struct InverseMedianInputRoute {
+    cv::Size frame_size;
+    int input_depth = -1;
+    int bit_depth = 0;
+    int range_min = 0;
+    int range_max = 0;
+    int binning_factor = 1;
+    InverseMedianBinningOwner binning_owner = InverseMedianBinningOwner::None;
+};
+
+struct InverseMedianFrameView {
+    const cv::Mat* image = nullptr;
+    InverseMedianPixelFormat pixel_format = InverseMedianPixelFormat::Unknown;
+    InverseMedianProcessingDomain processing_domain = InverseMedianProcessingDomain::Unknown;
+    InverseMedianRangePolicy range_policy = InverseMedianRangePolicy::Unknown;
+};
+
+struct InverseMedianTiming {
+    std::chrono::nanoseconds median_update{0};
+    std::chrono::nanoseconds residual{0};
+    std::chrono::nanoseconds conversion{0};
+    std::chrono::nanoseconds total{0};
 };
 
 struct InverseMedianResult {
@@ -43,6 +92,10 @@ struct InverseMedianResult {
     const cv::Mat* residual = nullptr;
     const cv::Mat* converted_residual = nullptr;
     const cv::Mat* median_frame = nullptr;
+    InverseMedianFrameView residual_view;
+    InverseMedianFrameView converted_residual_view;
+    InverseMedianFrameView median_frame_view;
+    InverseMedianTiming timing;
 };
 
 // Stateful temporal inverse median filter for single-channel CV_8U or CV_16U frames.
@@ -67,6 +120,9 @@ public:
     const InverseMedianConfig& config() const noexcept;
 
     void reset(const cv::Size& frame_size, int input_depth);
+    void reset(const InverseMedianInputRoute& route);
+    bool requiresReset(const InverseMedianInputRoute& route) const noexcept;
+    void resetIfRouteChanged(const InverseMedianInputRoute& route);
     void updateStride(int stride);
     void clear() noexcept;
 
@@ -77,8 +133,9 @@ private:
 
     static int windowSize(InverseMedianMode mode);
     static int residualDepthForInput(int input_depth);
+    static InverseMedianInputRoute makeDefaultRoute(const cv::Size& frame_size, int input_depth);
 
-    void validateResetArgs(const cv::Size& frame_size, int input_depth) const;
+    void validateResetArgs(const InverseMedianInputRoute& route) const;
     void validateInputFrame(const cv::Mat& input_frame) const;
 
     void resetStreamingState() noexcept;
@@ -106,13 +163,8 @@ private:
     template <typename OutputPixel>
     void clipResidualToInputRange();
 
-    template <typename OutputPixel>
-    void shiftResidualToPositive();
-
-    template <typename OutputPixel>
-    void scaleResidualToInputRange();
-
     InverseMedianConfig config_;
+    InverseMedianInputRoute input_route_;
     cv::Size frame_size_;
     int input_depth_ = -1;
     int input_type_ = -1;
@@ -120,13 +172,11 @@ private:
     int residual_type_ = -1;
     int window_size_ = 0;
     MedianFrameUpdater median_frame_updater_ = nullptr;
-    int next_slot_ = 0;
-    int selected_count_ = 0;
     std::uint64_t frame_index_ = 0;
     bool initialized_ = false;
     bool has_median_ = false;
 
-    std::vector<cv::Mat> frame_ring_;
+    CyclicFrameBuffer frame_buffer_;
     cv::Mat median_frame_;
     cv::Mat residual_;
     cv::Mat converted_residual_;

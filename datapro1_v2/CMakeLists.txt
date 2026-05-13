@@ -19,6 +19,7 @@ target_sources(
         src/result/result_sink.cpp
         src/runtime/runtime.cpp
         src/runtime/pipeline.cpp
+        src/runtime/cyclic_frame_buffer.cpp
         src/source/source.cpp
         src/source/uri_file_source.cpp
         src/source/ipc_frame_source.cpp

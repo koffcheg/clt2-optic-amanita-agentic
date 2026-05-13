@@ -1,10 +1,10 @@
 #include "dp1v2/stages/inverse_median.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <limits>
 #include <stdexcept>
 #include <type_traits>
-#include <utility>
 
 namespace dp1v2 {
 namespace {
@@ -51,23 +51,6 @@ OutputPixel clampToOutputRange(std::int64_t value)
     return static_cast<OutputPixel>(std::clamp(value, min_value, max_value));
 }
 
-template <typename ResidualPixel>
-std::pair<ResidualPixel, ResidualPixel> findResidualRange(const cv::Mat& residual)
-{
-    ResidualPixel min_value = std::numeric_limits<ResidualPixel>::max();
-    ResidualPixel max_value = std::numeric_limits<ResidualPixel>::lowest();
-
-    for (int y = 0; y < residual.rows; ++y) {
-        const ResidualPixel* row = residual.ptr<ResidualPixel>(y);
-        for (int x = 0; x < residual.cols; ++x) {
-            min_value = std::min(min_value, row[x]);
-            max_value = std::max(max_value, row[x]);
-        }
-    }
-
-    return {min_value, max_value};
-}
-
 int outputTypeForInputDepth(int input_depth)
 {
     if (input_depth == CV_8U) {
@@ -77,6 +60,74 @@ int outputTypeForInputDepth(int input_depth)
         return CV_16UC1;
     }
     throw std::invalid_argument("inverse_median supports only CV_8U and CV_16U input depth");
+}
+
+InverseMedianPixelFormat inputPixelFormatForDepth(int input_depth)
+{
+    if (input_depth == CV_8U) {
+        return InverseMedianPixelFormat::U8;
+    }
+    if (input_depth == CV_16U) {
+        return InverseMedianPixelFormat::U16;
+    }
+    return InverseMedianPixelFormat::Unknown;
+}
+
+const char* inputPixelFormatNameForDepth(int input_depth)
+{
+    if (input_depth == CV_8U) {
+        return "U8";
+    }
+    if (input_depth == CV_16U) {
+        return "U16";
+    }
+    return "Unknown";
+}
+
+InverseMedianPixelFormat residualPixelFormatForDepth(int input_depth)
+{
+    if (input_depth == CV_8U) {
+        return InverseMedianPixelFormat::S16;
+    }
+    if (input_depth == CV_16U) {
+        return InverseMedianPixelFormat::S32;
+    }
+    return InverseMedianPixelFormat::Unknown;
+}
+
+bool routesEqual(const InverseMedianInputRoute& lhs, const InverseMedianInputRoute& rhs) noexcept
+{
+    return lhs.frame_size == rhs.frame_size && lhs.input_depth == rhs.input_depth && lhs.bit_depth == rhs.bit_depth &&
+           lhs.range_min == rhs.range_min && lhs.range_max == rhs.range_max &&
+           lhs.binning_factor == rhs.binning_factor && lhs.binning_owner == rhs.binning_owner;
+}
+
+CyclicFrameBufferMetadata makeHistoryBufferMetadata(const InverseMedianInputRoute& route, int frame_type)
+{
+    CyclicFrameBufferMetadata metadata{};
+    metadata.frame_size = route.frame_size;
+    metadata.frame_type = frame_type;
+    metadata.input_bit_depth = route.bit_depth;
+    metadata.range_min = static_cast<double>(route.range_min);
+    metadata.range_max = static_cast<double>(route.range_max);
+    metadata.pixel_format = inputPixelFormatNameForDepth(route.input_depth);
+    metadata.range_policy = "RawSensorRange";
+    return metadata;
+}
+
+void clearResultViews(InverseMedianResult& result) noexcept
+{
+    result.residual = nullptr;
+    result.converted_residual = nullptr;
+    result.median_frame = nullptr;
+    result.residual_view = {};
+    result.converted_residual_view = {};
+    result.median_frame_view = {};
+}
+
+void clearResultTiming(InverseMedianResult& result) noexcept
+{
+    result.timing = {};
 }
 
 }  // namespace
@@ -102,28 +153,31 @@ const InverseMedianConfig& InverseMedianFilter::config() const noexcept
 
 void InverseMedianFilter::reset(const cv::Size& frame_size, int input_depth)
 {
+    reset(makeDefaultRoute(frame_size, input_depth));
+}
+
+void InverseMedianFilter::reset(const InverseMedianInputRoute& route)
+{
     clear();
     if (!config_.enabled) {
-        frame_size_ = frame_size;
-        input_depth_ = input_depth;
+        input_route_ = route;
+        frame_size_ = route.frame_size;
+        input_depth_ = route.input_depth;
         result_.status = InverseMedianStatus::Disabled;
         return;
     }
 
-    validateResetArgs(frame_size, input_depth);
+    validateResetArgs(route);
 
-    frame_size_ = frame_size;
-    input_depth_ = input_depth;
+    input_route_ = route;
+    frame_size_ = route.frame_size;
+    input_depth_ = route.input_depth;
     input_type_ = CV_MAKETYPE(input_depth_, kSingleChannel);
     residual_depth_ = residualDepthForInput(input_depth_);
     residual_type_ = CV_MAKETYPE(residual_depth_, kSingleChannel);
     median_frame_updater_ = selectMedianFrameUpdater();
 
-    frame_ring_.resize(static_cast<std::size_t>(window_size_));
-    for (cv::Mat& frame : frame_ring_) {
-        frame.create(frame_size_, input_type_);
-    }
-
+    frame_buffer_.resetStorage(window_size_, makeHistoryBufferMetadata(input_route_, input_type_));
     median_frame_.create(frame_size_, input_type_);
     residual_.create(frame_size_, residual_type_);
 
@@ -133,6 +187,18 @@ void InverseMedianFilter::reset(const cv::Size& frame_size, int input_depth)
 
     initialized_ = true;
     result_.status = InverseMedianStatus::WarmingUp;
+}
+
+bool InverseMedianFilter::requiresReset(const InverseMedianInputRoute& route) const noexcept
+{
+    return !initialized_ || !routesEqual(input_route_, route);
+}
+
+void InverseMedianFilter::resetIfRouteChanged(const InverseMedianInputRoute& route)
+{
+    if (requiresReset(route)) {
+        reset(route);
+    }
 }
 
 void InverseMedianFilter::updateStride(int stride)
@@ -158,13 +224,12 @@ void InverseMedianFilter::clear() noexcept
     residual_depth_ = -1;
     residual_type_ = -1;
     median_frame_updater_ = nullptr;
-    next_slot_ = 0;
-    selected_count_ = 0;
     frame_index_ = 0;
     initialized_ = false;
     has_median_ = false;
 
-    frame_ring_.clear();
+    input_route_ = {};
+    frame_buffer_.clear();
     median_frame_.release();
     residual_.release();
     converted_residual_.release();
@@ -173,13 +238,16 @@ void InverseMedianFilter::clear() noexcept
 
 const InverseMedianResult& InverseMedianFilter::processFrame(const cv::Mat& input_frame)
 {
+    using Clock = std::chrono::steady_clock;
+    const auto total_start = Clock::now();
+    clearResultTiming(result_);
+
     if (!config_.enabled) {
         result_.status = InverseMedianStatus::Disabled;
         result_.frame_index = frame_index_++;
         result_.median_updated = false;
-        result_.residual = nullptr;
-        result_.converted_residual = nullptr;
-        result_.median_frame = nullptr;
+        clearResultViews(result_);
+        result_.timing.total = Clock::now() - total_start;
         return result_;
     }
 
@@ -187,39 +255,63 @@ const InverseMedianResult& InverseMedianFilter::processFrame(const cv::Mat& inpu
 
     const bool update_median = shouldUpdateMedian();
     if (update_median) {
+        const auto median_start = Clock::now();
         storeSelectedFrame(input_frame);
-        if (selected_count_ >= window_size_) {
+        if (frame_buffer_.full()) {
             recomputeMedianFrame();
             has_median_ = true;
         }
+        result_.timing.median_update = Clock::now() - median_start;
     }
 
     result_.frame_index = frame_index_;
     result_.median_updated = update_median && has_median_;
-    result_.median_frame = nullptr;
-    result_.converted_residual = nullptr;
+    clearResultViews(result_);
 
     if (!has_median_) {
         result_.status = InverseMedianStatus::WarmingUp;
-        result_.residual = nullptr;
         ++frame_index_;
+        result_.timing.total = Clock::now() - total_start;
         return result_;
     }
 
+    const auto residual_start = Clock::now();
     computeResidual(input_frame);
+    result_.timing.residual = Clock::now() - residual_start;
     result_.status = InverseMedianStatus::Valid;
     result_.residual = &residual_;
+    result_.residual_view = InverseMedianFrameView{
+        .image = &residual_,
+        .pixel_format = residualPixelFormatForDepth(input_depth_),
+        .processing_domain = InverseMedianProcessingDomain::RadiometricResidual,
+        .range_policy = InverseMedianRangePolicy::SignedResidual,
+    };
 
     if (config_.output_dynamic_range_mode != InverseMedianOutputMode::RawSigned) {
+        const auto conversion_start = Clock::now();
         convertResidual();
+        result_.timing.conversion = Clock::now() - conversion_start;
         result_.converted_residual = &converted_residual_;
+        result_.converted_residual_view = InverseMedianFrameView{
+            .image = &converted_residual_,
+            .pixel_format = inputPixelFormatForDepth(input_depth_),
+            .processing_domain = InverseMedianProcessingDomain::RadiometricResidual,
+            .range_policy = InverseMedianRangePolicy::ClippedToInputRange,
+        };
     }
 
     if (config_.output_median_frame) {
         result_.median_frame = &median_frame_;
+        result_.median_frame_view = InverseMedianFrameView{
+            .image = &median_frame_,
+            .pixel_format = inputPixelFormatForDepth(input_depth_),
+            .processing_domain = InverseMedianProcessingDomain::Unknown,
+            .range_policy = InverseMedianRangePolicy::Unknown,
+        };
     }
 
     ++frame_index_;
+    result_.timing.total = Clock::now() - total_start;
     return result_;
 }
 
@@ -245,13 +337,46 @@ int InverseMedianFilter::residualDepthForInput(int input_depth)
     throw std::invalid_argument("inverse_median supports only CV_8U and CV_16U input depth");
 }
 
-void InverseMedianFilter::validateResetArgs(const cv::Size& frame_size, int input_depth) const
+InverseMedianInputRoute InverseMedianFilter::makeDefaultRoute(const cv::Size& frame_size, int input_depth)
 {
-    if (frame_size.width <= 0 || frame_size.height <= 0) {
+    InverseMedianInputRoute route{};
+    route.frame_size = frame_size;
+    route.input_depth = input_depth;
+    route.binning_factor = 1;
+
+    if (input_depth == CV_8U) {
+        route.bit_depth = 8;
+        route.range_min = 0;
+        route.range_max = 255;
+    } else if (input_depth == CV_16U) {
+        route.bit_depth = 16;
+        route.range_min = 0;
+        route.range_max = 65535;
+    }
+
+    return route;
+}
+
+void InverseMedianFilter::validateResetArgs(const InverseMedianInputRoute& route) const
+{
+    if (route.frame_size.width <= 0 || route.frame_size.height <= 0) {
         throw std::invalid_argument("inverse_median frame size must be positive");
     }
-    if (input_depth != CV_8U && input_depth != CV_16U) {
+    if (route.input_depth != CV_8U && route.input_depth != CV_16U) {
         throw std::invalid_argument("inverse_median supports only CV_8U and CV_16U input depth");
+    }
+    if (route.input_depth == CV_8U && route.bit_depth != 8) {
+        throw std::invalid_argument("inverse_median CV_8U route requires bit_depth == 8");
+    }
+    if (route.input_depth == CV_16U &&
+        route.bit_depth != 10 && route.bit_depth != 12 && route.bit_depth != 14 && route.bit_depth != 16) {
+        throw std::invalid_argument("inverse_median CV_16U route requires bit_depth 10, 12, 14, or 16");
+    }
+    if (route.range_min < 0 || route.range_max <= route.range_min) {
+        throw std::invalid_argument("inverse_median input route range must be positive and ordered");
+    }
+    if (route.binning_factor < 1) {
+        throw std::invalid_argument("inverse_median input route binning_factor must be >= 1");
     }
 }
 
@@ -273,15 +398,13 @@ void InverseMedianFilter::validateInputFrame(const cv::Mat& input_frame) const
 
 void InverseMedianFilter::resetStreamingState() noexcept
 {
-    next_slot_ = 0;
-    selected_count_ = 0;
+    frame_buffer_.resetState();
     has_median_ = false;
     result_.status = InverseMedianStatus::WarmingUp;
     result_.frame_index = frame_index_;
     result_.median_updated = false;
-    result_.residual = nullptr;
-    result_.converted_residual = nullptr;
-    result_.median_frame = nullptr;
+    clearResultViews(result_);
+    clearResultTiming(result_);
 }
 
 InverseMedianFilter::MedianFrameUpdater InverseMedianFilter::selectMedianFrameUpdater() const
@@ -314,9 +437,7 @@ bool InverseMedianFilter::shouldUpdateMedian() const noexcept
 
 void InverseMedianFilter::storeSelectedFrame(const cv::Mat& input_frame)
 {
-    input_frame.copyTo(frame_ring_[static_cast<std::size_t>(next_slot_)]);
-    next_slot_ = (next_slot_ + 1) % window_size_;
-    selected_count_ = std::min(selected_count_ + 1, window_size_);
+    frame_buffer_.store(input_frame);
 }
 
 void InverseMedianFilter::recomputeMedianFrame()
@@ -345,10 +466,8 @@ void InverseMedianFilter::convertResidual()
     if (input_depth_ == CV_8U) {
         if (config_.output_dynamic_range_mode == InverseMedianOutputMode::ClipToInputRange) {
             clipResidualToInputRange<std::uint8_t>();
-        } else if (config_.output_dynamic_range_mode == InverseMedianOutputMode::ShiftToPositive) {
-            shiftResidualToPositive<std::uint8_t>();
-        } else if (config_.output_dynamic_range_mode == InverseMedianOutputMode::ScaleToInputRange) {
-            scaleResidualToInputRange<std::uint8_t>();
+        } else {
+            throw std::logic_error("unsupported inverse_median output mode during residual conversion");
         }
         return;
     }
@@ -356,10 +475,8 @@ void InverseMedianFilter::convertResidual()
     if (input_depth_ == CV_16U) {
         if (config_.output_dynamic_range_mode == InverseMedianOutputMode::ClipToInputRange) {
             clipResidualToInputRange<std::uint16_t>();
-        } else if (config_.output_dynamic_range_mode == InverseMedianOutputMode::ShiftToPositive) {
-            shiftResidualToPositive<std::uint16_t>();
-        } else if (config_.output_dynamic_range_mode == InverseMedianOutputMode::ScaleToInputRange) {
-            scaleResidualToInputRange<std::uint16_t>();
+        } else {
+            throw std::logic_error("unsupported inverse_median output mode during residual conversion");
         }
         return;
     }
@@ -391,9 +508,9 @@ template <typename Pixel>
 void InverseMedianFilter::recomputeMedianFrameK3Typed()
 {
     for (int y = 0; y < frame_size_.height; ++y) {
-        const Pixel* row0 = frame_ring_[0].ptr<Pixel>(y);
-        const Pixel* row1 = frame_ring_[1].ptr<Pixel>(y);
-        const Pixel* row2 = frame_ring_[2].ptr<Pixel>(y);
+        const Pixel* row0 = frame_buffer_.slots[0].ptr<Pixel>(y);
+        const Pixel* row1 = frame_buffer_.slots[1].ptr<Pixel>(y);
+        const Pixel* row2 = frame_buffer_.slots[2].ptr<Pixel>(y);
         Pixel* median_row = median_frame_.ptr<Pixel>(y);
 
         for (int x = 0; x < frame_size_.width; ++x) {
@@ -406,11 +523,11 @@ template <typename Pixel>
 void InverseMedianFilter::recomputeMedianFrameK5Typed()
 {
     for (int y = 0; y < frame_size_.height; ++y) {
-        const Pixel* row0 = frame_ring_[0].ptr<Pixel>(y);
-        const Pixel* row1 = frame_ring_[1].ptr<Pixel>(y);
-        const Pixel* row2 = frame_ring_[2].ptr<Pixel>(y);
-        const Pixel* row3 = frame_ring_[3].ptr<Pixel>(y);
-        const Pixel* row4 = frame_ring_[4].ptr<Pixel>(y);
+        const Pixel* row0 = frame_buffer_.slots[0].ptr<Pixel>(y);
+        const Pixel* row1 = frame_buffer_.slots[1].ptr<Pixel>(y);
+        const Pixel* row2 = frame_buffer_.slots[2].ptr<Pixel>(y);
+        const Pixel* row3 = frame_buffer_.slots[3].ptr<Pixel>(y);
+        const Pixel* row4 = frame_buffer_.slots[4].ptr<Pixel>(y);
         Pixel* median_row = median_frame_.ptr<Pixel>(y);
 
         for (int x = 0; x < frame_size_.width; ++x) {
@@ -448,52 +565,6 @@ void InverseMedianFilter::clipResidualToInputRange()
     }
 }
 
-template <typename OutputPixel>
-void InverseMedianFilter::shiftResidualToPositive()
-{
-    using ResidualPixel = std::conditional_t<std::is_same_v<OutputPixel, std::uint8_t>, std::int16_t, std::int32_t>;
-
-    const auto [min_value, max_value] = findResidualRange<ResidualPixel>(residual_);
-    (void)max_value;
-
-    for (int y = 0; y < frame_size_.height; ++y) {
-        const ResidualPixel* residual_row = residual_.ptr<ResidualPixel>(y);
-        OutputPixel* output_row = converted_residual_.ptr<OutputPixel>(y);
-
-        for (int x = 0; x < frame_size_.width; ++x) {
-            const std::int64_t shifted =
-                static_cast<std::int64_t>(residual_row[x]) - static_cast<std::int64_t>(min_value);
-            output_row[x] = clampToOutputRange<OutputPixel>(shifted);
-        }
-    }
-}
-
-template <typename OutputPixel>
-void InverseMedianFilter::scaleResidualToInputRange()
-{
-    using ResidualPixel = std::conditional_t<std::is_same_v<OutputPixel, std::uint8_t>, std::int16_t, std::int32_t>;
-
-    const auto [min_value, max_value] = findResidualRange<ResidualPixel>(residual_);
-    const std::int64_t residual_range = static_cast<std::int64_t>(max_value) - static_cast<std::int64_t>(min_value);
-    const double output_max = static_cast<double>(std::numeric_limits<OutputPixel>::max());
-
-    if (residual_range == 0) {
-        converted_residual_.setTo(cv::Scalar(0));
-        return;
-    }
-
-    const double alpha = output_max / static_cast<double>(residual_range);
-    for (int y = 0; y < frame_size_.height; ++y) {
-        const ResidualPixel* residual_row = residual_.ptr<ResidualPixel>(y);
-        OutputPixel* output_row = converted_residual_.ptr<OutputPixel>(y);
-
-        for (int x = 0; x < frame_size_.width; ++x) {
-            const double scaled = static_cast<double>(residual_row[x]) * alpha;
-            output_row[x] = static_cast<OutputPixel>(std::clamp(scaled, 0.0, output_max));
-        }
-    }
-}
-
 std::string toString(InverseMedianMode mode)
 {
     switch (mode) {
@@ -512,10 +583,6 @@ std::string toString(InverseMedianOutputMode mode)
             return "RawSigned";
         case InverseMedianOutputMode::ClipToInputRange:
             return "ClipToInputRange";
-        case InverseMedianOutputMode::ShiftToPositive:
-            return "ShiftToPositive";
-        case InverseMedianOutputMode::ScaleToInputRange:
-            return "ScaleToInputRange";
     }
     return "Unknown";
 }
