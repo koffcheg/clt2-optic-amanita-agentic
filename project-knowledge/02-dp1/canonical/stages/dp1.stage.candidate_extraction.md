@@ -97,6 +97,11 @@ downstream validation/classification.
 Профілювати час thresholding/background update, кількість кандидатів, витрати
 на перетворення response map у mask і вартість stateful-моделі.
 
+Profiling records мають використовувати
+`StageKey = "candidate_extraction"` і структури з `dp1.domain.profiling`.
+Candidate count, threshold mode, response-to-mask conversion, stateful update
+cost і copy/conversion metrics мають бути recorded або aggregated.
+
 ## State ownership
 
 MOG2/KNN або інші stateful background models мають мати явного власника стану,
@@ -144,5 +149,6 @@ MOG2/KNN або інші stateful background models мають мати явно
 - produces: dp1.domain.struct.candidate
 - uses: dp1.domain.runtime.frame_context
 - uses: dp1.domain.runtime.tile_context
+- uses: dp1.domain.profiling
 - feeds: dp1.stage.segmentation_refinement
 - constrained_by: dp1.domain.conversion_rules

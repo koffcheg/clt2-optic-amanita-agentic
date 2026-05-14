@@ -76,43 +76,25 @@ struct FrameGeometry {
 };
 ```
 
-Profiling і diagnostics vocabulary:
+Profiling vocabulary визначає окрема canonical-картка
+`dp1.domain.profiling`. `common_types` не має дублювати profiling DTO, бо
+profiling contract включає time semantics, bounded trace, aggregation,
+cardinality metrics, memory metrics і stage identity extension policy.
 
 ```cpp
-struct StageTiming {
-    std::string stage_name;
-    std::string variant;
-    std::string level;
-    double elapsed_ms = 0.0;
-};
-
-struct StageProfile {
-    std::string stage_name;
-    std::string variant;
-    std::string level;
-    std::size_t input_bytes = 0;
-    std::size_t output_bytes = 0;
-    std::size_t conversion_bytes = 0;
-};
-
-struct ProfileEvent {
-    StageTiming timing;
-    StageProfile profile;
-};
-
 struct DiagnosticMessage {
     StageStatus status = StageStatus::Ok;
     std::string stage_name;
     std::string message_code;
     std::string detail;
 };
-
-struct TileProfilingSummary {
-    int tile_id = -1;
-    std::vector<StageTiming> stage_timings;
-    std::size_t peak_tile_bytes = 0;
-};
 ```
+
+Структури profiling `StageKey`, `StageTiming`, `OperationTiming`,
+`ProfileEvent`, `ProfilingTrace`, `CardinalityMetrics`, `MemoryMetrics`,
+`FrameProfiling`, `TileProfiling`, `TileProfilingResult` і
+`StageProfileSummary` визначає
+`dp1.domain.profiling`.
 
 Configuration parameter vocabulary:
 
@@ -138,8 +120,8 @@ type_groups:
     types: ["FrameGeometry"]
     used_by: ["FramePacket", "ProcessingFrame", "BinaryMask", "MeasurementRecord"]
   - group: "Profiling"
-    types: ["StageTiming", "StageProfile", "ProfileEvent", "TileProfilingSummary"]
-    used_by: ["FrameContext", "TileContext", "TileResult"]
+    types: ["defined_by: dp1.domain.profiling"]
+    used_by: ["FrameContext", "TileContext", "TileResult", "stage contract checks"]
   - group: "Diagnostics"
     types: ["DiagnosticMessage"]
     used_by: ["FrameContext", "TileContext", "TileResult"]
@@ -167,13 +149,14 @@ Output:
 - `BorderPolicy` має бути explicit для tile/filter/morphology routes.
 - `CandidateStatus` не замінює `quality_flags`.
 - `DiagnosticMessage.detail` не має бути єдиним machine-readable source.
-- `StageTiming` і `StageProfile` мають розрізняти elapsed time і memory/conversion
-  accounting.
+- Profiling DTO мають братися з `dp1.domain.profiling`, а не локально
+  вигадуватися у runtime або stage cards.
 
 ## Failure cases
 
 - `BorderPolicy` використовується у `TileDesc`, але не має canonical values.
-- `ProfileEvent` існує як поле у `FrameContext`, але не має semantics.
+- Runtime card посилається на profiling structure, якої немає у
+  `dp1.domain.profiling`.
 - `ParameterMap` використовується для threshold без units.
 - AI-кодер створює різні enum values у різних modules.
 
@@ -187,8 +170,6 @@ Output:
 
 - Exact typed-value schema для `ParameterMap`.
 - Error taxonomy і message_code registry.
-- Чи потрібно винести profiling types в окрему `dp1.domain.profiling` card,
-  якщо обсяг profiling contract зросте.
 
 ## Connections
 
@@ -199,3 +180,4 @@ Output:
 - used_by: dp1.domain.runtime.tile_result
 - used_by: dp1.domain.struct.candidate
 - used_by: dp1.validation.stage_contract_checks
+- separates_profiling_to: dp1.domain.profiling

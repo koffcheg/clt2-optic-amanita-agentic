@@ -48,8 +48,22 @@ stage_contract_checks:
     source: "dp1.domain.runtime.frame_context"
   - check: "Visualization domain is not used as computation input"
     source: "dp1.domain.visualization"
-  - check: "StageTiming/ProfileEvent is recorded or explicitly skipped by policy"
-    source: "dp1.domain.common_types"
+  - check: "each executed stage contributes one StageTiming record"
+    source: "dp1.domain.profiling"
+  - check: "profiling StageKey matches stage registry for core DP1 stages"
+    source: "dp1.domain.profiling + dp1.config.stage_variant_registry"
+  - check: "variant and level are recorded separately in profiling records"
+    source: "dp1.domain.profiling"
+  - check: "duration units are explicit and use monotonic runtime source"
+    source: "dp1.domain.profiling + dp1.domain.time"
+  - check: "format conversions and large copies are timed or counted"
+    source: "dp1.domain.profiling + dp1.domain.conversion_rules"
+  - check: "cardinality metrics are updated where a stage creates counted entities"
+    source: "dp1.domain.profiling"
+  - check: "raw profiling trace and aggregation windows are bounded"
+    source: "dp1.domain.profiling + dp1.config.application.profiling"
+  - check: "runtime structures expose profiling through a field named profiling with scope-specific type"
+    source: "dp1.domain.profiling + dp1.domain.runtime"
 ```
 
 Tile-route checks:
@@ -64,6 +78,7 @@ tile_route_checks:
   - check: "Tile-local outputs are cropped by valid_area before acceptance"
   - check: "Tile-local coordinates are converted to FrameGlobal before final output"
   - check: "TileResult does not carry image buffers"
+  - check: "Tile profiling summary uses dp1.domain.profiling and does not carry raw image payload"
   - check: "Duplicate suppression policy is applied or marked blocking"
 ```
 
@@ -100,6 +115,8 @@ Input:
 - data-domain cards;
 - configuration cards;
 - pipeline Stage I/O Matrix.
+- `dp1.domain.profiling`;
+- `dp1.config.application.profiling`.
 
 Output:
 
@@ -119,6 +136,9 @@ Output:
 - Stage приймає `CV_8UC1` без розрізнення Raw U8 і MaskU8.
 - Tile-local measurement потрапляє у DP2 handoff без globalization.
 - Missing duplicate suppression policy приховується замість explicit blocker.
+- Profiling event записаний як log message instead of structured profiling data.
+- Stage implementation не створює `StageTiming` для executed stage.
+- Raw profiling trace не має configured bound.
 
 ## Typical misuse
 
@@ -139,6 +159,7 @@ Output:
 - uses: dp1.config.stage_variant_registry
 - uses: dp1.domain.opencv_invariants
 - uses: dp1.domain.common_types
+- uses: dp1.domain.profiling
 - uses: dp1.domain.conversion_rules
 - uses: dp1.domain.coordinates
 - uses: dp1.domain.measurement.record

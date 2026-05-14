@@ -105,6 +105,11 @@ debug-зображення, masks і temporary processing buffers не є DP1 ->
 Профілювати час обчислення координат, геометрії, фотометрії, кількість
 фінальних об’єктів і витрати на доступ до raw/processing references.
 
+Profiling records мають використовувати `StageKey = "measurement"` і структури
+з `dp1.domain.profiling`. Measurement count, photometry domain, geometry cost,
+raw/processing reference access cost і copy/conversion metrics мають бути
+visible без перенесення image payload у profiling records.
+
 ## Must not do
 
 Надсилати візуалізацію, debug-зображення, внутрішні маски або тимчасові буфери обробки як canonical payload DP2.
@@ -146,5 +151,6 @@ debug-зображення, masks і temporary processing buffers не є DP1 ->
 - uses: dp1.domain.runtime.frame_context
 - uses: dp1.domain.runtime.tile_context
 - uses: dp1.domain.runtime.tile_result
+- uses: dp1.domain.profiling
 - feeds: protocols.dp1_dp2.measurement_handoff
 - constrained_by: dp1.domain.conversion_rules

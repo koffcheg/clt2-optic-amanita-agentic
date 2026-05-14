@@ -77,6 +77,7 @@ define a multi-camera input container inside one DP1 instance.
 - `data_domains/dp1.domain.quality_flags.md` - compact quality/reject flag registry.
 - `data_domains/dp1.domain.coordinates.md` - tile-local/frame-global coordinate policy and merge boundary.
 - `data_domains/dp1.domain.opencv_invariants.md` - OpenCV `cv::Mat`, ROI, continuity, type, and rectangle invariants.
+- `data_domains/dp1.domain.profiling.md` - canonical profiling levels, stage/operation timing, cardinality, memory metrics, bounded traces, and summaries.
 
 ## Current domain structures
 
@@ -142,6 +143,9 @@ structure names such as `raw16` or `proc32`.
 ## Current configuration contracts
 
 - `configuration/dp1.config.pipeline_configuration_c.md` - canonical DP1 pipeline configuration `C`.
+- `configuration/dp1.config.application.md` - root canonical DP1 application-runtime configuration.
+- `configuration/dp1.config.application.logging.md` - canonical DP1 application logging configuration.
+- `configuration/dp1.config.application.profiling.md` - canonical DP1 application profiling configuration.
 - `configuration/dp1.config.stage_variant_registry.md` - registry of the eight fixed stages, allowed variants, and variant/level separation.
 - `configuration/dp1.config.complexity_levels.md` - canonical complexity-level vocabulary.
 

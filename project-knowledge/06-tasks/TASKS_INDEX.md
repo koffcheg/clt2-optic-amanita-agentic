@@ -38,3 +38,6 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0016` - canonical DP1 data-domain package for stage code generation - completed
 - `AMNT-0017` - align MKMF knowledge with Stage 0 and transport memory - completed
 - `AMNT-0018` - local canonicalization of inverse_median filter API - completed
+- `AMNT-0019` - unit and visual-unit tests for dp1v2 inverse_median and cyclic_frame_buffer - completed
+- `AMNT-0020` - canonical logging policy and DP1 application logging configuration - completed
+- `AMNT-0021` - canonical DP1 profiling policy and profiling knowledge cards - completed

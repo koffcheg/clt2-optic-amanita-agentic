@@ -33,7 +33,7 @@ status: "draft"
 - `segment_buffer` — tile-local segments.
 - `validated_object_buffer` — tile-local validated-object records.
 - `measurement_buffer` — tile-local measurements.
-- `profiling_trace` — tile-local timing/profile events.
+- `profiling` — bounded tile-local profiling data з `dp1.domain.profiling`.
 - `warnings` / `errors` — tile-local diagnostics.
 
 Buffers у `TileContext` не мають shared mutable access між workers, якщо implementation task явно не визначає synchronization.
@@ -51,7 +51,7 @@ struct TileContext {
     std::vector<ValidatedObject> validated_object_buffer;
     std::vector<MeasurementRecord> measurement_buffer;
     std::vector<DiagnosticMessage> diagnostics;
-    std::vector<ProfileEvent> profiling_trace;
+    TileProfiling profiling;
 };
 ```
 
@@ -104,11 +104,11 @@ fields:
     purpose: "Tile-local warnings/errors."
     used_for: "Debug without image payload."
     memory: "bounded"
-  - name: "`profiling_trace`"
-    type: "`std::vector<ProfileEvent>`"
-    purpose: "Tile-local timings."
-    used_for: "Performance analysis."
-    memory: "bounded"
+  - name: "`profiling`"
+    type: "`TileProfiling` із `dp1.domain.profiling`"
+    purpose: "Tile-local timings, operation events, cardinality і memory metrics."
+    used_for: "Performance analysis, tile summary aggregation."
+    memory: "bounded by `dp1.config.application.profiling`"
 ```
 
 ## Пам'ять
@@ -146,6 +146,10 @@ TileRawView
 Vectors у `TileContext` очищаються через `clear()`, але не `shrink_to_fit()` у
 hot path.
 
+`profiling` має бути tile-scoped або worker-scoped, bounded і mapped до
+parent `frame_id`, `tile_id` і `worker_id` під час агрегації. Він не має
+містити per-pixel або per-contour-point events.
+
 ## Interpretation
 
 `TileContext` є memory-local companion до `TileDesc`. Він дозволяє worker виконати один або кілька DP1 stages над tile без створення full-frame buffers для кожного проміжного представлення.
@@ -155,6 +159,8 @@ hot path.
 - Tile workers випадково використовують shared mutable buffers.
 - `TileContext` зберігає global frame outputs без merge semantics.
 - Tile-local coordinates не перетворюються перед фінальним merge.
+- Tile profiling trace пишеться кількома workers без explicit synchronization
+  або merge boundary.
 
 ## Typical misuse
 
@@ -165,7 +171,7 @@ hot path.
 
 - Exact buffer reuse policy.
 - Чи `TileContext` має бути per tile, per worker або pooled.
-- Required synchronization model для profiling і diagnostics.
+- Exact merge policy для tile-local profiling summaries.
 
 ## Connections
 
@@ -173,4 +179,6 @@ hot path.
 - parent_context: dp1.domain.runtime.frame_context
 - scoped_by: dp1.domain.runtime.tile_desc
 - constrained_by: dp1.domain.memory_ownership
+- uses: dp1.domain.profiling
+- configured_by: dp1.config.application.profiling
 - emits: dp1.domain.runtime.tile_result

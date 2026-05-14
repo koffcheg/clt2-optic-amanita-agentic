@@ -31,7 +31,7 @@ status: "draft"
   structures, якщо merge або diagnostics потребують object-level records.
 - `measurement_results` — tile-local або globalized `MeasurementRecord` structures.
 - `diagnostics` — bounded warnings/errors, згенеровані під час tile processing.
-- `profiling_summary` — timing/profile summary для tile.
+- `profiling` — timing/profile result для tile з `dp1.domain.profiling`.
 
 `TileResult` має явно визначати, чи coordinates є tile-local або frame-global до merge.
 
@@ -53,7 +53,7 @@ struct TileResult {
     std::vector<ValidatedObject> validated_object_results;
     std::vector<MeasurementRecord> measurement_results;
     std::vector<DiagnosticMessage> diagnostics;
-    TileProfilingSummary profiling_summary;
+    TileProfilingResult profiling;
 };
 ```
 
@@ -106,11 +106,11 @@ fields:
     purpose: "Tile warnings/errors."
     used_for: "Report/debug."
     memory: "bounded"
-  - name: "`profiling_summary`"
-    type: "`TileProfilingSummary`"
-    purpose: "Tile timing summary."
-    used_for: "Performance analysis."
-    memory: "implementation-specific"
+  - name: "`profiling`"
+    type: "`TileProfilingResult` із `dp1.domain.profiling`"
+    purpose: "Tile timing, cardinality and memory summary."
+    used_for: "Performance analysis, frame-level aggregation."
+    memory: "bounded summary; raw trace only when explicitly configured"
 ```
 
 ## Пам'ять
@@ -121,6 +121,10 @@ outputs. `candidate_results`, `segment_results` і `validated_object_results`
 `measurement_results`.
 Vectors мають передаватися move/transfer semantics у future implementation, а
 не копіюватися без потреби між `TileContext` і `TileResult`.
+
+`profiling` не має містити image buffers або raw stage outputs. Raw
+tile traces не мають копіюватися у `TileResult`, якщо це не ввімкнено через
+`dp1.config.application.profiling`.
 
 ## Interpretation
 
@@ -143,6 +147,7 @@ TileResult[] -> crop/filter by valid_area -> transform to global coordinates -> 
 - Tile worker пише напряму в global measurement output без `TileResult`/merge contract.
 - TileResult копіює всі intermediate vectors у production route без
   debug/merge потреби.
+- TileResult переносить unbounded raw profiling trace замість bounded summary.
 
 ## Typical misuse
 
@@ -167,4 +172,6 @@ TileResult[] -> crop/filter by valid_area -> transform to global coordinates -> 
 - may_contain: dp1.domain.measurement.record
 - constrained_by: dp1.domain.memory_ownership
 - constrained_by: dp1.domain.coordinates
+- uses: dp1.domain.profiling
+- configured_by: dp1.config.application.profiling
 - merged_into: dp1.domain.measurement

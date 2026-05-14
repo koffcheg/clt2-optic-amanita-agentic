@@ -125,6 +125,12 @@ stages. У tile route етапи `radiometric_correction` ... `measurement`
 виконуються для tile-local carriers, а frame-level output формується через
 `TileResult[]` і merge.
 
+Profiling `StageKey` для core DP1 stages має використовувати stage names із
+цього registry. `StageKey` навмисно не є closed permanent enum: future stages
+або infrastructure scopes можуть бути додані окремими approved Project
+Knowledge changes. Implementation може intern/cache stage ids для hot path, але
+canonical profiling records мають залишатися mappable до stable stage key.
+
 AI-кодер не має:
 
 - створювати новий `variant`, якщо його немає у registry;
@@ -132,6 +138,7 @@ AI-кодер не має:
 - підміняти `variant` рівнем складності;
 - використовувати OpenCV primitive як назву canonical stage;
 - hard-code algorithm choice у stage implementation без `C`.
+- створювати profiling stage key для core stage, який не збігається з registry.
 
 ## Fields / Interface
 
@@ -186,6 +193,8 @@ Output:
 - `L1` трактується як `variant`.
 - `candidate_extraction` напряму видає `MeasurementRecord`.
 - `measurement` читає visualization/debug image як photometry source.
+- Profiling code створює closed permanent `StageId`, який не допускає future
+  stage extension.
 
 ## Typical misuse
 
@@ -216,3 +225,4 @@ Output:
 - links: dp1.stage.segmentation_refinement
 - links: dp1.stage.object_filtering
 - links: dp1.stage.measurement
+- constrains: dp1.domain.profiling

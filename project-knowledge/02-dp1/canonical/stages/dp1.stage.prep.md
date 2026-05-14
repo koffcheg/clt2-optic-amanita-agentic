@@ -103,6 +103,11 @@ route_specific_carriers:
 Профілювати час підготовки, кількість tiles, витрати на копіювання, витрати на
 border/overlap і перетворення форматів.
 
+Profiling records мають використовувати `StageKey = "prep"` і структури з
+`dp1.domain.profiling`: `StageTiming`, `OperationTiming`, `CardinalityMetrics`
+і `MemoryMetrics`. Tile/ROI metrics мають бути frame-scoped або явно
+tile-scoped.
+
 ## Must not do
 
 Виявлення, вимірювання або обчислення на основі візуалізації.
@@ -135,6 +140,7 @@ border/overlap і перетворення форматів.
 - uses: dp1.domain.raw
 - uses: dp1.domain.raw.frame_packet
 - uses: dp1.domain.runtime.frame_context
+- uses: dp1.domain.profiling
 - may_produce: dp1.domain.processing.frame
 - may_produce: dp1.domain.runtime.tile_desc
 - uses: dp1.domain.conversion_rules
