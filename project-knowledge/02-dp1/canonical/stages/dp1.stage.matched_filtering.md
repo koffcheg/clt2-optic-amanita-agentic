@@ -96,6 +96,10 @@ route_specific_carriers:
 Профілювати час побудови response map, розмір ядра/шаблону, кількість проходів
 і витрати на перетворення форматів.
 
+Profiling records мають використовувати `StageKey = "matched_filtering"` і
+структури з `dp1.domain.profiling`. Kernel/template size, response-map
+dimensions, pass count, conversions і copies мають бути explicit metrics.
+
 ## Must not do
 
 Цей етап не можна трактувати як загальний фільтр зображення. Це етап детектора, а не просто фільтр.
@@ -129,3 +133,4 @@ Canonical-модель параметрів PSF/template.
 - uses: dp1.domain.processing.tile_processing_frame
 - uses: dp1.domain.runtime.frame_context
 - uses: dp1.domain.runtime.tile_context
+- uses: dp1.domain.profiling

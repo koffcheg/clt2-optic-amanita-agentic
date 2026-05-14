@@ -72,6 +72,11 @@ process(input, context, config) -> output
 Stage output має бути explicit domain structure. Stage не має записувати
 primary result тільки у `FrameContext`.
 
+Кожен executed canonical stage має створювати або оновлювати один
+`StageTiming` record згідно з `dp1.domain.profiling`. Disabled stage не має
+отримувати fake duration; disabled/skipped state може бути записаний окремо як
+status або diagnostic.
+
 ## Interpretation
 
 Це контракт інтерфейсу, а не повна специфікація етапу. Сам по собі він не є
@@ -84,6 +89,7 @@ primary result тільки у `FrameContext`.
 - Прихована залежність від legacy-буферів.
 - Прихований стан етапу, не задекларований у картці.
 - Витрати часу етапу не враховані у кадровій часовій моделі.
+- Stage не створює `StageTiming` record згідно з `dp1.domain.profiling`.
 - Варіант алгоритму вибрано поза конфігурацією `C`.
 - Primary output stage записаний у `FrameContext` замість explicit output.
 - `variant` і `level` змішані в configuration або stage card.
@@ -96,7 +102,6 @@ primary result тільки у `FrameContext`.
 ## Open questions
 
 - Стандартні поля контексту.
-- Точна схема записів профілювання та аудиту перетворень.
 - Пороги валідації для кожного рівня складності.
 - Exact function signatures для full-frame, ROI і tile routes.
 
@@ -108,3 +113,4 @@ primary result тільки у `FrameContext`.
 - constrained_by: dp1.config.stage_variant_registry
 - constrained_by: dp1.pipeline.stage_io_matrix
 - constrained_by: dp1.domain.conversion_rules
+- constrained_by: dp1.domain.profiling

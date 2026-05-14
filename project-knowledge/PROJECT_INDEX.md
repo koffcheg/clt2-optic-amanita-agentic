@@ -48,6 +48,8 @@ project-knowledge/
     KNOWLEDGE_BASE_ROADMAP.md
     CODE_STYLE.md
     TESTING_POLICY.md
+    LOGGING_POLICY.md
+    PROFILING_POLICY.md
     TASK_CARD_TEMPLATE.md
   01-project/
     PROJECT_ECOSYSTEM.md
@@ -75,7 +77,8 @@ project-knowledge/
 ```
 
 Section roles:
-- `00-governance/` - templates, rules, roadmap, and agent-facing policy.
+- `00-governance/` - templates, rules, roadmap, and agent-facing policy,
+  including code style, testing, logging, and profiling policies.
 - `01-project/` - project ecosystem and environment knowledge.
 - `02-dp1/` - DP1 knowledge split into canonical and legacy.
 - `03-dp2/` - DP2 knowledge split into canonical and legacy.

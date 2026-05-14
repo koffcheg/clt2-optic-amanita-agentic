@@ -124,6 +124,12 @@ route_specific_carriers:
 Профілювати час оцінки background, час формування residual, витрати на
 перетворення форматів і вартість per-tile/stateful моделей.
 
+Profiling records мають використовувати
+`StageKey = "radiometric_correction"` і структури з `dp1.domain.profiling`.
+Format conversion, full-frame/tile pass count, copy count і stateful history
+size мають бути visible через `OperationTiming`, `CardinalityMetrics` або
+`MemoryMetrics`.
+
 ## State ownership
 
 Якщо використовується adaptive або stateful background, власник стану має бути
@@ -167,6 +173,7 @@ residual, режими приведення виходу та вимоги ва�
 - uses: dp1.domain.processing.tile_processing_frame
 - uses: dp1.domain.runtime.frame_context
 - uses: dp1.domain.runtime.tile_context
+- uses: dp1.domain.profiling
 - constrained_by: dp1.domain.conversion_rules
 - specified_by: dp1.stage_spec.radiometric_correction.inverse_median
 - feeds: dp1.stage.enhancement

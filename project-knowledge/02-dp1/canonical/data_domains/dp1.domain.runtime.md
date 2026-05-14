@@ -15,12 +15,15 @@ status: "draft"
 
 Runtime domain описує службові canonical structures, які супроводжують
 виконання DP1 pipeline, але не є Raw, Processing, Mask, Struct або Measurement
-payload.
+payload. Profiling structures визначає окремий domain
+`dp1.domain.profiling`, який використовується runtime structures.
 
 ## Assumptions
 
 - Runtime structures потрібні для context, profiling, diagnostics, tile
   execution, buffer reuse і state ownership.
+- Profiling records мають братися з `dp1.domain.profiling`, а не визначатися
+  локально у runtime cards.
 - Runtime domain не є hidden output container.
 - Runtime structures можуть посилатися на data-domain objects, але не
   підміняють explicit stage input/output contracts.
@@ -32,15 +35,15 @@ payload.
 ```yaml
 runtime_structures:
   - id: "dp1.domain.runtime.frame_context"
-    role: "Per-frame runtime/config/profiling/diagnostics context."
+    role: "Per-frame runtime/config/profiling/diagnostics context; uses `FrameProfiling`."
   - id: "dp1.domain.runtime.cyclic_frame_buffer"
     role: "Bounded reusable frame-history state for stateful stages."
   - id: "dp1.domain.runtime.tile_desc"
     role: "Tile/ROI metadata, border and valid-area description."
   - id: "dp1.domain.runtime.tile_context"
-    role: "Per-worker reusable tile-local buffers and diagnostics."
+    role: "Per-worker reusable tile-local buffers, diagnostics, and `TileProfiling`."
   - id: "dp1.domain.runtime.tile_result"
-    role: "Explicit tile-local structural results before merge."
+    role: "Explicit tile-local structural results and `TileProfilingResult` before merge."
 ```
 
 Runtime domain забороняє:
@@ -93,6 +96,8 @@ Output:
 - `TileResult` переносить `cv::Mat` image buffers.
 - `TileDesc` трактується як image payload.
 - Runtime state змішує frames або sources без explicit boundary.
+- Runtime card визначає власний profiling DTO замість посилання на
+  `dp1.domain.profiling`.
 
 ## Typical misuse
 
@@ -115,4 +120,5 @@ Output:
 - constrained_by: dp1.domain.memory_ownership
 - constrained_by: dp1.domain.coordinates
 - constrained_by: dp1.domain.common_types
+- constrained_by: dp1.domain.profiling
 - constrained_by: dp1.pipeline.stage_contract

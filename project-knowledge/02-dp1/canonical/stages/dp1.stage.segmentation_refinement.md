@@ -95,6 +95,11 @@ route_specific_carriers:
 Профілювати час morphology, кількість contours/components, розмір kernel,
 кількість проходів і кількість сегментів на виході.
 
+Profiling records мають використовувати
+`StageKey = "segmentation_refinement"` і структури з `dp1.domain.profiling`.
+Morphology operations, contour/component counts, kernel size, pass count і
+segment count мають бути visible без per-contour-point profiling events.
+
 ## Must not do
 
 Фотометричне вимірювання або фінальне прийняття цілі.
@@ -133,3 +138,4 @@ Canonical-представлення компоненти.
 - produces: dp1.domain.struct.segment
 - uses: dp1.domain.runtime.frame_context
 - uses: dp1.domain.runtime.tile_context
+- uses: dp1.domain.profiling

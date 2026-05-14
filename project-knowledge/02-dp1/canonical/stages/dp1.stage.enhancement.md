@@ -93,6 +93,11 @@ route_specific_carriers:
 Профілювати час фільтрації, розмір ядра, кількість проходів, витрати на
 перетворення форматів і, якщо повертаються статистики, вартість їх обчислення.
 
+Profiling records мають використовувати `StageKey = "enhancement"` і структури
+з `dp1.domain.profiling`. Full-frame/tile filters, kernel size, pass count,
+format conversions і copies мають бути visible через stage/operation timing,
+cardinality або memory metrics.
+
 ## Must not do
 
 Фінальне рішення про виявлення або вихід вимірювань.
@@ -127,3 +132,4 @@ route_specific_carriers:
 - uses: dp1.domain.processing.tile_processing_frame
 - uses: dp1.domain.runtime.frame_context
 - uses: dp1.domain.runtime.tile_context
+- uses: dp1.domain.profiling

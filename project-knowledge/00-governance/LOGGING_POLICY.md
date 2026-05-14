@@ -49,9 +49,10 @@ Read this policy together with:
 - `AGENTS.md`;
 - `project-knowledge/00-governance/CODE_STYLE.md`;
 - `project-knowledge/00-governance/TESTING_POLICY.md`;
+- `project-knowledge/00-governance/PROFILING_POLICY.md`;
 - `project-knowledge/01-project/PROJECT_ECOSYSTEM.md`;
 - `project-knowledge/02-dp1/canonical/DP1_CANONICAL_INDEX.md`;
-- `project-knowledge/02-dp1/canonical/configuration/dp1.config.application.md`;
+- `project-knowledge/02-dp1/canonical/configuration/dp1.config.application.logging.md`;
 - `project-knowledge/03-dp2/canonical/DP2_CANONICAL_INDEX.md`;
 - relevant DP1/DP2 stage, data-domain, runtime, and protocol cards.
 
@@ -89,7 +90,7 @@ algorithmic code.
 Logging configuration is an application-runtime concern.
 
 Canonical DP1 logging configuration is described by:
-`project-knowledge/02-dp1/canonical/configuration/dp1.config.application.md`.
+`project-knowledge/02-dp1/canonical/configuration/dp1.config.application.logging.md`.
 
 This policy defines logging behavior rules. The application configuration card
 defines the typed configuration surface.
@@ -97,6 +98,11 @@ defines the typed configuration surface.
 Algorithmic code must not create or mutate global loggers, appenders, layouts,
 or level thresholds. Such settings belong to application startup/bootstrap code
 that reads `ApplicationConfig`.
+
+Profiling configuration is a separate application-runtime concern described by
+`dp1.config.application.profiling` and `PROFILING_POLICY.md`. Logging may emit
+bounded aggregated profiling summaries and budget warnings, but raw profiling
+events are not log events and log4cxx is not the profiling data store.
 
 ## Real-Time Logging Principle
 

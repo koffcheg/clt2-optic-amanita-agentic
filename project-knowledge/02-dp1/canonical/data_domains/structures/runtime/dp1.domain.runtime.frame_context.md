@@ -34,7 +34,7 @@ status: "draft"
 - `config_ref` або config snapshot reference — посилання на active configuration `C`.
 - `pixel_route` — selected route, наприклад `U8`, `U16` або `F32`.
 - `stage_status` — bounded map/list статусів stages для поточного кадру.
-- `profiling_trace` — накопичувач timing/profiling events.
+- `profiling` — frame-scoped profiling data з `dp1.domain.profiling`.
 - `warnings` / `errors` — structured diagnostics для поточного кадру.
 - optional `source_metadata_ref` — посилання на camera/source metadata.
 
@@ -52,7 +52,7 @@ struct FrameContext {
     PixelFormat input_format = PixelFormat::U16;
     InputBitDepth input_bit_depth = InputBitDepth::Bit16;
     std::vector<StageStatus> stage_statuses;
-    std::vector<ProfileEvent> profiling_trace;
+    FrameProfiling profiling;
     std::vector<DiagnosticMessage> diagnostics;
 };
 ```
@@ -101,11 +101,11 @@ fields:
     purpose: "Bounded status per stage."
     used_for: "Error handling, stage audit."
     memory: "~24 B + capacity"
-  - name: "`profiling_trace`"
-    type: "`std::vector<ProfileEvent>`"
-    purpose: "Frame-level timing events."
-    used_for: "Performance analysis."
-    memory: "~24 B + capacity"
+  - name: "`profiling`"
+    type: "`FrameProfiling` із `dp1.domain.profiling`"
+    purpose: "Frame-level timing, bounded trace, cardinality і memory metrics."
+    used_for: "Performance analysis, runtime summaries, validation evidence."
+    memory: "bounded by `dp1.config.application.profiling`"
   - name: "`diagnostics`"
     type: "`std::vector<DiagnosticMessage>`"
     purpose: "Structured warnings/errors."
@@ -116,8 +116,9 @@ fields:
 ## Пам'ять
 
 `FrameContext` є small metadata object. Він не володіє image buffers і не має
-масштабуватися з розміром кадру. Його vector fields мають бути bounded policy
-через config або runtime limits.
+масштабуватися з розміром кадру. Його diagnostics і profiling fields мають бути
+bounded через `dp1.config.application.profiling`,
+`dp1.config.application.logging` або runtime limits.
 
 ## Етапи
 
@@ -146,6 +147,9 @@ aggregation належить downstream boundary або orchestration layer.
 - Context використовується як заміна configuration `C`.
 - Stage silently mutates route/config semantics через context.
 - Diagnostics записуються як unstructured strings без можливості audit.
+- Profiling trace росте без configured bound.
+- Profiling field використовується для прихованого перенесення image buffers або
+  algorithm outputs.
 
 ## Typical misuse
 
@@ -154,7 +158,6 @@ aggregation належить downstream boundary або orchestration layer.
 
 ## Open questions
 
-- Exact representation для profiling trace.
 - Чи потрібен immutable config snapshot або достатньо config reference.
 - Error taxonomy для stage-level diagnostics.
 
@@ -165,5 +168,7 @@ aggregation належить downstream boundary або orchestration layer.
 - constrains: dp1.pipeline.stage_contract
 - references: dp1.config.pipeline_configuration_c
 - uses: dp1.domain.pixel_format
+- uses: dp1.domain.profiling
+- configured_by: dp1.config.application.profiling
 - constrained_by: dp1.domain.identity
 - constrained_by: dp1.domain.time

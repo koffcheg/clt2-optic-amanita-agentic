@@ -102,6 +102,11 @@ spec. Етап не має формувати `MeasurementRecord` або пов�
 Профілювати час фільтрації, кількість вхідних кандидатів, кількість відсіяних
 об’єктів, кількість фінальних об’єктів і причини відсіву.
 
+Profiling records мають використовувати `StageKey = "object_filtering"` і
+структури з `dp1.domain.profiling`. Input object count, rejected object count,
+validated object count і expensive geometry/photometry checks мають бути
+recorded або aggregated.
+
 ## Must not do
 
 Змінювати raw data або визначати політику tracking у DP2.
@@ -142,4 +147,5 @@ Canonical-словник валідності об’єкта.
 - uses: dp1.domain.raw.tile_raw_view
 - uses: dp1.domain.runtime.frame_context
 - uses: dp1.domain.runtime.tile_context
+- uses: dp1.domain.profiling
 - constrained_by: dp1.domain.conversion_rules

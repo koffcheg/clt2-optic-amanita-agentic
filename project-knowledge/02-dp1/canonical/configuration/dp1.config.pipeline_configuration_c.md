@@ -33,7 +33,8 @@ status: "draft"
 - processing route і allowed internal formats;
 - дозволені домени даних;
 - обмеження під час виконання;
-- вимоги до профілювання;
+- processing-profile requirements, які потрібні profiling domain для
+  відтворюваності measurement;
 - режим валідації;
 - дозволені швидкі шляхи;
 - заборону неявних перетворень.
@@ -180,8 +181,16 @@ struct PipelineConfig {
 };
 ```
 
-`C` конфігурує тільки processing pipeline DP1. Runtime-рівень застосунку
-визначається окремо в `dp1.config.application`.
+`C` конфігурує тільки processing pipeline DP1. Runtime-рівень застосунку,
+включно з operational logging switches, operational profiling switches, raw
+trace retention, report emission, logging bridge і external trace boundary,
+визначається окремо в `dp1.config.application`, з деталями у
+`dp1.config.application.logging` і `dp1.config.application.profiling`.
+
+Profiling records використовують `C` як active configuration reference:
+stage order, `variant`, `level`, route, formats і parameters потрібні для
+відтворюваності runtime measurement. Але `C` не має містити hidden switches на
+кшталт `profiling_enabled`, report paths або external profiler backend.
 
 Threshold-like parameters мають використовувати `ThresholdConfig` із
 `dp1.domain.threshold`, а не untyped numeric values.
@@ -341,6 +350,8 @@ Route selection не є algorithm implementation. Stage implementation має я
 
 - Трактувати конфігурацію як необов’язкову runtime-декорацію.
 - Міняти поведінку через приховані прапорці поза `C`.
+- Додавати operational profiling switches у stage parameters замість
+  `dp1.config.application.profiling`.
 - Вибирати 8-bit або 16-bit algorithm implementation через `cv::Mat::type()`
   без route metadata.
 
@@ -359,8 +370,12 @@ Route selection не є algorithm implementation. Stage implementation має я
 - constrained_by: dp1.domain.conversion_rules
 - constrained_by: dp1.domain.pixel_format
 - constrained_by: dp1.domain.common_types
+- constrained_by: dp1.domain.profiling
 - constrained_by: dp1.domain.threshold
 - constrained_by: dp1.domain.memory_ownership
 - constrained_by: dp1.domain.coordinates
 - references: dp1.domain.runtime.cyclic_frame_buffer
+- related_runtime_config: dp1.config.application
+- related_runtime_config: dp1.config.application.logging
+- related_runtime_config: dp1.config.application.profiling
 - configures: dp1.stage_spec.radiometric_correction.inverse_median
