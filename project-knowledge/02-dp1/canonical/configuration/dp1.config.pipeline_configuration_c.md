@@ -180,6 +180,9 @@ struct PipelineConfig {
 };
 ```
 
+`C` конфігурує тільки processing pipeline DP1. Runtime-рівень застосунку
+визначається окремо в `dp1.config.application`.
+
 Threshold-like parameters мають використовувати `ThresholdConfig` із
 `dp1.domain.threshold`, а не untyped numeric values.
 

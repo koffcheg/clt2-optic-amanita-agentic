@@ -142,6 +142,7 @@ structure names such as `raw16` or `proc32`.
 ## Current configuration contracts
 
 - `configuration/dp1.config.pipeline_configuration_c.md` - canonical DP1 pipeline configuration `C`.
+- `configuration/dp1.config.application.md` - canonical DP1 application-runtime configuration.
 - `configuration/dp1.config.stage_variant_registry.md` - registry of the eight fixed stages, allowed variants, and variant/level separation.
 - `configuration/dp1.config.complexity_levels.md` - canonical complexity-level vocabulary.
 
