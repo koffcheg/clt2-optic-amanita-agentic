@@ -15,11 +15,12 @@ status: "draft"
 
 `ApplicationConfig.dp2` визначає runtime-поведінку підключення DP1 application до downstream DP2 boundary.
 
-Ця секція не визначає payload schema або measurement semantics. Вона визначає тільки runtime connection policy.
+Ця секція не визначає payload schema або measurement semantics. Вона визначає runtime connection policy і legacy-compatible connection fields для поточного DP2 boundary.
 
 ## Assumptions
 
 - DP1 -> DP2 payload contract визначається окремо в protocol cards.
+- DP2 наразі є legacy boundary, тому runtime config має підтримувати legacy-compatible connection shape.
 - Перша codegen-ітерація не реалізує DP1 -> DP2 exchange.
 - Ця card потрібна для стабілізації canonical runtime configuration structure до початку code generation.
 
@@ -33,7 +34,22 @@ status: "draft"
 {
   "dp2": {
     "enabled": false,
-    "mode": "disabled|local|network"
+    "mode": "disabled|local|network",
+    "host": "127.0.0.1",
+    "port": 11511,
+    "reconnect_interval_s": 3
+  }
+}
+```
+
+Legacy-compatible authoring input may also be mapped from the historical `dp2conn` section:
+
+```json
+{
+  "dp2conn": {
+    "host": "127.0.0.1",
+    "port": 11511,
+    "reconnect_interval_s": 3
   }
 }
 ```
@@ -50,6 +66,9 @@ enum class DP2ConnectionMode {
 struct DP2ConnectionConfig {
     bool enabled = false;
     DP2ConnectionMode mode = DP2ConnectionMode::Disabled;
+    std::string host = "127.0.0.1";
+    int port = 11511;
+    int reconnect_interval_s = 3;
 };
 ```
 
@@ -69,20 +88,58 @@ fields:
     required: true
     default: "`Disabled`"
     purpose: "Вибір runtime connection policy."
-    validation: "Для першого етапу дозволені тільки `disabled` і `local`."
+    validation: "Для першого етапу дозволені тільки `disabled`, `local` і legacy-compatible network settings без transport rewrite."
+
+  - name: "`host`"
+    type: "`std::string`"
+    required_when: "`enabled == true` або legacy `dp2conn` import"
+    default: "`127.0.0.1`"
+    purpose: "Host поточного legacy DP2 endpoint."
+    validation: "Має бути non-empty string."
+
+  - name: "`port`"
+    type: "`int`"
+    required_when: "`enabled == true` або legacy `dp2conn` import"
+    default: 11511
+    purpose: "TCP port поточного legacy DP2 endpoint."
+    validation: "Має бути в діапазоні 1..65535."
+
+  - name: "`reconnect_interval_s`"
+    type: "`int`"
+    required_when: "`enabled == true` або legacy `dp2conn` import"
+    default: 3
+    purpose: "Інтервал повторного підключення до legacy DP2 endpoint у секундах."
+    validation: "Має бути додатним integer value."
 ```
+
+## Legacy compatibility
+
+Historical DP1 configs used `dp2conn` as the connection section:
+
+```json
+{
+  "dp2conn": {
+    "host": "127.0.0.1",
+    "port": 11511,
+    "reconnect_interval_s": 3
+  }
+}
+```
+
+Canonical code may map this legacy authoring shape into `ApplicationConfig.dp2`, but canonical runtime code should use the typed `DP2ConnectionConfig` model after parsing/validation.
 
 ## Constraints
 
 - `ApplicationConfig.dp2` не визначає payload schema.
-- `ApplicationConfig.dp2` не визначає transport protocol details.
 - `ApplicationConfig.dp2` не змінює `MeasurementRecord` semantics.
-- Реальна network transport implementation потребує окремих task cards.
+- `host`, `port` і `reconnect_interval_s` існують для legacy-compatible connection policy, а не для перепроєктування DP2 protocol.
+- Реальна network transport implementation або protocol rewrite потребує окремих task cards.
 
 ## Failure cases
 
 - DP2 payload schema визначається в runtime config.
 - Runtime connection policy змішується з measurement semantics.
+- Legacy `dp2conn` shape використовується як новий canonical object замість mapping до `ApplicationConfig.dp2`.
 - IPC або transport implementation додаються без окремої task.
 
 ## Connections
