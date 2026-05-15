@@ -16,13 +16,6 @@ bool has_frame_budget(const RuntimeLoopResult &result, const RuntimeLoopLimits &
     return limits.max_frames == 0 || result.frames_completed + result.frames_failed < limits.max_frames;
 }
 
-RuntimeLoopLimits make_runtime_loop_limits(const RuntimeLoopConfig &config) {
-    return RuntimeLoopLimits{
-        .max_frames = static_cast<std::size_t>(config.max_frames),
-        .max_empty_reads = static_cast<std::size_t>(config.max_empty_reads),
-    };
-}
-
 } // namespace
 
 const char *frame_terminal_status_to_cstr(const FrameTerminalStatus status) {
@@ -58,13 +51,10 @@ const char *process_terminal_status_to_cstr(const ProcessTerminalStatus status) 
 }
 
 ProcessRunResult run_runtime_skeleton(const StartupContext &context) {
-    initialize_result_sink(context.config, context.cli.cam_index, context.calibration.camera);
+    initialize_result_sink(context.config.application.dp2, context.cli.cam_index, context.calibration.camera);
 
-    auto source = create_frame_source(context.config.source, context.cli.cam_index);
-    const auto loop_result = run_bounded_runtime_loop(
-        context,
-        *source,
-        make_runtime_loop_limits(context.config.runtime_loop));
+    auto source = create_frame_source(context.config.application.source, context.cli.cam_index);
+    const auto loop_result = run_bounded_runtime_loop(context, *source, RuntimeLoopLimits{});
 
     const bool success = loop_result.status == ProcessTerminalStatus::SourceExhausted
                          || loop_result.status == ProcessTerminalStatus::StopRequested

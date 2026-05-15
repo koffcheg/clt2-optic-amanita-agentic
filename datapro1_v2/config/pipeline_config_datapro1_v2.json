@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0",
+  "profile": "RT-20",
+  "input_route": {
+    "pixel_format": "U16",
+    "bit_depth": 16,
+    "pixel_range": {
+      "min_value": 0,
+      "max_value": 65535,
+      "black_level": 0,
+      "saturation_level": 65535
+    }
+  },
+  "pipeline": {
+    "prep": {
+      "enabled": true,
+      "variant": "full_frame",
+      "level": "L0",
+      "parameters": {}
+    },
+    "radiometric": {
+      "enabled": true,
+      "variant": "inverse_median",
+      "level": "L1",
+      "parameters": {
+        "inverse_median": {
+          "enabled": true,
+          "mode": "FixedK3",
+          "stride": 1,
+          "output_median_frame": false,
+          "output_dynamic_range_mode": "RawSigned"
+        }
+      }
+    },
+    "enhancement": {
+      "enabled": false,
+      "variant": "gaussian",
+      "level": "L0",
+      "parameters": {}
+    },
+    "matched_filter": {
+      "enabled": false,
+      "variant": "gaussian",
+      "level": "L0",
+      "parameters": {}
+    },
+    "candidate_extraction": {
+      "enabled": false,
+      "variant": "global_threshold",
+      "level": "L0",
+      "parameters": {}
+    },
+    "segmentation": {
+      "enabled": false,
+      "variant": "single_morphology",
+      "level": "L0",
+      "parameters": {}
+    },
+    "object_filtering": {
+      "enabled": false,
+      "variant": "area",
+      "level": "L0",
+      "parameters": {}
+    },
+    "measurement": {
+      "enabled": false,
+      "variant": "centroid_bbox",
+      "level": "L0",
+      "parameters": {}
+    }
+  }
+}

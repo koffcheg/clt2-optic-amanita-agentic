@@ -23,7 +23,7 @@ struct ResultSinkOutcome {
 };
 
 const char *result_sink_status_to_cstr(ResultSinkStatus status);
-void initialize_result_sink(const RuntimeConfig &config, int cam_index, const TDataCalibrationCamera &camera_calibration);
+void initialize_result_sink(const DP2ConnectionConfig &config, int cam_index, const TDataCalibrationCamera &camera_calibration);
 ResultSinkOutcome publish_result_to_sinks(const TDataRes &result);
 
 } // namespace dp1v2

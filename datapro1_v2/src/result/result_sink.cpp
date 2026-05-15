@@ -13,8 +13,17 @@
 
 namespace {
 
+struct ArtifactOutputSettings {
+    bool enabled = false;
+    bool json_enabled = false;
+    bool binocular_enabled = false;
+    std::string out_folder = "datapro1_v2_output";
+    std::string data_bin_folder = "data_bin";
+};
+
 TDataCalibrationCamera g_camera_calibration;
-dp1v2::ArtifactConfig g_artifact_config;
+ArtifactOutputSettings g_artifact_config;
+bool g_dp2_enabled = false;
 bool g_result_sink_initialized = false;
 
 bool write_result_json(const TDataRes &result, const std::filesystem::path &out_path, const std::string &file_name) {
@@ -150,15 +159,17 @@ const char *result_sink_status_to_cstr(const ResultSinkStatus status) {
     }
 }
 
-void initialize_result_sink(const RuntimeConfig &config, const int cam_index, const TDataCalibrationCamera &camera_calibration) {
-    g_artifact_config = config.artifacts;
+void initialize_result_sink(const DP2ConnectionConfig &config, const int cam_index, const TDataCalibrationCamera &camera_calibration) {
     g_camera_calibration = camera_calibration;
-    ns_datapro1::init_connect_to_dp2(
-        config.dp2_conn.host,
-        config.dp2_conn.port,
-        config.dp2_conn.reconnect_interval_s,
-        cam_index,
-        g_camera_calibration);
+    g_dp2_enabled = config.enabled && config.mode != DP2ConnectionMode::Disabled;
+    if (g_dp2_enabled) {
+        ns_datapro1::init_connect_to_dp2(
+            config.host,
+            config.port,
+            config.reconnect_interval_s,
+            cam_index,
+            g_camera_calibration);
+    }
     g_result_sink_initialized = true;
 }
 
@@ -171,10 +182,15 @@ ResultSinkOutcome publish_result_to_sinks(const TDataRes &result) {
         };
     }
 
-    ns_datapro1::send_res_to_dp2(result);
+    ResultSinkStatus send_status = ResultSinkStatus::SendSkipped;
+    if (g_dp2_enabled) {
+        ns_datapro1::send_res_to_dp2(result);
+        send_status = ResultSinkStatus::Accepted;
+    }
+
     const auto artifact_status = write_result_artifacts(result);
     return ResultSinkOutcome{
-        .send_status = ResultSinkStatus::Accepted,
+        .send_status = send_status,
         .artifact_status = artifact_status,
         .reason = artifact_status == ResultSinkStatus::Failed ? "artifact_write_failed" : "result_sinks_invoked",
     };
