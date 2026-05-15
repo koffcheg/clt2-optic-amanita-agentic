@@ -11,13 +11,13 @@ status: "draft"
 
 # Purpose
 
-Validation route for the first bounded DP1 code generation slice:
+Validation route для першого bounded DP1 code generation slice:
 
 ```text
 FileFrameSource -> FramePacket
 ```
 
-This validation checks that the generated patch follows canonical DP1 input contracts and does not expand into unrelated runtime or pipeline areas.
+Ця validation перевіряє, що generated patch дотримується canonical DP1 input contracts і не розширюється в unrelated runtime або pipeline areas.
 
 # Required canonical sources
 
@@ -28,49 +28,49 @@ This validation checks that the generated patch follows canonical DP1 input cont
 
 # Validation goals
 
-The generated patch must:
+Generated patch має:
 
-- create or populate a canonical `FramePacket` from a file-backed frame source;
-- preserve input metadata needed by the canonical contract;
-- remain inside the approved scope;
-- avoid hidden runtime coupling;
-- provide reviewable evidence.
+- створювати або заповнювати canonical `FramePacket` з file-backed frame source;
+- зберігати input metadata, потрібні canonical contract;
+- залишатись у межах approved scope;
+- уникати hidden runtime coupling;
+- надавати reviewable evidence.
 
 # Minimal validation checklist
 
 ## Scope checks
 
-- The patch does not modify CameraPro / CameraProSim.
-- The patch does not introduce POSIX IPC.
-- The patch does not add TileScheduler/runtime execution logic.
-- The patch does not implement unrelated DP1 stages.
-- The patch does not introduce broad repository refactoring.
-- The patch does not modify build scripts unless explicitly approved.
+- Patch не модифікує CameraPro / CameraProSim.
+- Patch не додає POSIX IPC.
+- Patch не додає TileScheduler/runtime execution logic.
+- Patch не реалізує unrelated DP1 stages.
+- Patch не виконує broad repository refactoring.
+- Patch не модифікує build scripts без окремого approval.
 
 ## Contract checks
 
-- `FramePacket` is used as the canonical output boundary.
-- `frame_id` is populated or explicitly stubbed.
-- `camera_id` / `source_id` policy is explicit.
-- `image` carrier is defined.
-- `pixel_format` and `bit_depth` handling are explicit.
-- `geometry` metadata is preserved.
-- `FramePacket` is not used as a mutable container for masks/candidates/measurements.
+- `FramePacket` використовується як canonical output boundary.
+- `frame_id` заповнений або явно stubbed.
+- `camera_id` / `source_id` policy явно визначена.
+- `image` carrier визначений.
+- `pixel_format` і `bit_depth` handling явно визначені.
+- `geometry` metadata зберігаються.
+- `FramePacket` не використовується як mutable container для masks/candidates/measurements.
 
 ## Evidence checks
 
-The generated patch must provide:
+Generated patch має надати:
 
-- list of changed files;
-- summary of implemented behavior;
+- список changed files;
+- summary реалізованої поведінки;
 - explicit non-goals;
-- validation notes or validation command;
+- validation notes або validation command;
 - known limitations;
 - next proposed bounded task.
 
 # Non-goals
 
-This validation route does not check:
+Цей validation route не перевіряє:
 
 - CameraPro integration;
 - TileScheduler correctness;
@@ -82,12 +82,12 @@ This validation route does not check:
 
 # Escalation rule
 
-If the generated patch:
+Якщо generated patch:
 
-- expands into unrelated runtime areas;
-- changes repository-wide architecture;
-- introduces hidden state;
-- rewrites canonical structures;
-- touches forbidden files;
+- розширюється в unrelated runtime areas;
+- змінює repository-wide architecture;
+- додає hidden state;
+- переписує canonical structures;
+- чіпає forbidden files;
 
-then the iteration must be stopped and reduced in scope before continuing.
+тоді ітерація має бути зупинена і звужена перед продовженням.
