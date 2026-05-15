@@ -37,7 +37,7 @@ target_sources(
         PRIVATE
         visual-unit/dp1/t_dp1v2_inverse_median.cpp
         ../datapro1_v2/src/runtime/cyclic_frame_buffer.cpp
-        ../datapro1_v2/src/stages/inverse_median.cpp
+        ../datapro1_v2/src/stages/radiometric_stage.inverse_median.cpp
 )
 
 target_include_directories(

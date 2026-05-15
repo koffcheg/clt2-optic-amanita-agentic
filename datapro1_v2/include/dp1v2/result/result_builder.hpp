@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dp1v2/frame/frame_context.hpp"
+#include "datarpoTypes.h"
 
 namespace dp1v2 {
 
