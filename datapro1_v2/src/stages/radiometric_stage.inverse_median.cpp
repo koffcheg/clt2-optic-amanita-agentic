@@ -1,4 +1,4 @@
-#include "dp1v2/stages/inverse_median.hpp"
+#include "dp1v2/stages/radiometric_stage.inverse_median.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -238,13 +238,23 @@ void InverseMedianFilter::clear() noexcept
 
 const InverseMedianResult& InverseMedianFilter::processFrame(const cv::Mat& input_frame)
 {
+    const InverseMedianProcessContext process_context{.frame_index = frame_index_};
+    const InverseMedianResult& result = processFrame(input_frame, process_context);
+    ++frame_index_;
+    return result;
+}
+
+const InverseMedianResult& InverseMedianFilter::processFrame(
+    const cv::Mat& input_frame,
+    const InverseMedianProcessContext& process_context)
+{
     using Clock = std::chrono::steady_clock;
     const auto total_start = Clock::now();
     clearResultTiming(result_);
 
     if (!config_.enabled) {
         result_.status = InverseMedianStatus::Disabled;
-        result_.frame_index = frame_index_++;
+        result_.frame_index = process_context.frame_index;
         result_.median_updated = false;
         clearResultViews(result_);
         result_.timing.total = Clock::now() - total_start;
@@ -253,7 +263,7 @@ const InverseMedianResult& InverseMedianFilter::processFrame(const cv::Mat& inpu
 
     validateInputFrame(input_frame);
 
-    const bool update_median = shouldUpdateMedian();
+    const bool update_median = shouldUpdateMedian(process_context.frame_index);
     if (update_median) {
         const auto median_start = Clock::now();
         storeSelectedFrame(input_frame);
@@ -264,13 +274,12 @@ const InverseMedianResult& InverseMedianFilter::processFrame(const cv::Mat& inpu
         result_.timing.median_update = Clock::now() - median_start;
     }
 
-    result_.frame_index = frame_index_;
+    result_.frame_index = process_context.frame_index;
     result_.median_updated = update_median && has_median_;
     clearResultViews(result_);
 
     if (!has_median_) {
         result_.status = InverseMedianStatus::WarmingUp;
-        ++frame_index_;
         result_.timing.total = Clock::now() - total_start;
         return result_;
     }
@@ -310,7 +319,6 @@ const InverseMedianResult& InverseMedianFilter::processFrame(const cv::Mat& inpu
         };
     }
 
-    ++frame_index_;
     result_.timing.total = Clock::now() - total_start;
     return result_;
 }
@@ -430,9 +438,9 @@ InverseMedianFilter::MedianFrameUpdater InverseMedianFilter::selectMedianFrameUp
     throw std::logic_error("unsupported inverse_median mode or input depth during median updater selection");
 }
 
-bool InverseMedianFilter::shouldUpdateMedian() const noexcept
+bool InverseMedianFilter::shouldUpdateMedian(std::uint64_t frame_index) const noexcept
 {
-    return frame_index_ % static_cast<std::uint64_t>(config_.stride) == 0;
+    return frame_index % static_cast<std::uint64_t>(config_.stride) == 0;
 }
 
 void InverseMedianFilter::storeSelectedFrame(const cv::Mat& input_frame)

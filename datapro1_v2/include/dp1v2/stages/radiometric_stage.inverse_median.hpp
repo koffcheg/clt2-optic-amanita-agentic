@@ -6,19 +6,10 @@
 
 #include <opencv2/core.hpp>
 
+#include "dp1v2/config/config.hpp"
 #include "dp1v2/runtime/cyclic_frame_buffer.hpp"
 
 namespace dp1v2 {
-
-enum class InverseMedianMode {
-    FixedK3,
-    FixedK5,
-};
-
-enum class InverseMedianOutputMode {
-    RawSigned,
-    ClipToInputRange,
-};
 
 enum class InverseMedianStatus {
     Disabled,
@@ -51,12 +42,10 @@ enum class InverseMedianRangePolicy {
     ClippedToInputRange,
 };
 
-struct InverseMedianConfig {
-    bool enabled = true;
-    InverseMedianMode mode = InverseMedianMode::FixedK3;
-    int stride = 1;
-    bool output_median_frame = false;
-    InverseMedianOutputMode output_dynamic_range_mode = InverseMedianOutputMode::RawSigned;
+using InverseMedianConfig = InverseMedianParametersConfig;
+
+struct InverseMedianProcessContext {
+    std::uint64_t frame_index = 0;
 };
 
 struct InverseMedianInputRoute {
@@ -127,6 +116,9 @@ public:
     void clear() noexcept;
 
     const InverseMedianResult& processFrame(const cv::Mat& input_frame);
+    const InverseMedianResult& processFrame(
+        const cv::Mat& input_frame,
+        const InverseMedianProcessContext& process_context);
 
 private:
     using MedianFrameUpdater = void (InverseMedianFilter::*)();
@@ -140,7 +132,7 @@ private:
 
     void resetStreamingState() noexcept;
     MedianFrameUpdater selectMedianFrameUpdater() const;
-    bool shouldUpdateMedian() const noexcept;
+    bool shouldUpdateMedian(std::uint64_t frame_index) const noexcept;
     void storeSelectedFrame(const cv::Mat& input_frame);
     void recomputeMedianFrame();
     void computeResidual(const cv::Mat& input_frame);

@@ -7,7 +7,7 @@
 
 #include <opencv2/core.hpp>
 
-#include "dp1v2/stages/inverse_median.hpp"
+#include "dp1v2/stages/radiometric_stage.inverse_median.hpp"
 
 namespace {
 
