@@ -74,6 +74,9 @@ This is a target model only. Creating directories, tests, or fixtures requires a
 - `validation.amnt0004.dp1_binning` - validation card for DP1 sum-binning run-based validation.
   link: `cards/validation.amnt0004.dp1_binning.md`
 
+- `validation.dp1.file_frame_source_frame_packet` - validation route for the first bounded DP1 input codegen slice: `FileFrameSource -> FramePacket`.
+  link: `cards/validation.dp1.file_frame_source_frame_packet.md`
+
 ## Related Documents
 
 - `project-knowledge/00-governance/TESTING_POLICY.md` - governance rules for testing and agent action limits.
