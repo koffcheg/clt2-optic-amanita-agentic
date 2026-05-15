@@ -2,22 +2,23 @@
 
 #include <string>
 
-#include "dp1v2/stages/calibration.hpp"
 #include "dp1v2/config/config.hpp"
+#include "dp1v2/stages/calibration.hpp"
 
 namespace dp1v2 {
 
 struct CliOptions {
     int cam_index = -1;
-    std::string config_path;
-    std::string log_config_path;
+    std::string application_config_path;
+    std::string pipeline_config_path;
 };
 
 struct StartupContext {
     CliOptions cli;
-    std::string resolved_config_path;
+    std::string resolved_application_config_path;
+    std::string resolved_pipeline_config_path;
     std::string resolved_log_config_path;
-    RuntimeConfig config;
+    Dp1Config config;
     CalibrationState calibration;
 };
 

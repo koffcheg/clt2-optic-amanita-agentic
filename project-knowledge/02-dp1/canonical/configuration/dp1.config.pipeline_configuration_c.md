@@ -30,7 +30,7 @@ status: "draft"
 - рівень складності;
 - параметри;
 - input route DP1 instance: `U8` або `U16` carrier і фактичну бітність;
-- processing route і allowed internal formats;
+- stage specs and stage parameters define processing-domain outputs and allowed internal formats;
 - дозволені домени даних;
 - обмеження під час виконання;
 - processing-profile requirements, які потрібні profiling domain для
@@ -58,12 +58,6 @@ status: "draft"
       "black_level": 0,
       "saturation_level": 255
     }
-  },
-  "processing_route": {
-    "radiometric_output_format": "F32|S16|S32",
-    "processing_format": "F32",
-    "mask_format": "MaskU8",
-    "range_policy": "SignedResidual|NormalizedFloat|DetectorResponse|ClippedToInputRange"
   },
   "pipeline": {
     "prep": {
@@ -140,13 +134,6 @@ struct InputRouteConfig {
     PixelRange pixel_range;
 };
 
-struct ProcessingRouteConfig {
-    PixelFormat radiometric_output_format = PixelFormat::F32;
-    PixelFormat processing_format = PixelFormat::F32;
-    PixelFormat mask_format = PixelFormat::MaskU8;
-    RangePolicy range_policy = RangePolicy::SignedResidual;
-};
-
 struct PrepRouteConfig {
     std::string variant;
     int tile_width = 0;
@@ -167,7 +154,6 @@ struct PipelineConfig {
     std::string schema_version;
     std::string profile;
     InputRouteConfig input_route;
-    ProcessingRouteConfig processing_route;
     PrepRouteConfig prep_route;
     RuntimeLimitsConfig runtime_limits;
     StageConfig prep;
@@ -188,25 +174,17 @@ trace retention, report emission, logging bridge і external trace boundary,
 `dp1.config.application.logging` і `dp1.config.application.profiling`.
 
 Profiling records використовують `C` як active configuration reference:
-stage order, `variant`, `level`, route, formats і parameters потрібні для
+stage order, `variant`, `level`, input route і parameters потрібні для
 відтворюваності runtime measurement. Але `C` не має містити hidden switches на
 кшталт `profiling_enabled`, report paths або external profiler backend.
 
 Threshold-like parameters мають використовувати `ThresholdConfig` із
 `dp1.domain.threshold`, а не untyped numeric values.
 
-Canonical processing route за замовчуванням:
+Canonical processing-domain carriers and range semantics are defined by data-domain cards and stage specs.
 
-- Raw/Input: `U8` або `U16`, з actual `InputBitDepth`;
-- Processing: `F32` / `CV_32FC1`;
-- Mask: `MaskU8` / `CV_8UC1`;
-- `S16` і `S32`: тільки explicit signed residual route;
-- `U8` або `U16` у Processing domain: тільки explicit fast/compatibility route,
-  якщо це дозволено stage-interface card або stage spec.
-
-`input_route` і `processing_route` фіксують pixel/range route DP1 instance на
-startup. Спосіб просторової підготовки кадру задає `pipeline.prep.variant`, а
-не `processing_route`.
+`input_route` фіксує Raw/Input carrier, bit depth і pixel range DP1 instance на
+startup. Спосіб просторової підготовки кадру задає `pipeline.prep.variant`.
 
 `prep.variant` підтримує кілька варіантів:
 
@@ -231,12 +209,6 @@ coordinate policy і validation rules.
       "black_level": 0,
       "saturation_level": 255
     }
-  },
-  "processing_route": {
-    "radiometric_output_format": "F32",
-    "processing_format": "F32",
-    "mask_format": "MaskU8",
-    "range_policy": "SignedResidual"
   },
   "pipeline": {
     "prep": {
@@ -267,12 +239,6 @@ coordinate policy і validation rules.
       "black_level": 0,
       "saturation_level": 4095
     }
-  },
-  "processing_route": {
-    "radiometric_output_format": "F32",
-    "processing_format": "F32",
-    "mask_format": "MaskU8",
-    "range_policy": "SignedResidual"
   },
   "pipeline": {
     "prep": {

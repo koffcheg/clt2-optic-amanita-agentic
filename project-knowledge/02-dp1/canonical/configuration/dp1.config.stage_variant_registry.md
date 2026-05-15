@@ -26,19 +26,24 @@ status: "draft"
 
 ## Theorem / Contract
 
-Canonical DP1 має вісім фіксованих stage interfaces:
+Canonical DP1 `PipelineConfig C` має вісім фіксованих stage config keys:
 
 ```yaml
 stages:
   - prep
-  - radiometric_correction
+  - radiometric
   - enhancement
-  - matched_filtering
+  - matched_filter
   - candidate_extraction
-  - segmentation_refinement
+  - segmentation
   - object_filtering
   - measurement
 ```
+
+Ці stage config keys є canonical іменами для configuration registry. Повні
+stage-interface card ids, такі як `radiometric_correction`,
+`matched_filtering` і `segmentation_refinement`, залишаються ідентифікаторами
+карток/інтерфейсів, але не є JSON keys у `PipelineConfig C`.
 
 Терміни:
 
@@ -77,7 +82,7 @@ stage_variant_registry:
     typical_levels: ["L0", "L1", "L2"]
     notes: "Визначає просторовий route кадру, ROI або tile execution."
 
-  - stage: "radiometric_correction"
+  - stage: "radiometric"
     variants:
       - "mean_subtraction"
       - "gaussian_subtraction"
@@ -94,7 +99,7 @@ stage_variant_registry:
     typical_levels: ["L0", "L1", "L2"]
     notes: "Підвищує SNR перед detection без формування final detections."
 
-  - stage: "matched_filtering"
+  - stage: "matched_filter"
     variants: ["gaussian", "kernel", "template", "adaptive_kernel", "psf_fit"]
     typical_levels: ["L0", "L1", "L2"]
     notes: "Формує detector response map у Processing domain."
@@ -104,7 +109,7 @@ stage_variant_registry:
     typical_levels: ["L0", "L1", "L2"]
     notes: "Перетворює response/residual/enhanced representation на mask і Candidate[]."
 
-  - stage: "segmentation_refinement"
+  - stage: "segmentation"
     variants: ["single_morphology", "open_close_contours", "connected_components", "multi_step_morphology"]
     typical_levels: ["L0", "L1", "L2"]
     notes: "Перетворює mask/candidates на Segment[] або уточнює object regions."
@@ -121,12 +126,12 @@ stage_variant_registry:
 ```
 
 `prep.variant = "tiles"` змінює execution route, але не додає нові semantic
-stages. У tile route етапи `radiometric_correction` ... `measurement`
+stages. У tile route stage config keys `radiometric` ... `measurement`
 виконуються для tile-local carriers, а frame-level output формується через
 `TileResult[]` і merge.
 
-Profiling `StageKey` для core DP1 stages має використовувати stage names із
-цього registry. `StageKey` навмисно не є closed permanent enum: future stages
+Profiling `StageKey` для core DP1 stages має використовувати canonical config
+keys із цього registry. `StageKey` навмисно не є closed permanent enum: future stages
 або infrastructure scopes можуть бути додані окремими approved Project
 Knowledge changes. Implementation може intern/cache stage ids для hot path, але
 canonical profiling records мають залишатися mappable до stable stage key.
@@ -138,6 +143,7 @@ AI-кодер не має:
 - підміняти `variant` рівнем складності;
 - використовувати OpenCV primitive як назву canonical stage;
 - hard-code algorithm choice у stage implementation без `C`.
+- використовувати повний stage-interface card id як JSON key у `PipelineConfig C`;
 - створювати profiling stage key для core stage, який не збігається з registry.
 
 ## Fields / Interface
@@ -199,16 +205,14 @@ Output:
 ## Typical misuse
 
 - Додавати новий variant у stage card, але не оновлювати registry.
-- Використовувати різні назви одного stage між config, stage card і pipeline
-  binding.
-- Змішувати spelling `matched_filter` і `matched_filtering` без alias policy.
+- Використовувати повні stage-interface card ids як config keys замість
+  canonical keys із `PipelineConfig C`.
+- Змішувати spelling `matched_filter` і `matched_filtering` у JSON config.
 
 ## Open questions
 
 - Формальна таблиця сумісності `profile -> stage -> variant -> level`.
 - Повні schemas `parameters` для кожного variant.
-- Alias policy для коротких config keys, якщо вони відрізняються від canonical
-  stage ids.
 
 ## Connections
 

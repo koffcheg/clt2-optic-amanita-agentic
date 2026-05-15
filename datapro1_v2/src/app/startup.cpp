@@ -5,8 +5,6 @@
 
 #include <log4cxx/xml/domconfigurator.h>
 
-#include "dp1v2/stages/calibration.hpp"
-#include "dp1v2/config/config.hpp"
 #include "dp1v2/runtime/runtime.hpp"
 
 namespace dp1v2 {
@@ -16,37 +14,25 @@ CliOptions parse_cli_options(const int argc, char *argv[]) {
         throw std::logic_error("camera index is required");
     }
     if (argc < 3) {
-        throw std::logic_error("config path is required");
+        throw std::logic_error("application config path is required");
+    }
+    if (argc < 4) {
+        throw std::logic_error("pipeline config path is required");
+    }
+    if (argc > 4) {
+        throw std::logic_error("unexpected extra argument: " + std::string(argv[4]));
     }
 
     CliOptions options{};
     options.cam_index = std::stoi(argv[1]);
-    options.config_path.clear();
-    options.log_config_path.clear();
-
-    for (int i = 2; i < argc; ++i) {
-        const std::string arg = argv[i];
-        if (!arg.empty() && arg[0] == '-') {
-            throw std::logic_error("unknown option: " + arg);
-        }
-
-        if (options.config_path.empty()) {
-            options.config_path = arg;
-            continue;
-        }
-
-        if (options.log_config_path.empty()) {
-            options.log_config_path = arg;
-            continue;
-        }
-
-        throw std::logic_error("unexpected extra argument: " + arg);
+    options.application_config_path = argv[2];
+    options.pipeline_config_path = argv[3];
+    if (!options.application_config_path.empty() && options.application_config_path[0] == '-') {
+        throw std::logic_error("application config path is required");
     }
-
-    if (options.config_path.empty()) {
-        throw std::logic_error("config path is required");
+    if (!options.pipeline_config_path.empty() && options.pipeline_config_path[0] == '-') {
+        throw std::logic_error("pipeline config path is required");
     }
-
     return options;
 }
 
@@ -70,31 +56,31 @@ std::string resolve_config_path(const std::string &config_path, const char *arg0
     return config_path;
 }
 
-void configure_logging_if_requested(const std::string &log_config_path) {
-    if (log_config_path.empty()) {
+void configure_logging_if_requested(const LoggingConfig &logging_config, const char *arg0, std::string &resolved_path) {
+    if (!logging_config.enabled) {
+        resolved_path.clear();
         return;
     }
 
-    const auto configuration_status = log4cxx::xml::DOMConfigurator::configureAndWatch(log_config_path);
+    resolved_path = resolve_config_path(logging_config.config_file, arg0);
+    const auto configuration_status = log4cxx::xml::DOMConfigurator::configureAndWatch(resolved_path);
     if (configuration_status == log4cxx::spi::ConfigurationStatus::NotConfigured) {
-        throw std::logic_error("unable to configure logging subsystem from cfg.file: " + log_config_path);
+        throw std::logic_error("unable to configure logging subsystem from application.logging.config_file: " + resolved_path);
     }
 }
 
 StartupContext build_startup_context(const int argc, char *argv[]) {
     const auto options = parse_cli_options(argc, argv);
-    const auto config_path = resolve_config_path(options.config_path, argv[0]);
-    const auto log_config_path = options.log_config_path.empty()
-        ? std::string{}
-        : resolve_config_path(options.log_config_path, argv[0]);
-    configure_logging_if_requested(log_config_path);
+    const auto application_config_path = resolve_config_path(options.application_config_path, argv[0]);
+    const auto pipeline_config_path = resolve_config_path(options.pipeline_config_path, argv[0]);
 
     StartupContext context{};
     context.cli = options;
-    context.resolved_config_path = config_path;
-    context.resolved_log_config_path = log_config_path;
-    context.config = load_runtime_config(config_path);
-    context.calibration = load_calibration_state(context.config.calibration);
+    context.resolved_application_config_path = application_config_path;
+    context.resolved_pipeline_config_path = pipeline_config_path;
+    context.config = load_dp1_config(application_config_path, pipeline_config_path);
+    configure_logging_if_requested(context.config.application.logging, argv[0], context.resolved_log_config_path);
+    context.calibration = make_default_calibration_state();
     return context;
 }
 

@@ -71,6 +71,11 @@ target_link_libraries(
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_CURRENT_SOURCE_DIR}/config/config_datapro1_v2.json
-        ${CMAKE_CURRENT_BINARY_DIR}/config/config_datapro1_v2.json
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/config/config_datapro1_v2.json)
+        ${CMAKE_CURRENT_SOURCE_DIR}/config/application_config_datapro1_v2.json
+        ${CMAKE_CURRENT_BINARY_DIR}/config/application_config_datapro1_v2.json
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/config/pipeline_config_datapro1_v2.json
+        ${CMAKE_CURRENT_BINARY_DIR}/config/pipeline_config_datapro1_v2.json
+        DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/config/application_config_datapro1_v2.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/config/pipeline_config_datapro1_v2.json)

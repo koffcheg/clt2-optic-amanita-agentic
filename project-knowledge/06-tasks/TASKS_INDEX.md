@@ -42,3 +42,5 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0020` - canonical logging policy and DP1 application logging configuration - completed
 - `AMNT-0021` - canonical DP1 profiling policy and profiling knowledge cards - completed
 - `AMNT-0022` - first DP1 codegen gate for FileFrameSource to FramePacket - draft
+- `AMNT-0023` - canonical DP1 v2 configuration model and validation - completed
+- `AMNT-0024` - unit tests for canonical DP1 v2 configuration - completed

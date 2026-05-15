@@ -63,6 +63,11 @@ This is a target model only. Creating directories, tests, or fixtures requires a
 - `validation.dp1.canonical_conformance` - cross-project execution/runtime validation route for canonical DP1 conformance. It checks DP1-local conformance requirements from `project-knowledge/02-dp1/canonical/validation/dp1.validation.canonical_conformance.md` against code/config/test scenarios/reports/runtime evidence.
   link: `cards/validation.dp1.canonical_conformance.md`
 
+### Configuration Unit Validation
+
+- `validation.dp1.config.canonical` - unit-test route for canonical `dp1_v2` configuration parsing and validation.
+  link: `cards/validation.dp1.config.canonical.md`
+
 ### Stage-Level Algorithm Validation
 
 - `validation.dp1.radiometric_correction.inverse_median` - validation route for
