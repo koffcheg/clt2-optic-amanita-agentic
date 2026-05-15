@@ -22,9 +22,12 @@ status: "draft"
 
 - Повна модель `ApplicationConfig` ще не визначена.
 - Поточна root-картка визначає `ApplicationConfig.schema_version` і підключає
-  child sections `ApplicationConfig.logging` та `ApplicationConfig.profiling`.
+  child sections `ApplicationConfig.source`, `ApplicationConfig.logging`,
+  `ApplicationConfig.profiling` та `ApplicationConfig.dp2`.
+- Деталі source визначає `dp1.config.application.source`.
 - Деталі logging визначає `dp1.config.application.logging`.
 - Деталі profiling визначає `dp1.config.application.profiling`.
+- Деталі DP2 runtime connection policy визначає `dp1.config.application.dp2`.
 - `PipelineConfig C` вже існує як окрема canonical-конфігурація конвеєра
   обробки.
 - Application runtime configuration не має впливати на алгоритмічні результати.
@@ -39,8 +42,10 @@ DP1 має дві окремі конфігураційні площини:
 У межах цієї root-картки визначено:
 
 - `ApplicationConfig.schema_version`;
+- `ApplicationConfig.source`, визначений у `dp1.config.application.source`;
 - `ApplicationConfig.logging`, визначений у `dp1.config.application.logging`;
-- `ApplicationConfig.profiling`, визначений у `dp1.config.application.profiling`.
+- `ApplicationConfig.profiling`, визначений у `dp1.config.application.profiling`;
+- `ApplicationConfig.dp2`, визначений у `dp1.config.application.dp2`.
 
 Application runtime configuration не має вибирати порядок етапів,
 `stage.variant`, `stage.level`, алгоритмічні параметри, input route, processing
@@ -51,8 +56,10 @@ route, семантику вимірювань або семантику DP1 -> 
 ```json
 {
   "schema_version": "1.0",
+  "source": {},
   "logging": {},
-  "profiling": {}
+  "profiling": {},
+  "dp2": {}
 }
 ```
 
@@ -63,13 +70,17 @@ JSON representation. JSON є serialization/authoring form, але C++ генер
 ```cpp
 struct ApplicationConfig {
     std::string schema_version;
+    SourceConfig source;
     LoggingConfig logging;
     ProfilingConfig profiling;
+    DP2ConnectionConfig dp2;
 };
 ```
 
+`SourceConfig` визначає `dp1.config.application.source`.
 `LoggingConfig` визначає `dp1.config.application.logging`.
 `ProfilingConfig` визначає `dp1.config.application.profiling`.
+`DP2ConnectionConfig` визначає `dp1.config.application.dp2`.
 
 ## Fields / Interface
 
@@ -83,6 +94,15 @@ fields:
     affects: "Вибір parser/validator для `ApplicationConfig` і правила перевірки вкладених секцій."
     does_not_affect: "Не змінює поведінку конвеєра обробки і не впливає на алгоритмічні результати."
     validation: "Має бути підтриманою версією; на першому етапі підтримується тільки `\"1.0\"`."
+
+  - name: "`source`"
+    type: "`SourceConfig`"
+    required: true
+    default: "якщо секція відсутня, configuration invalid"
+    purpose: "Runtime frame source selection."
+    affects: "Який source adapter створює або приймає input frame перед `FramePacket`."
+    does_not_affect: "Не змінює pipeline processing behavior або DP1 output."
+    validation: "Має відповідати `dp1.config.application.source`."
 
   - name: "`logging`"
     type: "`LoggingConfig`"
@@ -101,6 +121,15 @@ fields:
     affects: "Runtime profiling setup, bounded trace retention, aggregation і report policy."
     does_not_affect: "Не змінює pipeline processing behavior або DP1 output."
     validation: "Має відповідати `dp1.config.application.profiling`."
+
+  - name: "`dp2`"
+    type: "`DP2ConnectionConfig`"
+    required: true
+    default: "якщо секція відсутня, configuration invalid"
+    purpose: "Runtime DP1 -> DP2 connection policy."
+    affects: "Чи application runtime пробує передавати results до downstream DP2 boundary."
+    does_not_affect: "Не змінює payload schema або measurement semantics."
+    validation: "Має відповідати `dp1.config.application.dp2`."
 ```
 
 ## Input / Output
@@ -108,15 +137,19 @@ fields:
 Input:
 
 - application configuration authoring file;
+- `dp1.config.application.source`;
 - `dp1.config.application.logging`;
 - `dp1.config.application.profiling`;
+- `dp1.config.application.dp2`;
 - `PROJECT_ECOSYSTEM.md` як джерело environment facts.
 
 Output:
 
 - typed `ApplicationConfig`;
+- validated runtime source configuration;
 - validated runtime logging configuration;
-- validated runtime profiling configuration.
+- validated runtime profiling configuration;
+- validated runtime DP2 connection configuration.
 
 ## Constraints
 
@@ -156,7 +189,9 @@ root-картка залишалася стабільною при додава�
 ## Connections
 
 - separates_from: dp1.config.pipeline_configuration_c
+- contains: dp1.config.application.source
 - contains: dp1.config.application.logging
 - contains: dp1.config.application.profiling
+- contains: dp1.config.application.dp2
 - references: project-knowledge/01-project/PROJECT_ECOSYSTEM.md
 - related_protocol_boundary: protocols.dp1_dp2.measurement_handoff
