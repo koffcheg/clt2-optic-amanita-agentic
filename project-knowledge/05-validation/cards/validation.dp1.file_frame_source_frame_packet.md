@@ -1,6 +1,6 @@
 ---
 id: validation.dp1.file_frame_source_frame_packet
-title: "Validation route for FileFrameSource to FramePacket"
+title: "Validation route for FileFrameSource -> FramePacket"
 tags: [dp1, validation, canonical, input-route]
 kind: validation-card
 source_role: canonical
@@ -11,7 +11,7 @@ status: "draft"
 
 # Purpose
 
-Validation route для першого bounded DP1 code generation slice:
+Validation route для першого bounded DP1 codegen slice:
 
 ```text
 FileFrameSource -> FramePacket
