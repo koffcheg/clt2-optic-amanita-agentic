@@ -144,8 +144,10 @@ structure names such as `raw16` or `proc32`.
 
 - `configuration/dp1.config.pipeline_configuration_c.md` - canonical DP1 pipeline configuration `C`.
 - `configuration/dp1.config.application.md` - root canonical DP1 application-runtime configuration.
+- `configuration/dp1.config.application.source.md` - canonical DP1 application frame source configuration.
 - `configuration/dp1.config.application.logging.md` - canonical DP1 application logging configuration.
 - `configuration/dp1.config.application.profiling.md` - canonical DP1 application profiling configuration.
+- `configuration/dp1.config.application.dp2.md` - canonical DP1 -> DP2 runtime connection configuration.
 - `configuration/dp1.config.stage_variant_registry.md` - registry of the eight fixed stages, allowed variants, and variant/level separation.
 - `configuration/dp1.config.complexity_levels.md` - canonical complexity-level vocabulary.
 
