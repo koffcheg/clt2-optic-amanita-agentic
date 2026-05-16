@@ -776,6 +776,9 @@ dp1v2::VisualizationConfig parse_visualization_config(const json_t *visualizatio
     config.max_frames = read_optional_int(visualization_json, "max_frames", config.max_frames, "application.visualization");
     config.stages = read_optional_string_array(visualization_json, "stages", config.stages, "application.visualization");
 
+    if (config.enabled && config.output_dir.empty()) {
+        throw std::logic_error("error on config file, application.visualization.output_dir must not be empty when visualization is enabled; empty output_dir");
+    }
     if (config.mode != "sync_file") {
         throw std::logic_error("error on config file, unsupported application.visualization.mode: " + config.mode);
     }

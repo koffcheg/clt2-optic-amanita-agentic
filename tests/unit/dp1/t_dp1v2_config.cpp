@@ -653,6 +653,25 @@ TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationSectionIsValid_Returns
     EXPECT_EQ(config.visualization.stages[0], "radiometric");
 }
 
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationEnabledWithEmptyOutputDir_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "enabled", json_boolean(true)), 0);
+    ASSERT_EQ(json_object_set_new(visualization, "output_dir", json_string("")), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    try {
+        (void)loadApplication(application);
+        FAIL() << "expected config error";
+    } catch (const std::logic_error& error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("application.visualization.output_dir"), std::string::npos);
+        EXPECT_NE(message.find("empty output_dir"), std::string::npos);
+    }
+}
+
 TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationHasUnknownKey_ThrowsConfigError)
 {
     JsonPtr application = makeApplicationConfig();

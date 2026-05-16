@@ -17,7 +17,14 @@ public:
     SourceReadResult read_next() override;
 
 private:
+    enum class SourceKind {
+        StillImage,
+        ImageSequence,
+        Video,
+    };
+
     std::string link_;
+    SourceKind source_kind_ = SourceKind::Video;
     cv::VideoCapture capture_;
     std::uint64_t next_frame_id_ = 0;
 };

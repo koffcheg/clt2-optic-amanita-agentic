@@ -159,6 +159,41 @@ TEST_F(VisualizationSinkTest, WriteStageOutput_WhenCompletedSignedResidual_Write
     EXPECT_NE(manifest.find("\"range_policy\": \"SignedResidual\""), std::string::npos);
 }
 
+
+TEST_F(VisualizationSinkTest, WriteStageOutput_WhenPixelFormatTypeMismatch_WritesFailureManifestWithoutPng)
+{
+    dp1v2::VisualizationSink sink(enabledConfig());
+
+    cv::Mat actual_u8(2, 2, CV_8UC1);
+    actual_u8.setTo(cv::Scalar(7));
+
+    dp1v2::ProcessingFrame frame{};
+    frame.frame_id = 0;
+    frame.image = actual_u8;
+    frame.pixel_format = dp1v2::PixelFormat::U16;
+    frame.value_range = dp1v2::PixelRange{.min_value = 0.0, .max_value = 65535.0, .black_level = 0.0, .saturation_level = 65535.0};
+    frame.processing_domain = dp1v2::ProcessingDomain::RadiometricCorrected;
+    frame.range_policy = dp1v2::RangePolicy::RawSensorRange;
+    frame.geometry = dp1v2::FrameGeometry{.width = actual_u8.cols, .height = actual_u8.rows};
+
+    const dp1v2::StageOutcome<dp1v2::RadiometricFullFrameOutput> outcome{
+        .status = dp1v2::StageExecutionStatus::Completed,
+        .output = dp1v2::RadiometricFullFrameOutput{.frame = frame},
+        .reason = "",
+    };
+
+    sink.write_stage_output(frameContext(), "radiometric", outcome);
+
+    ASSERT_TRUE(std::filesystem::exists(manifestPath()));
+    EXPECT_FALSE(std::filesystem::exists(pngPath()));
+    const std::string manifest = readText(manifestPath());
+    EXPECT_NE(manifest.find("\"status\": \"failed\""), std::string::npos);
+    EXPECT_NE(manifest.find("pixel_format/type mismatch"), std::string::npos);
+    EXPECT_NE(manifest.find("expected pixel_format U16"), std::string::npos);
+    EXPECT_NE(manifest.find("CV_16UC1"), std::string::npos);
+    EXPECT_NE(manifest.find("actual cv::Mat type CV_8UC1/depth CV_8U/channels 1"), std::string::npos);
+}
+
 TEST_F(VisualizationSinkTest, WriteStageOutput_WhenEveryNFramesDoesNotMatch_CreatesNoOutput)
 {
     dp1v2::VisualizationConfig config = enabledConfig();

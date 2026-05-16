@@ -54,6 +54,76 @@ const char* pixelFormatToCstr(const PixelFormat format) {
     }
 }
 
+const char* cvDepthToCstr(const int depth) {
+    switch (depth) {
+        case CV_8U:
+            return "CV_8U";
+        case CV_16U:
+            return "CV_16U";
+        case CV_16S:
+            return "CV_16S";
+        case CV_32S:
+            return "CV_32S";
+        case CV_32F:
+            return "CV_32F";
+        default:
+            return "unknown";
+    }
+}
+
+const char* cvTypeToCstr(const int type) {
+    switch (type) {
+        case CV_8UC1:
+            return "CV_8UC1";
+        case CV_16UC1:
+            return "CV_16UC1";
+        case CV_16SC1:
+            return "CV_16SC1";
+        case CV_32SC1:
+            return "CV_32SC1";
+        case CV_32FC1:
+            return "CV_32FC1";
+        default:
+            return "unknown";
+    }
+}
+
+int expectedMatTypeFor(const PixelFormat format) {
+    switch (format) {
+        case PixelFormat::U8:
+        case PixelFormat::MaskU8:
+            return CV_8UC1;
+        case PixelFormat::U16:
+            return CV_16UC1;
+        case PixelFormat::S16:
+            return CV_16SC1;
+        case PixelFormat::S32:
+            return CV_32SC1;
+        case PixelFormat::F32:
+            return CV_32FC1;
+        default:
+            return -1;
+    }
+}
+
+std::string describeMatTypeMismatch(const ProcessingFrame& frame, const int expected_type) {
+    std::ostringstream reason;
+    reason << "visualization pixel_format/type mismatch: expected pixel_format "
+           << pixelFormatToCstr(frame.pixel_format);
+    if (expected_type >= 0) {
+        reason << " to use cv::Mat type " << cvTypeToCstr(expected_type)
+               << "/depth " << cvDepthToCstr(CV_MAT_DEPTH(expected_type))
+               << "/channels " << CV_MAT_CN(expected_type);
+    } else {
+        reason << " has no supported visualization cv::Mat type";
+    }
+    reason << "; actual cv::Mat type " << cvTypeToCstr(frame.image.type())
+           << "/depth " << cvDepthToCstr(frame.image.depth())
+           << "/channels " << frame.image.channels();
+    return reason.str();
+}
+
+
 const char* processingDomainToCstr(const ProcessingDomain domain) {
     switch (domain) {
         case ProcessingDomain::RadiometricResidual:
@@ -217,10 +287,19 @@ void VisualizationSink::write_stage_output(
 
     const bool has_image = outcome.status == StageExecutionStatus::Completed && !outcome.output.frame.image.empty();
     bool wrote_png = false;
+    bool render_mismatch = false;
+    std::string manifest_reason = outcome.reason;
     if (has_image) {
-        const cv::Mat preview = renderFramePreview(outcome.output.frame);
-        if (!preview.empty()) {
-            wrote_png = cv::imwrite((frame_dir / kRadiometricFrameFile).string(), preview);
+        const ProcessingFrame& frame = outcome.output.frame;
+        const int expected_type = expectedMatTypeFor(frame.pixel_format);
+        if (expected_type < 0 || frame.image.type() != expected_type) {
+            render_mismatch = true;
+            manifest_reason = describeMatTypeMismatch(frame, expected_type);
+        } else {
+            const cv::Mat preview = renderFramePreview(frame);
+            if (!preview.empty()) {
+                wrote_png = cv::imwrite((frame_dir / kRadiometricFrameFile).string(), preview);
+            }
         }
     }
 
@@ -234,8 +313,8 @@ void VisualizationSink::write_stage_output(
     manifest << "  \"frame_id\": " << context.frame_id << ",\n";
     manifest << "  \"camera_id\": " << context.camera_id << ",\n";
     manifest << "  \"stage\": \"" << jsonEscape(stage) << "\",\n";
-    manifest << "  \"status\": \"" << stageExecutionStatusToCstr(outcome.status) << "\",\n";
-    manifest << "  \"reason\": \"" << jsonEscape(outcome.reason) << "\",\n";
+    manifest << "  \"status\": \"" << (render_mismatch ? "failed" : stageExecutionStatusToCstr(outcome.status)) << "\",\n";
+    manifest << "  \"reason\": \"" << jsonEscape(manifest_reason) << "\",\n";
     manifest << "  \"outputs\": [";
     if (wrote_png) {
         const ProcessingFrame& frame = outcome.output.frame;
