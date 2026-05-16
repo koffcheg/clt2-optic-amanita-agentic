@@ -1,6 +1,7 @@
 #include "dp1v2/app/startup.hpp"
 
 #include <filesystem>
+#include <iostream>
 #include <stdexcept>
 
 #include <log4cxx/xml/domconfigurator.h>
@@ -63,10 +64,11 @@ void configure_logging_if_requested(const LoggingConfig &logging_config, const c
     }
 
     resolved_path = resolve_config_path(logging_config.config_file, arg0);
-    const auto configuration_status = log4cxx::xml::DOMConfigurator::configureAndWatch(resolved_path);
-    if (configuration_status == log4cxx::spi::ConfigurationStatus::NotConfigured) {
+    if (resolved_path.empty() || !std::filesystem::exists(resolved_path)) {
         throw std::logic_error("unable to configure logging subsystem from application.logging.config_file: " + resolved_path);
     }
+
+    log4cxx::xml::DOMConfigurator::configureAndWatch(resolved_path);
 }
 
 StartupContext build_startup_context(const int argc, char *argv[]) {
@@ -87,6 +89,10 @@ StartupContext build_startup_context(const int argc, char *argv[]) {
 int run_startup(const int argc, char *argv[]) {
     const auto context = build_startup_context(argc, argv);
     const auto result = run_runtime_skeleton(context);
+    if (result.exit_code != 0) {
+        std::cerr << "datapro1_v2 failed: status=" << process_terminal_status_to_cstr(result.status)
+                  << " reason=" << result.reason << std::endl;
+    }
     return result.exit_code;
 }
 

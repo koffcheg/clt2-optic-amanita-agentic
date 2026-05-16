@@ -46,3 +46,6 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0024` - unit tests for canonical DP1 v2 configuration - completed
 - `AMNT-0025` - canonical DP1 v2 domain carriers and stage interfaces - completed
 - `AMNT-0026` - integrate inverse_median through RadiometricStage dispatcher - completed
+- `AMNT-0027` - DP1 v2 file URI full-frame inverse median executable slice - completed
+- `AMNT-0028` - datapro1_v2 local build validation path - completed
+- `AMNT-0029` - DP1 v2 inverse-median runtime slice review fixes - completed

@@ -80,6 +80,16 @@
       "backend": "none"
     }
   },
+  "visualization": {
+    "enabled": true,
+    "output_dir": "datapro1_v2_output/visualization",
+    "mode": "sync_file",
+    "every_n_frames": 1,
+    "max_frames": 100,
+    "stages": [
+      "radiometric"
+    ]
+  },
   "dp2": {
     "enabled": false,
     "mode": "disabled",
