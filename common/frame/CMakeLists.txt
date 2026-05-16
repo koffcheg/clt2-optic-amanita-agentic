@@ -17,8 +17,20 @@ target_sources(
         src/camera_frame.hpp
         )
 
-target_link_libraries(
-        ${LIB_NAME}
-        PRIVATE
-        opencv_world
-      )
+target_include_directories(${LIB_NAME}
+                           PRIVATE
+                           ${OpenCV_INCLUDE_DIRS})
+
+if (TARGET opencv_world)
+    target_link_libraries(
+            ${LIB_NAME}
+            PRIVATE
+            opencv_world
+          )
+else ()
+    target_link_libraries(
+            ${LIB_NAME}
+            PRIVATE
+            ${OpenCV_LIBS}
+          )
+endif ()
