@@ -147,6 +147,7 @@ structure names such as `raw16` or `proc32`.
 - `configuration/dp1.config.application.source.md` - canonical DP1 application frame source configuration.
 - `configuration/dp1.config.application.logging.md` - canonical DP1 application logging configuration.
 - `configuration/dp1.config.application.profiling.md` - canonical DP1 application profiling configuration.
+- `configuration/dp1.config.application.visualization.md` - canonical DP1 application visualization artifact emission configuration.
 - `configuration/dp1.config.application.dp2.md` - canonical DP1 -> DP2 runtime connection configuration.
 - `configuration/dp1.config.stage_variant_registry.md` - registry of the eight fixed stages, allowed variants, and variant/level separation.
 - `configuration/dp1.config.complexity_levels.md` - canonical complexity-level vocabulary.
@@ -167,7 +168,8 @@ structure names such as `raw16` or `proc32`.
 
 The current canonical stage-interface card set covers only the eight main DP1
 detection/measurement stages. Infrastructure stages such as visualization and
-persistence are intentionally not described in this pass.
+persistence are intentionally not described in this pass. Runtime visualization
+configuration is described separately as application configuration.
 
 ## OpenCV boundary
 

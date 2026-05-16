@@ -44,13 +44,13 @@ public:
     virtual StageCapabilities capabilities() const noexcept = 0;
 
     /// Processes a full-frame Processing carrier.
-    virtual StageOutcome<EnhancementFullFrameOutput> processFullFrame(
+    virtual StageOutcome<EnhancementFullFrameOutput> process(
         const EnhancementFullFrameInput &input,
         FrameContext &context,
         const StageConfig &config) = 0;
 
     /// Processes a tile-local Processing carrier.
-    virtual StageOutcome<EnhancementTileOutput> processTile(
+    virtual StageOutcome<EnhancementTileOutput> process(
         const EnhancementTileInput &input,
         TileContext &tile_context,
         FrameContext &frame_context,

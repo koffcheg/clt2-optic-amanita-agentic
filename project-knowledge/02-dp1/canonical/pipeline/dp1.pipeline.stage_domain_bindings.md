@@ -42,6 +42,8 @@ route, а Stage I/O Matrix задає послідовний input/output flow �
 process(input, context, config) -> output
 ```
 
+This is the semantic stage form. C++ implementations may use route-specific overloads named `process(...)`, provided that input, runtime context/config, and explicit output roles remain separate. Route-specific execution names such as `processFullFrame(...)` or `processTile(...)` are not canonical.
+
 де:
 - `input` має належати дозволеному input domain/structure для цього stage;
 - `context` має бути runtime context, а не контейнером stage output;

@@ -49,3 +49,7 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0027` - DP1 v2 file URI full-frame inverse median executable slice - completed
 - `AMNT-0028` - datapro1_v2 local build validation path - completed
 - `AMNT-0029` - DP1 v2 inverse-median runtime slice review fixes - completed
+- `AMNT-0030` - DP1 v2 stage process overload naming alignment - completed
+- `AMNT-0031` - DP1 v2 inverse median ForMedian dataset run - completed
+- `AMNT-0032` - canonical DP1 application visualization configuration - completed
+- `AMNT-0033` - DP1 visualization config unit-test coverage - completed

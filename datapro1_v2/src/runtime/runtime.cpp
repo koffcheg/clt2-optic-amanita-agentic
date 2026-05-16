@@ -18,23 +18,6 @@ bool has_frame_budget(const RuntimeLoopResult &result, const RuntimeLoopLimits &
     return limits.max_frames == 0 || result.frames_completed + result.frames_failed < limits.max_frames;
 }
 
-std::size_t inverse_median_window_size(const InverseMedianParametersConfig &config) {
-    if (config.mode == InverseMedianMode::FixedK5) {
-        return 5;
-    }
-    return 3;
-}
-
-std::size_t minimum_frame_budget_for_pipeline(const ResolvedPipelineConfig &config) {
-    if (config.radiometric.inverse_median.has_value() && config.radiometric.inverse_median->enabled) {
-        const auto &inverse_median = *config.radiometric.inverse_median;
-        return (inverse_median_window_size(inverse_median) - 1U) *
-                   static_cast<std::size_t>(inverse_median.stride) +
-               1U;
-    }
-    return 1;
-}
-
 } // namespace
 
 const char *frame_terminal_status_to_cstr(const FrameTerminalStatus status) {
@@ -73,8 +56,10 @@ ProcessRunResult run_runtime_skeleton(const StartupContext &context) {
     initialize_result_sink(context.config.application.dp2, context.cli.cam_index, context.calibration.camera);
 
     auto source = create_frame_source(context.config.application.source, context.cli.cam_index);
-    const auto frame_budget = minimum_frame_budget_for_pipeline(context.config.resolved_pipeline);
-    const auto loop_result = run_bounded_runtime_loop(context, *source, RuntimeLoopLimits{.max_frames = frame_budget, .max_empty_reads = 1});
+    const auto loop_result = run_bounded_runtime_loop(
+        context,
+        *source,
+        RuntimeLoopLimits{.max_frames = 0, .max_empty_reads = 1});
 
     const bool success = loop_result.status == ProcessTerminalStatus::SourceExhausted
                          || loop_result.status == ProcessTerminalStatus::StopRequested

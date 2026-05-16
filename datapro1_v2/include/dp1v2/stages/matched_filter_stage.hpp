@@ -43,13 +43,13 @@ public:
     virtual StageCapabilities capabilities() const noexcept = 0;
 
     /// Produces a full-frame detector response.
-    virtual StageOutcome<MatchedFilterFullFrameOutput> processFullFrame(
+    virtual StageOutcome<MatchedFilterFullFrameOutput> process(
         const MatchedFilterFullFrameInput &input,
         FrameContext &context,
         const StageConfig &config) = 0;
 
     /// Produces a tile-local detector response.
-    virtual StageOutcome<MatchedFilterTileOutput> processTile(
+    virtual StageOutcome<MatchedFilterTileOutput> process(
         const MatchedFilterTileInput &input,
         TileContext &tile_context,
         FrameContext &frame_context,

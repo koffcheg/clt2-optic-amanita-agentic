@@ -21,6 +21,8 @@ status: "draft"
 process(input, context, config) -> output
 ```
 
+In C++ implementations, route-specific stage execution must be represented by overloads named `process(...)`. Route-specific method names such as `processFullFrame(...)`, `processTile(...)`, `prepareFullFrame(...)`, and `prepareTiles(...)` are not canonical stage execution methods. Exact C++ parameter lists for full-frame, ROI, and tile routes remain subject to route-specific stage specifications.
+
 ## Assumptions
 
 - Картка інтерфейсу етапу описує межу етапу, а не повну алгоритмічну
@@ -103,7 +105,7 @@ status або diagnostic.
 
 - Стандартні поля контексту.
 - Пороги валідації для кожного рівня складності.
-- Exact function signatures для full-frame, ROI і tile routes.
+- Exact C++ parameter lists for full-frame, ROI, and tile route overloads.
 
 ## Connections
 

@@ -654,6 +654,127 @@ TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationSectionIsValid_Returns
 }
 
 
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationSectionIsNotObject_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    setObject(application.get(), {}, "visualization", json_array());
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationSectionIsEmptyObject_AppliesVisualizationDefaults)
+{
+    JsonPtr application = makeApplicationConfig();
+    setObject(application.get(), {}, "visualization", json_object());
+
+    const dp1v2::ApplicationConfig config = loadApplication(application);
+
+    EXPECT_FALSE(config.visualization.enabled);
+    EXPECT_EQ(config.visualization.output_dir, "datapro1_v2_output/visualization");
+    EXPECT_EQ(config.visualization.mode, "sync_file");
+    EXPECT_EQ(config.visualization.every_n_frames, 1);
+    EXPECT_EQ(config.visualization.max_frames, 0);
+    EXPECT_TRUE(config.visualization.stages.empty());
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationEnabledIsNotBool_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "enabled", json_string("true")), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationOutputDirIsNotString_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "output_dir", json_integer(7)), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationModeIsNotString_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "mode", json_integer(1)), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationEveryNFramesIsNotInteger_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "every_n_frames", json_string("1")), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationMaxFramesIsNotInteger_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "max_frames", json_string("0")), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationStagesIsNotArray_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "stages", json_string("radiometric")), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationStageIsNotString_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* stages = json_array();
+    ASSERT_EQ(json_array_append_new(stages, json_integer(1)), 0);
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "stages", stages), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationStageIsEmpty_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* stages = json_array();
+    ASSERT_EQ(json_array_append_new(stages, json_string("")), 0);
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "stages", stages), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationDisabledWithEmptyOutputDir_ReturnsConfig)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "enabled", json_boolean(false)), 0);
+    ASSERT_EQ(json_object_set_new(visualization, "output_dir", json_string("")), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    const dp1v2::ApplicationConfig config = loadApplication(application);
+
+    EXPECT_FALSE(config.visualization.enabled);
+    EXPECT_TRUE(config.visualization.output_dir.empty());
+}
+
 TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationEnabledWithEmptyOutputDir_ThrowsConfigError)
 {
     JsonPtr application = makeApplicationConfig();

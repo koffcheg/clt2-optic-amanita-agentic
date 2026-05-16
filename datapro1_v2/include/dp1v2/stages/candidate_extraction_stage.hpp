@@ -50,13 +50,13 @@ public:
     virtual StageCapabilities capabilities() const noexcept = 0;
 
     /// Extracts a full-frame binary mask and candidate list.
-    virtual StageOutcome<CandidateExtractionFullFrameOutput> processFullFrame(
+    virtual StageOutcome<CandidateExtractionFullFrameOutput> process(
         const CandidateExtractionFullFrameInput &input,
         FrameContext &context,
         const StageConfig &config) = 0;
 
     /// Extracts a tile-local binary mask and candidate list.
-    virtual StageOutcome<CandidateExtractionTileOutput> processTile(
+    virtual StageOutcome<CandidateExtractionTileOutput> process(
         const CandidateExtractionTileInput &input,
         TileContext &tile_context,
         FrameContext &frame_context,

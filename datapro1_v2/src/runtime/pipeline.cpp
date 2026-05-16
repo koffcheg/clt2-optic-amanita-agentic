@@ -43,7 +43,7 @@ SingleFramePipelineResult process_single_frame(
     frame_context.config_ref = &pipeline_config;
 
     if (shouldRunRadiometricStage(pipeline_config.stages.radiometric)) {
-        const auto radiometric_result = radiometric_stage.processFullFrame(
+        const auto radiometric_result = radiometric_stage.process(
             RadiometricFullFrameInput{.frame = packet_result.packet},
             frame_context,
             pipeline_config.stages.radiometric);
