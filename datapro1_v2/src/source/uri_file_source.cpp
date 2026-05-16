@@ -1,5 +1,8 @@
 #include "dp1v2/source/uri_file_source.hpp"
 
+#include <cstdlib>
+#include <utility>
+
 #include <opencv2/imgproc.hpp>
 
 namespace {
@@ -7,6 +10,32 @@ namespace {
 constexpr double kLegacyUint8ToUint16Scale = 256.0;
 constexpr int kDefaultNormalizedUriBitDepth = 16;
 constexpr int kDefaultNormalizedUriBytesPerPixel = 2;
+
+std::string expand_environment_placeholders(const std::string &path) {
+    std::string expanded;
+    expanded.reserve(path.size());
+
+    for (std::size_t pos = 0; pos < path.size();) {
+        if (path[pos] == '$' && pos + 1 < path.size() && path[pos + 1] == '{') {
+            const auto end = path.find('}', pos + 2);
+            if (end != std::string::npos) {
+                const auto name = path.substr(pos + 2, end - pos - 2);
+                if (const char *value = std::getenv(name.c_str())) {
+                    expanded += value;
+                } else {
+                    expanded += path.substr(pos, end - pos + 1);
+                }
+                pos = end + 1;
+                continue;
+            }
+        }
+
+        expanded += path[pos];
+        ++pos;
+    }
+
+    return expanded;
+}
 
 cv::Mat normalize_uri_frame_to_mono16(const cv::Mat &frame) {
     cv::Mat gray;
@@ -38,7 +67,7 @@ cv::Mat normalize_uri_frame_to_mono16(const cv::Mat &frame) {
 namespace dp1v2 {
 
 UriFileFrameSource::UriFileFrameSource(std::string link)
-    : link_(std::move(link)) {
+    : link_(expand_environment_placeholders(std::move(link))) {
     if (!link_.empty()) {
         capture_.open(link_);
     }

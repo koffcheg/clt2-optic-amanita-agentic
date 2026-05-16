@@ -7,6 +7,7 @@
 #include "dp1v2/source/source.hpp"
 #include "dp1v2/source/source_factory.hpp"
 #include "dp1v2/app/startup.hpp"
+#include "dp1v2/stages/radiometric_stage.hpp"
 
 namespace dp1v2 {
 
@@ -14,6 +15,20 @@ namespace {
 
 bool has_frame_budget(const RuntimeLoopResult &result, const RuntimeLoopLimits &limits) {
     return limits.max_frames == 0 || result.frames_completed + result.frames_failed < limits.max_frames;
+}
+
+std::size_t inverse_median_window_size(const InverseMedianParametersConfig &config) {
+    if (config.mode == InverseMedianMode::FixedK5) {
+        return 5;
+    }
+    return 3;
+}
+
+std::size_t minimum_frame_budget_for_pipeline(const ResolvedPipelineConfig &config) {
+    if (config.radiometric.inverse_median.has_value() && config.radiometric.inverse_median->enabled) {
+        return inverse_median_window_size(*config.radiometric.inverse_median);
+    }
+    return 1;
 }
 
 } // namespace
@@ -54,7 +69,8 @@ ProcessRunResult run_runtime_skeleton(const StartupContext &context) {
     initialize_result_sink(context.config.application.dp2, context.cli.cam_index, context.calibration.camera);
 
     auto source = create_frame_source(context.config.application.source, context.cli.cam_index);
-    const auto loop_result = run_bounded_runtime_loop(context, *source, RuntimeLoopLimits{});
+    const auto frame_budget = minimum_frame_budget_for_pipeline(context.config.resolved_pipeline);
+    const auto loop_result = run_bounded_runtime_loop(context, *source, RuntimeLoopLimits{.max_frames = frame_budget, .max_empty_reads = 1});
 
     const bool success = loop_result.status == ProcessTerminalStatus::SourceExhausted
                          || loop_result.status == ProcessTerminalStatus::StopRequested
@@ -89,6 +105,7 @@ RuntimeLoopResult run_bounded_runtime_loop(const StartupContext &context, IFrame
 
     RuntimeLoopResult loop_result{};
     std::size_t empty_reads = 0;
+    RadiometricStage radiometric_stage(context.config.resolved_pipeline.radiometric);
 
     while (has_frame_budget(loop_result, limits)) {
         if (is_process_stop_requested()) {
@@ -136,7 +153,11 @@ RuntimeLoopResult run_bounded_runtime_loop(const StartupContext &context, IFrame
             }
         }
 
-        const auto frame_result = process_single_frame(source_result.envelope, context.cli.cam_index);
+        const auto frame_result = process_single_frame(
+            source_result.envelope,
+            context.cli.cam_index,
+            context.config.pipeline,
+            radiometric_stage);
         loop_result.last_frame = frame_result.lifecycle;
         loop_result.resource.last_reason = frame_result.lifecycle.reason;
         if (frame_result.lifecycle.status == FrameTerminalStatus::Completed) {
