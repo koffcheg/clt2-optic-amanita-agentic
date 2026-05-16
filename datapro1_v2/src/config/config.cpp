@@ -356,6 +356,31 @@ std::vector<std::string> read_required_string_array(const json_t *object,
     return result;
 }
 
+std::vector<std::string> read_optional_string_array(const json_t *object,
+                                                    const char *key,
+                                                    const std::vector<std::string> &default_value,
+                                                    const std::string &context) {
+    const json_t *value = json_object_get(object, key);
+    if (!value) {
+        return default_value;
+    }
+    if (!json_is_array(value)) {
+        throw std::logic_error("error on config file, " + context + "." + key + " must be array");
+    }
+
+    std::vector<std::string> result;
+    const auto size = json_array_size(value);
+    result.reserve(size);
+    for (std::size_t i = 0; i < size; ++i) {
+        const json_t *item = json_array_get(value, i);
+        if (!json_is_string(item)) {
+            throw std::logic_error("error on config file, " + context + "." + key + " must contain strings");
+        }
+        result.emplace_back(json_string_value(item));
+    }
+    return result;
+}
+
 void validate_schema_version(const std::string &version, const std::string &context) {
     if (version != kSupportedSchemaVersion) {
         throw std::logic_error("error on config file, unsupported " + context + ".schema_version: " + version);
@@ -730,6 +755,47 @@ dp1v2::SourceConfig parse_source_config(const json_t *source_json) {
     return config;
 }
 
+dp1v2::VisualizationConfig parse_visualization_config(const json_t *visualization_json) {
+    dp1v2::VisualizationConfig config{};
+    if (!visualization_json) {
+        return config;
+    }
+    if (!json_is_object(visualization_json)) {
+        throw std::logic_error("error on config file, application.visualization must be object");
+    }
+
+    reject_unknown_keys(visualization_json,
+                        {"enabled", "output_dir", "mode", "every_n_frames", "max_frames", "stages"},
+                        "application.visualization");
+
+    config.enabled = json_object_get(visualization_json, "enabled") ?
+        read_required_bool(visualization_json, "enabled", "application.visualization") : config.enabled;
+    config.output_dir = read_optional_string(visualization_json, "output_dir", config.output_dir, "application.visualization");
+    config.mode = read_optional_string(visualization_json, "mode", config.mode, "application.visualization");
+    config.every_n_frames = read_optional_int(visualization_json, "every_n_frames", config.every_n_frames, "application.visualization");
+    config.max_frames = read_optional_int(visualization_json, "max_frames", config.max_frames, "application.visualization");
+    config.stages = read_optional_string_array(visualization_json, "stages", config.stages, "application.visualization");
+
+    if (config.mode != "sync_file") {
+        throw std::logic_error("error on config file, unsupported application.visualization.mode: " + config.mode);
+    }
+    if (config.every_n_frames < 1) {
+        throw std::logic_error("error on config file, application.visualization.every_n_frames must be >= 1");
+    }
+    if (config.max_frames < 0) {
+        throw std::logic_error("error on config file, application.visualization.max_frames must be >= 0");
+    }
+    ensure_no_duplicates(config.stages, "application.visualization.stages");
+    static const std::vector<std::string_view> supported_stages{"radiometric"};
+    for (const auto &stage : config.stages) {
+        ensure_non_empty(stage, "application.visualization.stages[]");
+        if (!contains(supported_stages, stage)) {
+            throw std::logic_error("error on config file, unsupported application.visualization stage: " + stage);
+        }
+    }
+    return config;
+}
+
 dp1v2::DP2ConnectionConfig parse_dp2_config(const json_t *dp2_json) {
     reject_unknown_keys(dp2_json, {"enabled", "mode", "host", "port", "reconnect_interval_s"}, "application.dp2");
 
@@ -760,7 +826,7 @@ dp1v2::DP2ConnectionConfig parse_dp2_config(const json_t *dp2_json) {
 }
 
 dp1v2::ApplicationConfig parse_application_config(const json_t *application_json) {
-    reject_unknown_keys(application_json, {"schema_version", "source", "logging", "profiling", "dp2"}, "application");
+    reject_unknown_keys(application_json, {"schema_version", "source", "logging", "profiling", "visualization", "dp2"}, "application");
 
     dp1v2::ApplicationConfig config{};
     config.schema_version = read_required_string(application_json, "schema_version", "application");
@@ -768,6 +834,7 @@ dp1v2::ApplicationConfig parse_application_config(const json_t *application_json
     config.source = parse_source_config(read_required_object(application_json, "source", "application"));
     config.logging = parse_logging_config(read_required_object(application_json, "logging", "application"));
     config.profiling = parse_profiling_config(read_required_object(application_json, "profiling", "application"));
+    config.visualization = parse_visualization_config(json_object_get(application_json, "visualization"));
     config.dp2 = parse_dp2_config(read_required_object(application_json, "dp2", "application"));
     return config;
 }

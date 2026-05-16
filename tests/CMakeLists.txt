@@ -9,8 +9,14 @@ target_sources(
         PRIVATE
         unit/dp1/t_dp1v2_cyclic_frame_buffer.cpp
         unit/dp1/t_dp1v2_config.cpp
+        unit/dp1/t_dp1v2_visualization_sink.cpp
+        unit/dp1/t_dp1v2_source.cpp
         ../datapro1_v2/src/runtime/cyclic_frame_buffer.cpp
         ../datapro1_v2/src/config/config.cpp
+        ../datapro1_v2/src/frame/frame_packet_builder.cpp
+        ../datapro1_v2/src/visualization/visualization_sink.cpp
+        ../datapro1_v2/src/stages/radiometric_stage.inverse_median.cpp
+        ../datapro1_v2/src/source/uri_file_source.cpp
 )
 
 target_include_directories(

@@ -6,8 +6,9 @@ add_library(${LIB_NAME} STATIC)
 
 
 target_include_directories(${LIB_NAME}
-                           INTERFACE
-                           src)
+                           PUBLIC
+                           src
+                           ${OpenCV_INCLUDE_DIRS})
 
 target_sources(
         ${LIB_NAME}
@@ -17,8 +18,16 @@ target_sources(
         src/camera_frame.hpp
         )
 
-target_link_libraries(
-        ${LIB_NAME}
-        PRIVATE
-        opencv_world
-      )
+if (TARGET opencv_world)
+    target_link_libraries(
+            ${LIB_NAME}
+            PUBLIC
+            opencv_world
+          )
+else ()
+    target_link_libraries(
+            ${LIB_NAME}
+            PUBLIC
+            ${OpenCV_LIBS}
+          )
+endif ()

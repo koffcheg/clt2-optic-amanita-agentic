@@ -128,11 +128,21 @@ struct ProfilingConfig {
     ProfilingExternalTraceConfig external_trace;
 };
 
+struct VisualizationConfig {
+    bool enabled = false;
+    std::string output_dir = "datapro1_v2_output/visualization";
+    std::string mode = "sync_file";
+    int every_n_frames = 1;
+    int max_frames = 0;
+    std::vector<std::string> stages;
+};
+
 struct ApplicationConfig {
     std::string schema_version;
     SourceConfig source;
     LoggingConfig logging;
     ProfilingConfig profiling;
+    VisualizationConfig visualization;
     DP2ConnectionConfig dp2;
 };
 

@@ -63,10 +63,11 @@ void configure_logging_if_requested(const LoggingConfig &logging_config, const c
     }
 
     resolved_path = resolve_config_path(logging_config.config_file, arg0);
-    const auto configuration_status = log4cxx::xml::DOMConfigurator::configureAndWatch(resolved_path);
-    if (configuration_status == log4cxx::spi::ConfigurationStatus::NotConfigured) {
+    if (resolved_path.empty() || !std::filesystem::exists(resolved_path)) {
         throw std::logic_error("unable to configure logging subsystem from application.logging.config_file: " + resolved_path);
     }
+
+    log4cxx::xml::DOMConfigurator::configureAndWatch(resolved_path);
 }
 
 StartupContext build_startup_context(const int argc, char *argv[]) {

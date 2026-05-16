@@ -510,3 +510,27 @@ TEST(InverseMedianFilter, ProcessFrame_WhenLifecycleOrInputIsInvalid_Throws)
     invalid_route.binning_factor = 0;
     EXPECT_THROW(filter.reset(invalid_route), std::invalid_argument);
 }
+
+TEST(InverseMedianFilter, ProcessFrame_WhenFixedK3Stride2_ReachesFirstValidResidualAtCorrectedBudget)
+{
+    const cv::Size size(1, 1);
+    std::vector<cv::Mat> stream{
+        makeU8Mat(1, 1, {10}),
+        makeU8Mat(1, 1, {100}),
+        makeU8Mat(1, 1, {30}),
+        makeU8Mat(1, 1, {101}),
+        makeU8Mat(1, 1, {20}),
+    };
+
+    dp1v2::InverseMedianFilter filter(makeConfig(dp1v2::InverseMedianMode::FixedK3, 2), size, CV_8U);
+    const dp1v2::InverseMedianResult* result = nullptr;
+    for (const cv::Mat& frame : stream) {
+        result = &filter.processFrame(frame);
+    }
+
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->frame_index, 4U);
+    EXPECT_EQ(result->status, dp1v2::InverseMedianStatus::Valid);
+    EXPECT_TRUE(result->median_updated);
+    ASSERT_NE(result->residual, nullptr);
+}

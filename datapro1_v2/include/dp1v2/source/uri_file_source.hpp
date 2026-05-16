@@ -19,7 +19,7 @@ public:
 private:
     std::string link_;
     cv::VideoCapture capture_;
-    std::uint64_t next_frame_id_ = 1;
+    std::uint64_t next_frame_id_ = 0;
 };
 
 } // namespace dp1v2

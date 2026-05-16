@@ -613,3 +613,113 @@ TEST_F(ConfigTest, LoadDp1Config_WhenLoggingAsyncBlocksRtSafeProfile_ThrowsConfi
 
     EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
 }
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationSectionMissing_AppliesDisabledDefaults)
+{
+    JsonPtr application = makeApplicationConfig();
+
+    const dp1v2::ApplicationConfig config = loadApplication(application);
+
+    EXPECT_FALSE(config.visualization.enabled);
+    EXPECT_EQ(config.visualization.output_dir, "datapro1_v2_output/visualization");
+    EXPECT_EQ(config.visualization.mode, "sync_file");
+    EXPECT_EQ(config.visualization.every_n_frames, 1);
+    EXPECT_EQ(config.visualization.max_frames, 0);
+    EXPECT_TRUE(config.visualization.stages.empty());
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationSectionIsValid_ReturnsVisualizationConfig)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* stages = json_array();
+    ASSERT_EQ(json_array_append_new(stages, json_string("radiometric")), 0);
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "enabled", json_boolean(true)), 0);
+    ASSERT_EQ(json_object_set_new(visualization, "output_dir", json_string("out/vis")), 0);
+    ASSERT_EQ(json_object_set_new(visualization, "mode", json_string("sync_file")), 0);
+    ASSERT_EQ(json_object_set_new(visualization, "every_n_frames", json_integer(2)), 0);
+    ASSERT_EQ(json_object_set_new(visualization, "max_frames", json_integer(3)), 0);
+    ASSERT_EQ(json_object_set_new(visualization, "stages", stages), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    const dp1v2::ApplicationConfig config = loadApplication(application);
+
+    EXPECT_TRUE(config.visualization.enabled);
+    EXPECT_EQ(config.visualization.output_dir, "out/vis");
+    EXPECT_EQ(config.visualization.mode, "sync_file");
+    EXPECT_EQ(config.visualization.every_n_frames, 2);
+    EXPECT_EQ(config.visualization.max_frames, 3);
+    ASSERT_EQ(config.visualization.stages.size(), 1U);
+    EXPECT_EQ(config.visualization.stages[0], "radiometric");
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationHasUnknownKey_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "enabled", json_boolean(true)), 0);
+    ASSERT_EQ(json_object_set_new(visualization, "extra", json_boolean(true)), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationModeIsUnsupported_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "enabled", json_boolean(true)), 0);
+    ASSERT_EQ(json_object_set_new(visualization, "mode", json_string("async")), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationEveryNFramesIsZero_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "enabled", json_boolean(true)), 0);
+    ASSERT_EQ(json_object_set_new(visualization, "every_n_frames", json_integer(0)), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationMaxFramesIsNegative_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "enabled", json_boolean(true)), 0);
+    ASSERT_EQ(json_object_set_new(visualization, "max_frames", json_integer(-1)), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationStagesContainDuplicate_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* stages = json_array();
+    ASSERT_EQ(json_array_append_new(stages, json_string("radiometric")), 0);
+    ASSERT_EQ(json_array_append_new(stages, json_string("radiometric")), 0);
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "enabled", json_boolean(true)), 0);
+    ASSERT_EQ(json_object_set_new(visualization, "stages", stages), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationStageIsUnsupported_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* stages = json_array();
+    ASSERT_EQ(json_array_append_new(stages, json_string("measurement")), 0);
+    json_t* visualization = json_object();
+    ASSERT_EQ(json_object_set_new(visualization, "enabled", json_boolean(true)), 0);
+    ASSERT_EQ(json_object_set_new(visualization, "stages", stages), 0);
+    setObject(application.get(), {}, "visualization", visualization);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}

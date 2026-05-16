@@ -6,6 +6,7 @@
 
 #include <opencv2/core.hpp>
 
+#include "dp1v2/config/config.hpp"
 #include "dp1v2/domain/frame_packet.hpp"
 
 namespace dp1v2 {
@@ -47,6 +48,12 @@ const char *frame_packet_error_to_cstr(FramePacketBuildError error);
 FramePacketBuildResult make_frame_packet(
     const cv::Mat &image,
     const FrameHeaderHint &hint,
+    std::chrono::steady_clock::time_point ingest_steady_ts);
+
+FramePacketBuildResult make_frame_packet(
+    const cv::Mat &image,
+    const FrameHeaderHint &hint,
+    const InputRouteConfig &input_route,
     std::chrono::steady_clock::time_point ingest_steady_ts);
 
 } // namespace dp1v2

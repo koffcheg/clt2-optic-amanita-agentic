@@ -90,6 +90,10 @@ bool is_header_mat_compatible(const InputBitDepth header_bit_depth, const PixelF
     return false;
 }
 
+bool is_input_route_mat_compatible(const InputRouteConfig &input_route, const PixelFormat mat_pixel_format) {
+    return input_route.pixel_format == mat_pixel_format && is_header_mat_compatible(input_route.bit_depth, mat_pixel_format);
+}
+
 PixelRange default_pixel_range(const InputBitDepth bit_depth) {
     const int max_value = bit_depth == InputBitDepth::Bit8 ? 255 :
                           bit_depth == InputBitDepth::Bit10 ? 1023 :
@@ -190,6 +194,28 @@ FramePacketBuildResult make_frame_packet(
         .resolve_path = pixel_route->path,
         .exact_bit_depth = pixel_route->exact_bit_depth,
     };
+}
+
+FramePacketBuildResult make_frame_packet(
+    const cv::Mat &image,
+    const FrameHeaderHint &hint,
+    const InputRouteConfig &input_route,
+    const std::chrono::steady_clock::time_point ingest_steady_ts) {
+    auto result = make_frame_packet(image, hint, ingest_steady_ts);
+    if (!result.ok()) {
+        return result;
+    }
+
+    if (!is_input_route_mat_compatible(input_route, result.packet.pixel_format)) {
+        return FramePacketBuildResult{.error = FramePacketBuildError::HeaderMatConflict};
+    }
+
+    result.packet.pixel_format = input_route.pixel_format;
+    result.packet.bit_depth = input_route.bit_depth;
+    result.packet.pixel_range = input_route.pixel_range;
+    result.resolve_path = PixelRouteResolvePath::FromHeader;
+    result.exact_bit_depth = true;
+    return result;
 }
 
 } // namespace dp1v2
