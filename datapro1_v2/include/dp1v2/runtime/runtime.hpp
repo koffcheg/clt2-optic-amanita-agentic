@@ -31,6 +31,7 @@ struct FrameLifecycleResult {
 struct ProcessRunResult {
     ProcessTerminalStatus status = ProcessTerminalStatus::StartupValidated;
     int exit_code = 0;
+    const char *reason = "";
 };
 
 struct RuntimeLoopLimits {

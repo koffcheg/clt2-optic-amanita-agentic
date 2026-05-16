@@ -1,6 +1,7 @@
 #include "dp1v2/app/startup.hpp"
 
 #include <filesystem>
+#include <iostream>
 #include <stdexcept>
 
 #include <log4cxx/xml/domconfigurator.h>
@@ -88,6 +89,10 @@ StartupContext build_startup_context(const int argc, char *argv[]) {
 int run_startup(const int argc, char *argv[]) {
     const auto context = build_startup_context(argc, argv);
     const auto result = run_runtime_skeleton(context);
+    if (result.exit_code != 0) {
+        std::cerr << "datapro1_v2 failed: status=" << process_terminal_status_to_cstr(result.status)
+                  << " reason=" << result.reason << std::endl;
+    }
     return result.exit_code;
 }
 

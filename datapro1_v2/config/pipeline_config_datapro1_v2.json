@@ -2,13 +2,13 @@
   "schema_version": "1.0",
   "profile": "RT-20",
   "input_route": {
-    "pixel_format": "U16",
-    "bit_depth": 16,
+    "pixel_format": "U8",
+    "bit_depth": 8,
     "pixel_range": {
       "min_value": 0,
-      "max_value": 65535,
+      "max_value": 255,
       "black_level": 0,
-      "saturation_level": 65535
+      "saturation_level": 255
     }
   },
   "pipeline": {

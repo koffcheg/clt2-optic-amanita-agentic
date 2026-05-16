@@ -84,6 +84,7 @@ ProcessRunResult run_runtime_skeleton(const StartupContext &context) {
     return ProcessRunResult{
         .status = loop_result.status,
         .exit_code = success ? 0 : 1,
+        .reason = loop_result.resource.last_reason,
     };
 }
 
