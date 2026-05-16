@@ -48,13 +48,13 @@ public:
     virtual StageCapabilities capabilities() const noexcept = 0;
 
     /// Produces full-frame validated objects.
-    virtual StageOutcome<ObjectFilteringFullFrameOutput> processFullFrame(
+    virtual StageOutcome<ObjectFilteringFullFrameOutput> process(
         const ObjectFilteringFullFrameInput &input,
         FrameContext &context,
         const StageConfig &config) = 0;
 
     /// Produces tile-local validated objects.
-    virtual StageOutcome<ObjectFilteringTileOutput> processTile(
+    virtual StageOutcome<ObjectFilteringTileOutput> process(
         const ObjectFilteringTileInput &input,
         TileContext &tile_context,
         FrameContext &frame_context,

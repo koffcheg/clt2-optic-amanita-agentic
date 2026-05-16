@@ -183,7 +183,7 @@ StageOutcome<RadiometricFullFrameOutput> RadiometricStage::makeInverseMedianFull
     };
 }
 
-StageOutcome<RadiometricFullFrameOutput> RadiometricStage::processFullFrame(
+StageOutcome<RadiometricFullFrameOutput> RadiometricStage::process(
     const RadiometricFullFrameInput& input,
     FrameContext& context,
     const StageConfig& config)
@@ -209,7 +209,7 @@ StageOutcome<RadiometricFullFrameOutput> RadiometricStage::processFullFrame(
     }
 }
 
-StageOutcome<RadiometricTileOutput> RadiometricStage::processTile(
+StageOutcome<RadiometricTileOutput> RadiometricStage::process(
     const RadiometricTileInput& input,
     TileContext& tile_context,
     FrameContext& frame_context,

@@ -13,11 +13,10 @@ status: "draft"
 
 ## Definition
 
-This card defines the future unit-test plan for canonical `dp1_v2`
+This card defines the unit-test route and coverage record for canonical `dp1_v2`
 configuration parsing and validation.
 
-It does not create automated tests. Test implementation belongs to a separate
-approved task.
+New test implementation belongs to a separate approved task.
 
 ## Scope
 
@@ -79,6 +78,32 @@ Required future GoogleTest cases:
 - `LoadDp1Config_WhenProfilingLevelIsDuplicated_ThrowsConfigError`
 - `LoadDp1Config_WhenExternalTraceIsEnabled_ThrowsConfigError`
 - `LoadDp1Config_WhenLoggingAsyncBlocksRtSafeProfile_ThrowsConfigError`
+
+Implemented `ApplicationConfig.visualization` GoogleTest cases:
+
+- `LoadApplicationConfig_WhenVisualizationSectionMissing_AppliesDisabledDefaults`
+- `LoadApplicationConfig_WhenVisualizationSectionIsValid_ReturnsVisualizationConfig`
+- `LoadApplicationConfig_WhenVisualizationEnabledWithEmptyOutputDir_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationHasUnknownKey_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationModeIsUnsupported_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationEveryNFramesIsZero_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationMaxFramesIsNegative_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationStagesContainDuplicate_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationStageIsUnsupported_ThrowsConfigError`
+
+Implemented additional `ApplicationConfig.visualization` GoogleTest cases for boundary coverage:
+
+- `LoadApplicationConfig_WhenVisualizationSectionIsNotObject_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationSectionIsEmptyObject_AppliesVisualizationDefaults`
+- `LoadApplicationConfig_WhenVisualizationEnabledIsNotBool_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationOutputDirIsNotString_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationModeIsNotString_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationEveryNFramesIsNotInteger_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationMaxFramesIsNotInteger_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationStagesIsNotArray_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationStageIsNotString_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationStageIsEmpty_ThrowsConfigError`
+- `LoadApplicationConfig_WhenVisualizationDisabledWithEmptyOutputDir_ReturnsConfig`
 
 ## Test Data
 

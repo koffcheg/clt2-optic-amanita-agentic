@@ -49,13 +49,13 @@ public:
     virtual StageCapabilities capabilities() const noexcept = 0;
 
     /// Processes one full-frame carrier and returns a Processing-domain result.
-    virtual StageOutcome<RadiometricFullFrameOutput> processFullFrame(
+    virtual StageOutcome<RadiometricFullFrameOutput> process(
         const RadiometricFullFrameInput &input,
         FrameContext &context,
         const StageConfig &config) = 0;
 
     /// Processes one tile carrier or returns `Unsupported` for unsupported variants.
-    virtual StageOutcome<RadiometricTileOutput> processTile(
+    virtual StageOutcome<RadiometricTileOutput> process(
         const RadiometricTileInput &input,
         TileContext &tile_context,
         FrameContext &frame_context,
@@ -71,12 +71,12 @@ public:
 
     StageCapabilities capabilities() const noexcept override;
 
-    StageOutcome<RadiometricFullFrameOutput> processFullFrame(
+    StageOutcome<RadiometricFullFrameOutput> process(
         const RadiometricFullFrameInput &input,
         FrameContext &context,
         const StageConfig &config) override;
 
-    StageOutcome<RadiometricTileOutput> processTile(
+    StageOutcome<RadiometricTileOutput> process(
         const RadiometricTileInput &input,
         TileContext &tile_context,
         FrameContext &frame_context,

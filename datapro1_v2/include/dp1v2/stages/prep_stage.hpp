@@ -47,13 +47,13 @@ public:
     virtual StageCapabilities capabilities() const noexcept = 0;
 
     /// Prepares a full-frame route without taking ownership of the input image.
-    virtual StageOutcome<PrepFullFrameOutput> prepareFullFrame(
+    virtual StageOutcome<PrepFullFrameOutput> process(
         const PrepFullFrameInput &input,
         FrameContext &context,
         const StageConfig &config) = 0;
 
     /// Builds tile descriptors and non-owning tile raw views for one frame.
-    virtual StageOutcome<PrepTilesOutput> prepareTiles(
+    virtual StageOutcome<PrepTilesOutput> process(
         const PrepTilesInput &input,
         FrameContext &context,
         const StageConfig &config) = 0;

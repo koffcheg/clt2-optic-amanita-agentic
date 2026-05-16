@@ -56,13 +56,13 @@ public:
     virtual StageCapabilities capabilities() const noexcept = 0;
 
     /// Produces frame-level measurements.
-    virtual StageOutcome<MeasurementFullFrameOutput> processFullFrame(
+    virtual StageOutcome<MeasurementFullFrameOutput> process(
         const MeasurementFullFrameInput &input,
         FrameContext &context,
         const StageConfig &config) = 0;
 
     /// Produces tile-local measurements before merge/globalization.
-    virtual StageOutcome<MeasurementTileOutput> processTile(
+    virtual StageOutcome<MeasurementTileOutput> process(
         const MeasurementTileInput &input,
         TileContext &tile_context,
         FrameContext &frame_context,

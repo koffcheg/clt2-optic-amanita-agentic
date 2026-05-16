@@ -48,13 +48,13 @@ public:
     virtual StageCapabilities capabilities() const noexcept = 0;
 
     /// Produces full-frame segments from a binary mask and candidate hints.
-    virtual StageOutcome<SegmentationFullFrameOutput> processFullFrame(
+    virtual StageOutcome<SegmentationFullFrameOutput> process(
         const SegmentationFullFrameInput &input,
         FrameContext &context,
         const StageConfig &config) = 0;
 
     /// Produces tile-local segments from a tile mask and candidate hints.
-    virtual StageOutcome<SegmentationTileOutput> processTile(
+    virtual StageOutcome<SegmentationTileOutput> process(
         const SegmentationTileInput &input,
         TileContext &tile_context,
         FrameContext &frame_context,

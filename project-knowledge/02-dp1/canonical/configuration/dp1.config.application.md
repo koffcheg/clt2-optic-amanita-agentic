@@ -23,10 +23,12 @@ status: "draft"
 - Повна модель `ApplicationConfig` ще не визначена.
 - Поточна root-картка визначає `ApplicationConfig.schema_version` і підключає
   child sections `ApplicationConfig.source`, `ApplicationConfig.logging`,
-  `ApplicationConfig.profiling` та `ApplicationConfig.dp2`.
+  `ApplicationConfig.profiling`, `ApplicationConfig.visualization` та
+  `ApplicationConfig.dp2`.
 - Деталі source визначає `dp1.config.application.source`.
 - Деталі logging визначає `dp1.config.application.logging`.
 - Деталі profiling визначає `dp1.config.application.profiling`.
+- Деталі visualization визначає `dp1.config.application.visualization`.
 - Деталі DP2 runtime connection policy визначає `dp1.config.application.dp2`.
 - `PipelineConfig C` вже існує як окрема canonical-конфігурація конвеєра
   обробки.
@@ -45,6 +47,8 @@ DP1 має дві окремі конфігураційні площини:
 - `ApplicationConfig.source`, визначений у `dp1.config.application.source`;
 - `ApplicationConfig.logging`, визначений у `dp1.config.application.logging`;
 - `ApplicationConfig.profiling`, визначений у `dp1.config.application.profiling`;
+- `ApplicationConfig.visualization`, визначений у
+  `dp1.config.application.visualization`;
 - `ApplicationConfig.dp2`, визначений у `dp1.config.application.dp2`.
 
 Application runtime configuration не має вибирати порядок етапів,
@@ -59,6 +63,7 @@ route, семантику вимірювань або семантику DP1 -> 
   "source": {},
   "logging": {},
   "profiling": {},
+  "visualization": {},
   "dp2": {}
 }
 ```
@@ -73,6 +78,7 @@ struct ApplicationConfig {
     SourceConfig source;
     LoggingConfig logging;
     ProfilingConfig profiling;
+    VisualizationConfig visualization;
     DP2ConnectionConfig dp2;
 };
 ```
@@ -80,6 +86,7 @@ struct ApplicationConfig {
 `SourceConfig` визначає `dp1.config.application.source`.
 `LoggingConfig` визначає `dp1.config.application.logging`.
 `ProfilingConfig` визначає `dp1.config.application.profiling`.
+`VisualizationConfig` визначає `dp1.config.application.visualization`.
 `DP2ConnectionConfig` визначає `dp1.config.application.dp2`.
 
 ## Fields / Interface
@@ -122,6 +129,15 @@ fields:
     does_not_affect: "Не змінює pipeline processing behavior або DP1 output."
     validation: "Має відповідати `dp1.config.application.profiling`."
 
+  - name: "`visualization`"
+    type: "`VisualizationConfig`"
+    required: false
+    default: "якщо секція відсутня, застосовуються defaults `VisualizationConfig`"
+    purpose: "Налаштування runtime-створення артефактів visualization застосунком."
+    affects: "Необов’язкове створення артефактів visualization для перегляду людиною та налагодження."
+    does_not_affect: "Не змінює pipeline processing behavior, stage variants, algorithm parameters або DP1 output semantics."
+    validation: "Має відповідати `dp1.config.application.visualization`."
+
   - name: "`dp2`"
     type: "`DP2ConnectionConfig`"
     required: true
@@ -140,6 +156,7 @@ Input:
 - `dp1.config.application.source`;
 - `dp1.config.application.logging`;
 - `dp1.config.application.profiling`;
+- `dp1.config.application.visualization`;
 - `dp1.config.application.dp2`;
 - `PROJECT_ECOSYSTEM.md` як джерело environment facts.
 
@@ -149,6 +166,7 @@ Output:
 - validated runtime source configuration;
 - validated runtime logging configuration;
 - validated runtime profiling configuration;
+- validated runtime visualization configuration;
 - validated runtime DP2 connection configuration.
 
 ## Constraints
@@ -192,6 +210,7 @@ root-картка залишалася стабільною при додава�
 - contains: dp1.config.application.source
 - contains: dp1.config.application.logging
 - contains: dp1.config.application.profiling
+- contains: dp1.config.application.visualization
 - contains: dp1.config.application.dp2
 - references: project-knowledge/01-project/PROJECT_ECOSYSTEM.md
 - related_protocol_boundary: protocols.dp1_dp2.measurement_handoff
