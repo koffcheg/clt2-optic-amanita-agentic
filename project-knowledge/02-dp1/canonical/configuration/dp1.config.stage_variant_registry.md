@@ -13,7 +13,7 @@ status: "draft"
 
 ## Definition
 
-Ця картка визначає canonical registry для восьми фіксованих етапів DP1,
+Ця картка визначає canonical registry для Stage0 нормалізації входу і восьми фіксованих computational етапів DP1,
 дозволених `variant`, рівнів складності `level` і меж відповідальності
 конфігурації `C`.
 
@@ -26,10 +26,11 @@ status: "draft"
 
 ## Theorem / Contract
 
-Canonical DP1 `PipelineConfig C` має вісім фіксованих stage config keys:
+Canonical DP1 `PipelineConfig C` має Stage0 input normalization і вісім фіксованих computational stage config keys:
 
 ```yaml
 stages:
+  - acquisition
   - prep
   - radiometric
   - enhancement
@@ -77,6 +78,12 @@ terms:
 
 ```yaml
 stage_variant_registry:
+  - stage: "acquisition"
+    stage_number: 0
+    variants: ["passthrough", "software_sum_binning", "camera_binning_passthrough"]
+    typical_levels: ["L0", "L1"]
+    notes: "Stage0.1 дозволяє тільки passthrough. Binning variants потребують окремої StageSpec перед code generation."
+
   - stage: "prep"
     variants: ["full_frame", "roi", "tiles", "adaptive_roi"]
     typical_levels: ["L0", "L1", "L2"]
@@ -143,6 +150,7 @@ AI-кодер не має:
 - підміняти `variant` рівнем складності;
 - використовувати OpenCV primitive як назву canonical stage;
 - hard-code algorithm choice у stage implementation без `C`.
+- використовувати binning variant Stage0 без окремої StageSpec.
 - використовувати повний stage-interface card id як JSON key у `PipelineConfig C`;
 - створювати profiling stage key для core stage, який не збігається з registry.
 
@@ -221,6 +229,7 @@ Output:
 - constrains: dp1.pipeline.stage_contract
 - constrains: dp1.pipeline.stage_domain_bindings
 - constrains: dp1.pipeline.stage_io_matrix
+- links: dp1.stage.acquisition_input_normalization
 - links: dp1.stage.prep
 - links: dp1.stage.radiometric_correction
 - links: dp1.stage.enhancement

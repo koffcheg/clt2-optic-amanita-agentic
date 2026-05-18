@@ -67,3 +67,5 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0045` - profiling policy link for FrameContext registry - draft
 - `AMNT-0046` - FrameContext registry current slice review and gap classification - draft
 - `AMNT-0047` - FrameContext lifetime and StageTiming baseline review fix - draft
+- `AMNT-0048` - Stage0.1 knowledge base for Input Normalization and CanonicalFrame baseline - completed
+- `AMNT-0049` - Stage0.1 CanonicalFrame baseline implementation - completed

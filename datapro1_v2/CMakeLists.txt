@@ -45,6 +45,7 @@ target_sources(
         src/source/ipc_frame_source.cpp
         src/source/source_factory.cpp
         src/stages/calibration.cpp
+        src/stages/acquisition_input_normalization_stage.cpp
         src/stages/radiometric_stage.inverse_median.cpp
         src/stages/radiometric_stage.cpp
         src/visualization/visualization_sink.cpp

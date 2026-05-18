@@ -26,6 +26,7 @@ status: "draft"
 
 `C` визначає:
 - порядок етапів;
+- Stage0 input normalization contract;
 - вибрану реалізацію для кожного етапу;
 - рівень складності;
 - параметри;
@@ -60,6 +61,12 @@ status: "draft"
     }
   },
   "pipeline": {
+    "acquisition": {
+      "enabled": true,
+      "variant": "passthrough",
+      "level": "L0",
+      "parameters": {}
+    },
     "prep": {
       "enabled": true,
       "variant": "full_frame|roi|tiles|adaptive_roi",
@@ -113,6 +120,10 @@ status: "draft"
 ```
 
 Кожен етап має містити `enabled`, `variant`, `level`, `parameters`.
+
+Для Stage0.1 `pipeline.acquisition.variant` має бути `passthrough`. Binning
+parameters і arithmetic policy належать майбутній Stage0.2 StageSpec і не є
+частиною цього baseline contract.
 Профіль `RT-5` допускає лише `L0` і частково доведені `L1`-варіанти. Профіль
 `RT-20` допускає `L1` і `L2`-варіанти за умови проходження часової валідації.
 
@@ -156,6 +167,7 @@ struct PipelineConfig {
     InputRouteConfig input_route;
     PrepRouteConfig prep_route;
     RuntimeLimitsConfig runtime_limits;
+    StageConfig acquisition;
     StageConfig prep;
     StageConfig radiometric;
     StageConfig enhancement;
@@ -184,7 +196,10 @@ Threshold-like parameters мають використовувати `ThresholdCo
 Canonical processing-domain carriers and range semantics are defined by data-domain cards and stage specs.
 
 `input_route` фіксує Raw/Input carrier, bit depth і pixel range DP1 instance на
-startup. Спосіб просторової підготовки кадру задає `pipeline.prep.variant`.
+startup. Для Stage0.1 `input_route` є validation contract: source frame має
+відповідати цьому contract, інакше Stage0 повертає explicit failure замість
+прихованої conversion. Спосіб просторової підготовки кадру задає
+`pipeline.prep.variant`.
 
 `prep.variant` підтримує кілька варіантів:
 
@@ -211,6 +226,12 @@ coordinate policy і validation rules.
     }
   },
   "pipeline": {
+    "acquisition": {
+      "enabled": true,
+      "variant": "passthrough",
+      "level": "L0",
+      "parameters": {}
+    },
     "prep": {
       "enabled": true,
       "variant": "tiles",
@@ -241,6 +262,12 @@ coordinate policy і validation rules.
     }
   },
   "pipeline": {
+    "acquisition": {
+      "enabled": true,
+      "variant": "passthrough",
+      "level": "L0",
+      "parameters": {}
+    },
     "prep": {
       "enabled": true,
       "variant": "tiles",
@@ -307,6 +334,8 @@ Route selection не є algorithm implementation. Stage implementation має я
 - Перетворення форматів або stateful-моделі не відображені у параметрах.
 - DP1 instance змінює `input_route` між кадрами без explicit reconfiguration
   і buffer reallocation policy.
+- Stage0 приховано виконує conversion/binning, хоча `pipeline.acquisition`
+  налаштований як `passthrough`.
 - `prep.variant` вимагає одного memory/coordinate route, а implementation
   використовує інший без explicit stage spec.
 - Tile-specific structures використовуються для `full_frame`, `roi` або

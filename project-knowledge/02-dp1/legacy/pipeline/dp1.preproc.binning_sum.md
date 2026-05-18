@@ -56,4 +56,3 @@ status: "draft"
 - used_by: dp1.frame.frame_processor
 - configured_by: dp1.config.prg_config
 - affects: dp1.types.TOptionsMeasurement
-- validated_by: validation.amnt0004.dp1_binning

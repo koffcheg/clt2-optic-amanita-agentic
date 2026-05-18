@@ -142,6 +142,7 @@ DP1 has a physical canonical/legacy split.
 
 Canonical DP1 defines:
 - product definition and source-of-truth route;
+- Stage0 Input Normalization as the canonical input boundary before Prep;
 - formal pipeline model `Π`;
 - data domains;
 - stage-interface placeholders;
@@ -171,8 +172,9 @@ Do not scatter environment facts across DP1/DP2 cards.
 
 ## Near-Term Knowledge Base Priorities
 
-1. Write stage specifications for canonical DP1.
-2. Formalize configuration schema `C` and complexity budgets.
-3. Formalize canonical DP2 beyond placeholders.
-4. Extend `04-protocols/` with concrete canonical payload schemas.
-5. Extend `05-validation/` with conformance checks, datasets, and expected checks.
+1. Prepare Stage0.1 implementation from the canonical Input Normalization and CanonicalFrame baseline.
+2. Write stage specifications for canonical DP1.
+3. Formalize configuration schema `C` and complexity budgets.
+4. Formalize canonical DP2 beyond placeholders.
+5. Extend `04-protocols/` with concrete canonical payload schemas.
+6. Extend `05-validation/` with conformance checks, datasets, and expected checks.

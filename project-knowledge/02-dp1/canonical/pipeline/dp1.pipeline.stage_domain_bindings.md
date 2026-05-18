@@ -14,7 +14,7 @@ status: "draft"
 ## Definition
 
 Ця картка задає pipeline-level огляд прив'язки DP1 stages до дозволених
-input/context/output domains і structures.
+input/context/output domains і structures. Stage0 нормалізації входу є canonical boundary перед `Prep`.
 
 Мета картки — з'єднати stage-interface cards і data-domain cards, не
 дублюючи повний per-stage contract. Джерелом істини для per-stage domain
@@ -56,6 +56,9 @@ This is the semantic stage form. C++ implementations may use route-specific over
 
 ```yaml
 stage_interface_binding_sources:
+  - stage: "acquisition_input_normalization"
+    card: "../stages/dp1.stage.acquisition_input_normalization.md"
+    id: "dp1.stage.acquisition_input_normalization"
   - stage: "prep"
     card: "../stages/dp1.stage.prep.md"
     id: "dp1.stage.prep"
@@ -89,6 +92,26 @@ route-specific carriers і stage-local заборони. Ця pipeline card пе
 `Visualization` поки не входить до восьми main DP1 detection/measurement stage
 cards. Артефакт visualization належить `dp1.domain.visualization` і не має
 подаватися назад в обчислення без explicit stage spec.
+
+## Stage0 binding
+
+```yaml
+stage0_binding:
+  stage: "acquisition_input_normalization"
+  input: "FramePacket"
+  output: "CanonicalFrame"
+  config_contract: "PipelineConfig.input_route + PipelineConfig.acquisition"
+  frame_context_artifact: "canonical_frame"
+  parent_artifact: "raw_frame"
+  stage0_1_constraints:
+    - "pass-through only"
+    - "no binning"
+    - "no pixel conversion"
+    - "no ROI або tiles"
+```
+
+Stage0 формує canonical input boundary. `Prep` має працювати з
+`CanonicalFrame`, а не виконувати нормалізацію source frame самостійно.
 
 ## Prep variant bindings
 
@@ -146,7 +169,7 @@ tile_pipeline_route:
     pipeline_output: "TileDesc[]"
     notes: "Будує tile grid, border і valid area."
   - step: "scheduler / worker setup"
-    tile_local_input: "`FramePacket` + `TileDesc`"
+    tile_local_input: "`CanonicalFrame` + `TileDesc`"
     runtime_owner_context: "`TileContext`"
     tile_local_output: "`TileRawView`"
     notes: "`TileRawView.image` є ROI view, не clone."
@@ -175,7 +198,7 @@ tile_pipeline_route:
 Memory route для `prep.variant = "tiles"`:
 
 ```text
-FramePacket.image        one full-frame raw carrier
+CanonicalFrame.image     one canonical full-frame input carrier
 TileDesc[]               small metadata
 TileContext[worker_count] reusable tile-local buffers
 TileResult[]             structural results only
@@ -214,7 +237,7 @@ Stage specs можуть звужувати дозволені domains, але �
 - Visualization image використовується як computation input.
 - Tile-specific structures використовуються для `full_frame`, `roi` або
   `adaptive_roi` без explicit stage spec.
-- Tile worker мутує `FramePacket.image`.
+- Tile worker мутує `CanonicalFrame.image` або source `FramePacket.image`.
 
 ## Typical misuse
 
@@ -232,6 +255,7 @@ Stage specs можуть звужувати дозволені domains, але �
 - uses: dp1.pipeline.stage_contract
 - uses: dp1.pipeline.stage_io_matrix
 - uses: dp1.domain.raw.frame_packet
+- uses: dp1.domain.raw.canonical_frame
 - uses: dp1.domain.raw.tile_raw_view
 - uses: dp1.domain.runtime.frame_context
 - uses: dp1.domain.processing.frame
@@ -242,6 +266,7 @@ Stage specs можуть звужувати дозволені domains, але �
 - uses: dp1.domain.struct.segment
 - uses: dp1.domain.struct.validated_object
 - uses: dp1.domain.measurement.record
+- links: dp1.stage.acquisition_input_normalization
 - links: dp1.stage.prep
 - links: dp1.stage.radiometric_correction
 - links: dp1.stage.enhancement

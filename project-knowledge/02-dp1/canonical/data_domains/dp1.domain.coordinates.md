@@ -24,14 +24,16 @@ measurement outputs.
 
 Canonical coordinate spaces:
 
-- `FrameGlobal` — coordinates in full source frame.
+- `SourceFrameGlobal` — coordinates in full source/acquisition frame before Stage0 spatial normalization.
+- `CanonicalFrameGlobal` — coordinates in `CanonicalFrame` after Stage0. For Stage0.1 pass-through it is identical to `SourceFrameGlobal`.
 - `TileLocal` — coordinates local to tile ROI/view.
 
 Rules:
 
-- `FramePacket` і final `MeasurementRecord` використовують `FrameGlobal`.
+- `FramePacket` uses `SourceFrameGlobal`; `CanonicalFrame` uses `CanonicalFrameGlobal`; final `MeasurementRecord` uses `SourceFrameGlobal` unless an explicit protocol card states otherwise.
 - `TileRawView`, `TileProcessingFrame`, `TileBinaryMask`, `Candidate`,
   `Segment` і `ValidatedObject` можуть бути `TileLocal` у tile route.
+- Stage0 задає relation `CanonicalFrameGlobal -> SourceFrameGlobal`. Для Stage0.1 pass-through це identity relation.
 - Tile-local structures мають нести `origin_px`, `valid_area` або source
   relation, достатні для globalization.
 - Merge/globalization step є єдиним місцем, де tile-local outputs стають
@@ -58,11 +60,12 @@ Rules:
 ## Interpretation
 
 Ця policy дозволяє workers працювати незалежно в local coordinates і зменшує
-shared synchronization. Frame-global result формується після deterministic merge.
+shared synchronization. Frame-global result формується після deterministic merge. Якщо майбутній Stage0.2 змінює spatial sampling через binning, merge має застосувати mapping з `CanonicalFrameGlobal` назад у `SourceFrameGlobal` перед final `MeasurementRecord`.
 
 ## Failure cases
 
 - Tile-local bbox видається як frame-global.
+- `CanonicalFrameGlobal` помилково трактується як `SourceFrameGlobal` після майбутнього non-identity Stage0 route.
 - Border duplicate стає final measurement.
 - `origin_px` або `valid_area` втрачені між stages.
 - Inclusive rectangle convention використано замість OpenCV half-open
@@ -83,6 +86,7 @@ shared synchronization. Frame-global result формується після dete
 
 ## Connections
 
+- constrains: dp1.domain.raw.canonical_frame
 - constrains: dp1.domain.raw.tile_raw_view
 - constrains: dp1.domain.processing.tile_processing_frame
 - constrains: dp1.domain.mask.tile_binary_mask

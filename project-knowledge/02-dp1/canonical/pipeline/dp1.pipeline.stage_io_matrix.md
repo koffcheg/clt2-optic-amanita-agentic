@@ -13,7 +13,8 @@ status: "draft"
 
 ## Definition
 
-Ця картка задає canonical Stage I/O Matrix для восьми основних етапів DP1.
+Ця картка задає canonical Stage I/O Matrix для Stage0 нормалізації входу,
+восьми основних computational етапів DP1 і tile merge boundary.
 Вона описує, які domain carriers можуть передаватися між етапами, щоб AI-кодер
 не виводив pipeline topology з неформального тексту.
 
@@ -30,6 +31,7 @@ Canonical flow для default computational route:
 
 ```text
 FramePacket
+  -> CanonicalFrame
   -> Raw view / TileRawView / ROI raw view
   -> ProcessingFrame або TileProcessingFrame (RadiometricResidual, F32 або explicit signed residual route)
   -> ProcessingFrame або TileProcessingFrame (EnhancedFrame, F32)
@@ -43,7 +45,7 @@ FramePacket
 Скорочений route для AI-кодера:
 
 ```text
-Raw U8/U16 -> Processing F32 -> Processing F32 -> DetectorResponse F32 -> MaskU8 -> Struct -> MeasurementRecord
+Raw U8/U16 -> CanonicalFrame -> Processing F32 -> Processing F32 -> DetectorResponse F32 -> MaskU8 -> Struct -> MeasurementRecord
 ```
 
 Stage I/O matrix:
@@ -67,29 +69,51 @@ stage_io_matrix:
     required_domain: "Raw/Input"
     notes: "Input route задає U8 або U16 carrier і фактичну bit depth."
 
-  - stage: "prep"
+  - stage: "acquisition"
+    stage_number: 0
     input:
       - "FramePacket"
     context:
       - "FrameContext"
+      - "PipelineConfig.input_route"
+      - "PipelineConfig.acquisition"
+    output:
+      - "CanonicalFrame"
+    context_artifacts:
+      - semantic_name: "canonical_frame"
+        kind: "CanonicalFrame"
+        domain: "Raw/CanonicalInput"
+        producer_stage: "acquisition"
+        parent_artifact_id: "raw_frame"
+        ownership: "BorrowedReadOnly у Stage0.1 pass-through"
+        lifetime: "InputBoundary або FrameBoundary, якщо implementation явно гарантує lifetime"
+        status: "Available"
+    required_domain: "Raw/Input + Acquisition"
+    notes: "Stage0.1 перевіряє input_route і формує CanonicalFrame без binning, conversion, ROI або tiles."
+
+  - stage: "prep"
+    input:
+      - "CanonicalFrame"
+    context:
+      - "FrameContext"
       - "PipelineConfig.prep"
     output:
-      - "FramePacket view route"
+      - "CanonicalFrame view route"
       - "TileDesc[]"
       - "TileRawView[] або equivalent route-local raw views"
     context_artifacts:
-      - semantic_name: "raw_frame"
-        kind: "RawFrame"
-        domain: "Raw"
-        producer_stage: "input"
-        parent_artifact_id: null
+      - semantic_name: "canonical_frame"
+        kind: "CanonicalFrame"
+        domain: "Raw/CanonicalInput"
+        producer_stage: "acquisition"
+        parent_artifact_id: "raw_frame"
         status: "consumed/provenance source; prep does not create a new authoritative frame artifact by default"
     required_domain: "Raw/Input + Runtime"
-    notes: "Не створює candidates, segments, objects або measurements."
+    notes: "Не виконує binning, pixel-format normalization або bit-depth conversion; не створює candidates, segments, objects або measurements."
 
   - stage: "radiometric_correction"
     input:
-      - "FramePacket або raw view"
+      - "CanonicalFrame або raw view"
       - "TileRawView у tiles route"
     context:
       - "FrameContext"
@@ -356,6 +380,7 @@ Output:
 - uses: dp1.pipeline.stage_domain_bindings
 - uses: dp1.config.stage_variant_registry
 - uses: dp1.domain.raw.frame_packet
+- uses: dp1.domain.raw.canonical_frame
 - uses: dp1.domain.raw.tile_raw_view
 - uses: dp1.domain.processing.frame
 - uses: dp1.domain.processing.tile_processing_frame

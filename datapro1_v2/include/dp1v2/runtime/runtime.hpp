@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <string>
 
 namespace dp1v2 {
 
@@ -25,13 +26,13 @@ enum class ProcessTerminalStatus {
 
 struct FrameLifecycleResult {
     FrameTerminalStatus status = FrameTerminalStatus::Completed;
-    const char *reason = "";
+    std::string reason;
 };
 
 struct ProcessRunResult {
     ProcessTerminalStatus status = ProcessTerminalStatus::StartupValidated;
     int exit_code = 0;
-    const char *reason = "";
+    std::string reason;
 };
 
 struct RuntimeLoopLimits {
@@ -46,7 +47,7 @@ struct RuntimeResourceState {
     std::size_t frames_completed = 0;
     std::size_t frames_failed = 0;
     std::size_t frames_dropped = 0;
-    const char *last_reason = "";
+    std::string last_reason;
 };
 
 struct RuntimeLoopResult {
