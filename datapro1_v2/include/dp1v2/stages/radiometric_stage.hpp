@@ -39,8 +39,9 @@ struct RadiometricTileOutput {
 ///
 /// Implementations consume raw or route-local input, return explicit Processing
 /// domain output, and may own stateful background/history buffers when the
-/// selected `config.variant` requires them. They must not mutate raw input or
-/// write primary output into `FrameContext`.
+/// selected `config.variant` requires them. They must not mutate raw input,
+/// store primary output only in `FrameContext`, or leave successful
+/// authoritative output without `FrameContext.artifacts` reflection.
 class IRadiometricStage {
 public:
     virtual ~IRadiometricStage() = default;

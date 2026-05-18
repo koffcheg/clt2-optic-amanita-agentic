@@ -122,9 +122,11 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 ../tests/unit/dp1/t_dp1v2_config.cpp
                 ../tests/unit/dp1/t_dp1v2_visualization_sink.cpp
                 ../tests/unit/dp1/t_dp1v2_source.cpp
+                ../tests/unit/dp1/t_dp1v2_frame_context.cpp
                 src/runtime/cyclic_frame_buffer.cpp
                 src/config/config.cpp
                 src/frame/frame_packet_builder.cpp
+                src/frame/frame_context.cpp
                 src/visualization/visualization_sink.cpp
                 src/stages/radiometric_stage.inverse_median.cpp
                 src/source/uri_file_source.cpp

@@ -1,5 +1,6 @@
 #include "dp1v2/runtime/pipeline.hpp"
 
+#include <chrono>
 #include <string_view>
 
 #include "dp1v2/frame/frame_context.hpp"
@@ -10,10 +11,28 @@ namespace dp1v2 {
 namespace {
 
 constexpr const char* kInverseMedianVariant = "inverse_median";
+constexpr std::string_view kInputBoundaryName = "input";
 constexpr std::string_view kRadiometricStageName = "radiometric";
+constexpr std::string_view kRadiometricCanonicalStageName = "radiometric_correction";
 
 bool shouldRunRadiometricStage(const StageConfig& radiometric_config) {
     return radiometric_config.enabled && radiometric_config.variant == kInverseMedianVariant;
+}
+
+StageStatusCode toStageStatusCode(const StageExecutionStatus status) {
+    switch (status) {
+    case StageExecutionStatus::Completed:
+        return StageStatusCode::Completed;
+    case StageExecutionStatus::Skipped:
+        return StageStatusCode::Skipped;
+    case StageExecutionStatus::Disabled:
+        return StageStatusCode::Disabled;
+    case StageExecutionStatus::Unsupported:
+        return StageStatusCode::Unsupported;
+    case StageExecutionStatus::Failed:
+        return StageStatusCode::Failed;
+    }
+    return StageStatusCode::Failed;
 }
 
 } // namespace
@@ -24,6 +43,7 @@ SingleFramePipelineResult process_single_frame(
     const PipelineConfig& pipeline_config,
     RadiometricStage& radiometric_stage,
     VisualizationSink& visualization_sink) {
+    const auto input_start = std::chrono::steady_clock::now();
     const auto packet_result = make_frame_packet(
         envelope.frame,
         envelope.header_hint,
@@ -41,15 +61,46 @@ SingleFramePipelineResult process_single_frame(
 
     auto frame_context = build_frame_context(packet_result.packet, cam_index);
     frame_context.config_ref = &pipeline_config;
+    register_raw_frame_artifact(frame_context, packet_result.packet);
+    record_stage_timing(
+        frame_context,
+        kInputBoundaryName,
+        StageStatusCode::Completed,
+        {},
+        {},
+        packet_result.packet.pixel_format,
+        packet_result.packet.pixel_format,
+        input_start,
+        std::chrono::steady_clock::now());
 
     if (shouldRunRadiometricStage(pipeline_config.stages.radiometric)) {
+        const auto radiometric_start = std::chrono::steady_clock::now();
         const auto radiometric_result = radiometric_stage.process(
             RadiometricFullFrameInput{.frame = packet_result.packet},
             frame_context,
             pipeline_config.stages.radiometric);
+        const auto radiometric_end = std::chrono::steady_clock::now();
         if (visualization_sink.enabled_for_stage(kRadiometricStageName)) {
             visualization_sink.write_stage_output(frame_context, kRadiometricStageName, radiometric_result);
         }
+        if (radiometric_result.status == StageExecutionStatus::Completed) {
+            register_radiometric_processing_artifact(frame_context, radiometric_result.output.frame);
+        }
+        const PixelFormat radiometric_output_format =
+            radiometric_result.status == StageExecutionStatus::Completed
+                ? radiometric_result.output.frame.pixel_format
+                : frame_context.input_format;
+        record_stage_timing(
+            frame_context,
+            kRadiometricCanonicalStageName,
+            toStageStatusCode(radiometric_result.status),
+            pipeline_config.stages.radiometric.variant,
+            pipeline_config.stages.radiometric.level,
+            frame_context.input_format,
+            radiometric_output_format,
+            radiometric_start,
+            radiometric_end,
+            radiometric_result.reason);
         if (radiometric_result.status == StageExecutionStatus::Failed ||
             radiometric_result.status == StageExecutionStatus::Unsupported) {
             return SingleFramePipelineResult{

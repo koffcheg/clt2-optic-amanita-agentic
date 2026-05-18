@@ -8,7 +8,7 @@ kind: stage-interface-card
 source_role: canonical
 source:
   file: "project-knowledge/02-dp1/canonical/pipeline/dp1.pipeline.stage_contract.md"
-  lines: "1-120"
+  lines: "1-150"
 status: "draft"
 ---
 
@@ -21,7 +21,12 @@ status: "draft"
 process(input, context, config) -> output
 ```
 
-In C++ implementations, route-specific stage execution must be represented by overloads named `process(...)`. Route-specific method names such as `processFullFrame(...)`, `processTile(...)`, `prepareFullFrame(...)`, and `prepareTiles(...)` are not canonical stage execution methods. Exact C++ parameter lists for full-frame, ROI, and tile routes remain subject to route-specific stage specifications.
+У реалізаціях C++ маршрутно-специфічне виконання етапу має бути представлене
+перевантаженнями з назвою `process(...)`. Маршрутно-специфічні назви методів,
+такі як `processFullFrame(...)`, `processTile(...)`, `prepareFullFrame(...)` і
+`prepareTiles(...)`, не є канонічними методами виконання етапу. Точні списки
+параметрів C++ для маршрутів full-frame, ROI і tile залишаються предметом
+маршрутно-специфічних специфікацій етапів.
 
 ## Assumptions
 
@@ -69,15 +74,53 @@ In C++ implementations, route-specific stage execution must be represented by ov
 
 `variant` має бути зареєстрований у `dp1.config.stage_variant_registry`.
 `level` має бути рівнем складності з `dp1.config.complexity_levels`, а не
-назвою algorithm variant.
+назвою варіанта алгоритму.
 
-Stage output має бути explicit domain structure. Stage не має записувати
-primary result тільки у `FrameContext`.
+Вихід етапу має бути явною доменною структурою. Етап не має записувати
+основний результат тільки у `FrameContext`.
 
-Кожен executed canonical stage має створювати або оновлювати один
-`StageTiming` record згідно з `dp1.domain.profiling`. Disabled stage не має
-отримувати fake duration; disabled/skipped state може бути записаний окремо як
-status або diagnostic.
+Кожен успішний авторитетний вихід етапу має бути також відображений у
+`FrameContext.artifacts` як запис артефакту та його походження. Це правило не змінює
+форму `process(input, context, config) -> output`: явний вихід залишається
+обов’язковим, а `FrameContext` є шаром реєстру та походження, а не заміною
+вихідного доменного об’єкта.
+
+Відображення виходу у `FrameContext.artifacts` може виконуватися самою
+реалізацією етапу або оркестрацією конвеєра після отримання успішного виходу.
+Фінальний ефект є обов’язковим для авторитетних виходів незалежно від місця
+реєстрації.
+
+Поведінка на рівні контракту для статусу виконання:
+
+- `completed`: успішні авторитетні виходи мають бути повернуті явно і
+  зареєстровані в `FrameContext.artifacts`.
+- `failed`: етап не має реєструвати авторитетний вихід, якого не існує;
+  статус або діагностика відмови може бути записаний у `FrameContext`.
+- `unsupported`: етап не має створювати фіктивний вихідний артефакт;
+  статус або діагностика непідтримуваного виконання може бути записаний у
+  `FrameContext`.
+- `skipped`: етап не має створювати фіктивний вихідний артефакт;
+  причина/статус пропуску може бути записаний у `FrameContext`.
+- `disabled`: вимкнений етап не виконується і не створює вихідний артефакт;
+  вимкнений стан може бути записаний як статус або діагностика.
+
+Кожен виконаний канонічний етап має створювати або оновлювати один
+запис `StageTiming` згідно з `dp1.domain.profiling`. Вимкнений етап не має
+отримувати фіктивну тривалість; стан `disabled`/`skipped` може бути записаний
+окремо як статус або діагностика.
+
+Правила профілювання для цього контракту задаються в такому порядку:
+
+1. `project-knowledge/00-governance/PROFILING_POLICY.md`;
+2. `dp1.domain.profiling`;
+3. `dp1.config.application.profiling`.
+
+`FrameContext.artifacts` не замінює сховище даних профілювання і не є каналом
+передачі алгоритмічних виходів між stages. Запис artifact може посилатися на
+stable `producer_stage` і, після окремо approved implementation task, на
+ідентичність запису часу/профілювання для аудиту походження, але структура та
+bounds записів профілювання залишаються у `dp1.domain.profiling` і
+`dp1.config.application.profiling`.
 
 ## Interpretation
 
@@ -91,21 +134,32 @@ status або diagnostic.
 - Прихована залежність від legacy-буферів.
 - Прихований стан етапу, не задекларований у картці.
 - Витрати часу етапу не враховані у кадровій часовій моделі.
-- Stage не створює `StageTiming` record згідно з `dp1.domain.profiling`.
+- Етап не створює запис `StageTiming` згідно з `dp1.domain.profiling`.
+- Етап створює ad-hoc модель профілювання у `FrameContext.artifacts` замість
+  використання `PROFILING_POLICY.md`, `dp1.domain.profiling` і
+  `dp1.config.application.profiling`.
 - Варіант алгоритму вибрано поза конфігурацією `C`.
-- Primary output stage записаний у `FrameContext` замість explicit output.
-- `variant` і `level` змішані в configuration або stage card.
+- Основний вихід етапу записано у `FrameContext` замість явного виходу.
+- Авторитетний вихід етапу повернуто явно, але не зареєстрований у
+  `FrameContext.artifacts`.
+- Етап або оркестрація реєструє налагоджувальний або діагностичний артефакт замість
+  авторитетного вихідного артефакту і вважає правило відображення виконаним.
+- Етап зі статусом `failed`, `unsupported`, `skipped` або `disabled` створює
+  фіктивний вихідний артефакт.
+- `variant` і `level` змішані в конфігурації або картці етапу.
 
 ## Typical misuse
 
 - Генерувати код із цього інтерфейсу без майбутньої специфікації етапу.
 - Трактувати OpenCV-примітив як архітектуру етапу.
+- Трактувати `FrameContext.artifacts` як обов’язкове володіння важкими буферами.
+- Трактувати `FrameContext.artifacts` як заміну явного виходу етапу.
 
 ## Open questions
 
 - Стандартні поля контексту.
 - Пороги валідації для кожного рівня складності.
-- Exact C++ parameter lists for full-frame, ROI, and tile route overloads.
+- Точні списки параметрів C++ для full-frame, ROI і перевантажень маршрутів tile.
 
 ## Connections
 

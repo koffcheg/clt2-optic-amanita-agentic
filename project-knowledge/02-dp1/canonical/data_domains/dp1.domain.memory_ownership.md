@@ -67,6 +67,49 @@ synchronization contract в implementation task.
 - Слоти історії МКМФ мають зберігати одну geometry, pixel format, OpenCV type і
   route metadata до явного reset/reallocation.
 
+### Володіння записами реєстру artifacts у `FrameContext`
+
+`FrameContext.artifacts` є реєстром metadata/provenance для авторитетних
+artifacts кадру. Запис у реєстрі не означає deep copy, transfer ownership або
+подовження часу життя payload.
+
+Payload, описаний записом реєстру, може належати:
+
+- `FramePacket`, коли artifact описує raw input frame або view, валідний у
+  межах input boundary.
+- Явному stage output object, коли artifact описує результат, повернений через
+  explicit output stage, наприклад `RadiometricFullFrameOutput`.
+- Майбутньому external transport boundary, якщо окрема task/card явно визначить
+  такий транспорт і його lifetime.
+- Майбутньому tile-local context, якщо окрема task/card явно визначить
+  tile-local ownership і merge boundary.
+
+Канонічний vocabulary для `FrameContext` artifact ownership:
+
+- `OwnedByFramePacket` - payload належить `FramePacket` або його input boundary;
+  запис реєстру може тільки посилатися на цей payload або описувати його.
+- `OwnedByStageOutput` - payload належить явному stage output object; запис
+  реєстру фіксує identity, domain, producer і provenance цього output.
+- `BorrowedReadOnly` - запис посилається на read-only borrowed view; consumers
+  не мають права змінювати payload або використовувати його після завершення
+  declared lifetime.
+- `ExternalTransport` - payload належить зовнішньому transport/runtime boundary;
+  запис реєстру має містити lifetime, дозволений цим boundary.
+- `MetadataOnly` - запис не містить typed payload reference і лише описує факт
+  існування artifact, producer, semantic name, domain, status або provenance.
+- `ExpiredReference` - запис зберігається для audit/provenance, але referenced
+  payload більше не є валідним для читання.
+
+`FrameContext.artifacts` може володіти bounded metadata записів реєстру, але не
+стає власником heavy payload за замовчуванням. Будь-яке context-owned володіння
+small payload або bounded metadata має бути явно дозволене окремою
+implementation task/card.
+
+Запис реєстру не має подовжувати borrowed memory lifetime. Якщо lifetime
+payload завершився, implementation має або видалити payload reference, або
+позначити запис як `ExpiredReference`, залишивши тільки audit/provenance
+metadata. Приховані mutable shared buffers через artifact registry заборонені.
+
 ## Interpretation
 
 Ця policy оптимізує memory footprint і паралельність: raw frame зберігається
@@ -77,6 +120,11 @@ buffers.
 потребу в обмеженій algorithm-owned history. Ownership boundary має явно
 розрізняти позичені current-frame views і збережені копії історії.
 
+Для `FrameContext` це означає, що реєстр artifacts є audit/provenance шаром, а
+не альтернативним data transport. Авторитетний artifact має бути відображений у
+context, але payload залишається у фактичного власника, доки окрема task/card не
+визначить інший bounded ownership contract.
+
 ## Failure cases
 
 - `TileRawView` виконує deep copy raw ROI для кожного tile без stage spec.
@@ -86,6 +134,12 @@ buffers.
 - `FrameContext` використовується як прихований owner output vectors.
 - Stateful stage зберігає borrowed input/transport view після завершення
   часу життя source frame.
+- Запис `FrameContext.artifacts` трактується як дозвіл на implicit deep copy
+  heavy buffer у context.
+- Запис `FrameContext.artifacts` подовжує borrowed lifetime або дозволяє читання
+  payload після завершення input/stage/transport boundary.
+- `BorrowedReadOnly` artifact використовується як mutable shared buffer між
+  stages або tile workers.
 - IPC/shared-memory ring buffer використовується як temporal history buffer для
   МКМФ.
 - History МКМФ продовжує використовувати slots після зміни geometry, pixel
@@ -98,7 +152,8 @@ buffers.
 
 ## Open questions
 
-- Точний ownership enum для future C++ DTO.
+- Точні C++ enum names для future DTO мають бути узгоджені з канонічним
+  vocabulary цієї policy.
 - Pooled allocation policy для `TileContext`.
 - Interned-string або numeric-id policy для runtime metadata.
 
@@ -112,5 +167,6 @@ buffers.
 - constrains: dp1.domain.runtime.tile_context
 - constrains: dp1.domain.runtime.tile_result
 - constrains: dp1.domain.runtime.cyclic_frame_buffer
+- constrains: dp1.domain.runtime.frame_context
 - constrains: dp1.stage_spec.radiometric_correction.inverse_median
 - constrains: dp1.domain.opencv_invariants

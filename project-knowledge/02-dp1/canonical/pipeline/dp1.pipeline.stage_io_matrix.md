@@ -55,6 +55,15 @@ stage_io_matrix:
     context: ["PipelineConfig"]
     output:
       - "FramePacket"
+    context_artifacts:
+      - semantic_name: "raw_frame"
+        kind: "RawFrame"
+        domain: "Raw"
+        producer_stage: "input"
+        parent_artifact_id: null
+        ownership: "OwnedByFramePacket"
+        lifetime: "InputBoundary"
+        status: "Available"
     required_domain: "Raw/Input"
     notes: "Input route задає U8 або U16 carrier і фактичну bit depth."
 
@@ -68,6 +77,13 @@ stage_io_matrix:
       - "FramePacket view route"
       - "TileDesc[]"
       - "TileRawView[] або equivalent route-local raw views"
+    context_artifacts:
+      - semantic_name: "raw_frame"
+        kind: "RawFrame"
+        domain: "Raw"
+        producer_stage: "input"
+        parent_artifact_id: null
+        status: "consumed/provenance source; prep does not create a new authoritative frame artifact by default"
     required_domain: "Raw/Input + Runtime"
     notes: "Не створює candidates, segments, objects або measurements."
 
@@ -82,6 +98,15 @@ stage_io_matrix:
     output:
       - "ProcessingFrame"
       - "TileProcessingFrame у tiles route"
+    context_artifacts:
+      - semantic_name: "radiometric.processing_frame"
+        kind: "ProcessingFrame"
+        domain: "Processing"
+        producer_stage: "radiometric_correction"
+        parent_artifact_id: "raw_frame"
+        ownership: "OwnedByStageOutput"
+        lifetime: "StageOutputScope"
+        status: "MetadataOnly у current C++ slice, якщо FrameContext не зберігає typed payload reference"
     required_domain: "Processing"
     notes: "Output domain має явно вказати processing_domain і range_policy."
 
@@ -96,6 +121,13 @@ stage_io_matrix:
     output:
       - "ProcessingFrame"
       - "TileProcessingFrame у tiles route"
+    context_artifacts:
+      - semantic_name: "enhanced_frame"
+        kind: "ProcessingFrame"
+        domain: "Processing"
+        producer_stage: "enhancement"
+        parent_artifact_id: "radiometric.processing_frame"
+        status: "planned canonical artifact"
     required_domain: "Processing"
     notes: "Output не є detector response, якщо variant явно не задає це як contract."
 
@@ -110,6 +142,13 @@ stage_io_matrix:
     output:
       - "ProcessingFrame(DetectorResponse)"
       - "TileProcessingFrame(DetectorResponse) у tiles route"
+    context_artifacts:
+      - semantic_name: "detector_response"
+        kind: "ProcessingFrame"
+        domain: "Processing"
+        producer_stage: "matched_filtering"
+        parent_artifact_id: "enhanced_frame"
+        status: "planned canonical artifact"
     required_domain: "Processing"
     notes: "Карта відгуку не є visualization image."
 
@@ -125,6 +164,19 @@ stage_io_matrix:
       - "BinaryMask"
       - "TileBinaryMask у tiles route"
       - "Candidate[]"
+    context_artifacts:
+      - semantic_name: "binary_mask"
+        kind: "BinaryMask"
+        domain: "Mask"
+        producer_stage: "candidate_extraction"
+        parent_artifact_id: "detector_response"
+        status: "planned canonical artifact"
+      - semantic_name: "candidate_list"
+        kind: "CandidateSet"
+        domain: "Struct"
+        producer_stage: "candidate_extraction"
+        parent_artifact_id: "binary_mask"
+        status: "planned canonical artifact"
     required_domain: "Mask + Struct"
     notes: "Не видає Segment, ValidatedObject або MeasurementRecord."
 
@@ -138,6 +190,13 @@ stage_io_matrix:
       - "PipelineConfig.segmentation_refinement"
     output:
       - "Segment[]"
+    context_artifacts:
+      - semantic_name: "segment_list"
+        kind: "SegmentSet"
+        domain: "Struct"
+        producer_stage: "segmentation_refinement"
+        parent_artifact_id: "binary_mask"
+        status: "planned canonical artifact"
     required_domain: "Struct"
     notes: "Segment є проміжним object region, не final measurement."
 
@@ -151,6 +210,13 @@ stage_io_matrix:
       - "PipelineConfig.object_filtering"
     output:
       - "ValidatedObject[]"
+    context_artifacts:
+      - semantic_name: "validated_object_list"
+        kind: "ValidatedObjectSet"
+        domain: "Struct"
+        producer_stage: "object_filtering"
+        parent_artifact_id: "segment_list"
+        status: "planned canonical artifact"
     required_domain: "Struct"
     notes: "Filtered candidates не замінюють ValidatedObject[] output."
 
@@ -165,6 +231,13 @@ stage_io_matrix:
       - "PipelineConfig.measurement"
     output:
       - "MeasurementRecord[]"
+    context_artifacts:
+      - semantic_name: "measurement_list"
+        kind: "MeasurementSet"
+        domain: "Measurement"
+        producer_stage: "measurement"
+        parent_artifact_id: "validated_object_list"
+        status: "planned canonical artifact"
     required_domain: "Measurement"
     notes: "У tiles route output є tile-local до TileResult і merge."
 
@@ -176,12 +249,29 @@ stage_io_matrix:
     output:
       - "frame-level MeasurementRecord[]"
       - "future FrameMeasurementBatch"
+    context_artifacts:
+      - semantic_name: "measurement_list"
+        kind: "MeasurementSet"
+        domain: "Measurement"
+        producer_stage: "merge"
+        parent_artifact_id: "measurement_list"
+        status: "planned canonical frame-level artifact for tiles route"
     required_domain: "Measurement"
     notes: "Merge виконує valid_area crop, globalization згідно з `dp1.domain.coordinates` і duplicate suppression."
 ```
 
 Visualization domain не входить у computational flow. Visualization artifacts
 не мають передаватися назад у stages 1-8 без окремого explicit stage spec.
+
+`context_artifacts` описує очікувані записи у `FrameContext.artifacts`.
+Ці записи є audit/provenance reflection для авторитетних products кадру. Вони
+не замінюють explicit `output`, не є transport container і не вимагають, щоб
+`FrameContext` володів heavy buffers. Для current raw + radiometric C++ slice
+`ownership`, `lifetime` і `status` мають читатися разом: raw frame є
+`OwnedByFramePacket + InputBoundary + Available`, а radiometric output reflection
+є `OwnedByStageOutput + StageOutputScope + MetadataOnly`, якщо context не
+зберігає live typed payload reference. `status: "planned canonical artifact"` позначає очікування для канонічних
+етапів, які описані матрицею, але не вимагає їх реалізації в межах цієї картки.
 
 ## Fields / Interface
 
@@ -197,6 +287,8 @@ fields:
     meaning: "Allowed runtime/config context, не output container."
   - name: "output"
     meaning: "Explicit result carriers."
+  - name: "context_artifacts"
+    meaning: "Expected `FrameContext.artifacts` records для authoritative output/provenance reflection; metadata/provenance layer, не payload ownership або lifetime-extension requirement."
   - name: "required_domain"
     meaning: "Semantic domain output."
   - name: "notes"
@@ -220,6 +312,10 @@ Output:
 ## Constraints
 
 - Stage output має бути explicit structure, а не hidden field у `FrameContext`.
+- Кожен успішний authoritative output має бути відображений у
+  `FrameContext.artifacts` згідно з `context_artifacts`.
+- `context_artifacts` не вимагає deep copy, ownership або lifetime extension для
+  referenced payload.
 - `MaskU8` не має передаватися як Processing-domain grayscale image.
 - `CV_8U` processing route дозволений лише як explicit fast/compatibility route.
 - Raw photometry має читати Raw/Input carrier або explicitly allowed
@@ -233,12 +329,18 @@ Output:
 - `measurement` читає debug visualization як photometry source.
 - Tile worker пише напряму у global `MeasurementRecord[]`.
 - Stage виконує implicit `convertTo` і змінює domain без output metadata.
+- Stage повертає authoritative output явно, але не має відповідного запису в
+  `FrameContext.artifacts`.
+- Pipeline реєструє debug artifact замість authoritative output artifact і
+  вважає reflection rule виконаним.
 
 ## Typical misuse
 
 - Вважати `cv::Mat` достатнім type contract між stages.
 - Використовувати `FrameContext` як загальний mutable output container.
 - Вважати `TileProcessingFrame` допустимим full-frame output для всіх routes.
+- Трактувати `context_artifacts` як вимогу реалізувати missing stages або
+  перенести heavy buffers у `FrameContext`.
 
 ## Open questions
 

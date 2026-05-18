@@ -53,3 +53,17 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0031` - DP1 v2 inverse median ForMedian dataset run - completed
 - `AMNT-0032` - canonical DP1 application visualization configuration - completed
 - `AMNT-0033` - DP1 visualization config unit-test coverage - completed
+- `AMNT-0034` - FrameContext registry scope and architecture decision - completed
+- `AMNT-0035` - canonical FrameContext semantics reconciliation - draft
+- `AMNT-0036` - stage contract output reflection rule - draft
+- `AMNT-0037` - stage I/O matrix context artifact column - draft
+- `AMNT-0038` - FrameContext registry memory ownership alignment - draft
+- `AMNT-0039` - validation checks for FrameContext artifact reflection - draft
+- `AMNT-0040` - minimal C++ FrameArtifact data model - draft
+- `AMNT-0041` - FrameContext artifact registration helpers - draft
+- `AMNT-0042` - register raw frame artifact in current runtime - draft
+- `AMNT-0043` - register radiometric output artifact in current runtime - draft
+- `AMNT-0044` - align existing stage header comments with FrameContext reflection - draft
+- `AMNT-0045` - profiling policy link for FrameContext registry - draft
+- `AMNT-0046` - FrameContext registry current slice review and gap classification - draft
+- `AMNT-0047` - FrameContext lifetime and StageTiming baseline review fix - draft
