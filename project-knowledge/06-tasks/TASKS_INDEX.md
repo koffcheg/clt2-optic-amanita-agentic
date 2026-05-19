@@ -69,3 +69,5 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0047` - FrameContext lifetime and StageTiming baseline review fix - draft
 - `AMNT-0048` - Stage0.1 knowledge base for Input Normalization and CanonicalFrame baseline - completed
 - `AMNT-0049` - Stage0.1 CanonicalFrame baseline implementation - completed
+- `AMNT-0050` - Stage0.2 Binning L0 - draft
+- `AMNT-0051` - Stage0.1 READY input_normalization rename and tests - draft

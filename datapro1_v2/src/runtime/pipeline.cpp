@@ -6,7 +6,7 @@
 
 #include "dp1v2/frame/frame_context.hpp"
 #include "dp1v2/result/result_builder.hpp"
-#include "dp1v2/stages/acquisition_input_normalization_stage.hpp"
+#include "dp1v2/stages/input_normalization_stage.hpp"
 #include "dp1v2/stages/radiometric_stage.hpp"
 
 namespace dp1v2 {
@@ -14,7 +14,7 @@ namespace {
 
 constexpr const char* kInverseMedianVariant = "inverse_median";
 constexpr std::string_view kInputBoundaryName = "input";
-constexpr std::string_view kAcquisitionStageName = "acquisition";
+constexpr std::string_view kInputNormalizationStageName = "input_normalization";
 constexpr std::string_view kRadiometricStageName = "radiometric";
 constexpr std::string_view kRadiometricCanonicalStageName = "radiometric_correction";
 
@@ -75,37 +75,39 @@ SingleFramePipelineResult process_single_frame(
         input_start,
         std::chrono::steady_clock::now());
 
-    const AcquisitionInputNormalizationStage acquisition_stage;
-    const auto acquisition_start = std::chrono::steady_clock::now();
-    const auto acquisition_result = acquisition_stage.process(
-        AcquisitionInputNormalizationInput{.frame = packet_result.packet},
+    const InputNormalizationStage input_normalization_stage;
+    const auto input_normalization_start = std::chrono::steady_clock::now();
+    const auto input_normalization_result = input_normalization_stage.process(
+        InputNormalizationInput{.frame = packet_result.packet},
         frame_context,
-        pipeline_config.input_route,
-        pipeline_config.stages.acquisition);
-    const auto acquisition_end = std::chrono::steady_clock::now();
-    if (acquisition_result.status == StageExecutionStatus::Completed) {
-        register_canonical_frame_artifact(frame_context, acquisition_result.output.frame);
+        InputNormalizationConfig{
+            .input_route = pipeline_config.input_route,
+            .stage = pipeline_config.stages.input_normalization,
+        });
+    const auto input_normalization_end = std::chrono::steady_clock::now();
+    if (input_normalization_result.status == StageExecutionStatus::Completed) {
+        register_canonical_frame_artifact(frame_context, input_normalization_result.output.frame);
     }
-    const PixelFormat acquisition_output_format =
-        acquisition_result.status == StageExecutionStatus::Completed
-            ? acquisition_result.output.frame.pixel_format
+    const PixelFormat input_normalization_output_format =
+        input_normalization_result.status == StageExecutionStatus::Completed
+            ? input_normalization_result.output.frame.pixel_format
             : frame_context.input_format;
     record_stage_timing(
         frame_context,
-        kAcquisitionStageName,
-        toStageStatusCode(acquisition_result.status),
-        pipeline_config.stages.acquisition.variant,
-        pipeline_config.stages.acquisition.level,
+        kInputNormalizationStageName,
+        toStageStatusCode(input_normalization_result.status),
+        pipeline_config.stages.input_normalization.variant,
+        pipeline_config.stages.input_normalization.level,
         frame_context.input_format,
-        acquisition_output_format,
-        acquisition_start,
-        acquisition_end,
-        acquisition_result.reason);
-    if (acquisition_result.status != StageExecutionStatus::Completed) {
-        std::string lifecycle_reason = "acquisition_stage_failed";
-        if (!acquisition_result.reason.empty()) {
+        input_normalization_output_format,
+        input_normalization_start,
+        input_normalization_end,
+        input_normalization_result.reason);
+    if (input_normalization_result.status != StageExecutionStatus::Completed) {
+        std::string lifecycle_reason = "input_normalization_stage_failed";
+        if (!input_normalization_result.reason.empty()) {
             lifecycle_reason += ": ";
-            lifecycle_reason += acquisition_result.reason;
+            lifecycle_reason += input_normalization_result.reason;
         }
         return SingleFramePipelineResult{
             .lifecycle = FrameLifecycleResult{
@@ -116,7 +118,7 @@ SingleFramePipelineResult process_single_frame(
         };
     }
 
-    const CanonicalFrame &canonical_frame = acquisition_result.output.frame;
+    const CanonicalFrame &canonical_frame = input_normalization_result.output.frame;
 
     if (shouldRunRadiometricStage(pipeline_config.stages.radiometric)) {
         const auto radiometric_start = std::chrono::steady_clock::now();

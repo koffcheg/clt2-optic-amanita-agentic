@@ -69,26 +69,26 @@ stage_io_matrix:
     required_domain: "Raw/Input"
     notes: "Input route задає U8 або U16 carrier і фактичну bit depth."
 
-  - stage: "acquisition"
+  - stage: "input_normalization"
     stage_number: 0
     input:
       - "FramePacket"
     context:
       - "FrameContext"
       - "PipelineConfig.input_route"
-      - "PipelineConfig.acquisition"
+      - "PipelineConfig.input_normalization"
     output:
       - "CanonicalFrame"
     context_artifacts:
       - semantic_name: "canonical_frame"
         kind: "CanonicalFrame"
         domain: "Raw/CanonicalInput"
-        producer_stage: "acquisition"
+        producer_stage: "input_normalization"
         parent_artifact_id: "raw_frame"
         ownership: "BorrowedReadOnly у Stage0.1 pass-through"
         lifetime: "InputBoundary або FrameBoundary, якщо implementation явно гарантує lifetime"
         status: "Available"
-    required_domain: "Raw/Input + Acquisition"
+    required_domain: "Raw/Input"
     notes: "Stage0.1 перевіряє input_route і формує CanonicalFrame без binning, conversion, ROI або tiles."
 
   - stage: "prep"
@@ -105,7 +105,7 @@ stage_io_matrix:
       - semantic_name: "canonical_frame"
         kind: "CanonicalFrame"
         domain: "Raw/CanonicalInput"
-        producer_stage: "acquisition"
+        producer_stage: "input_normalization"
         parent_artifact_id: "raw_frame"
         status: "consumed/provenance source; prep does not create a new authoritative frame artifact by default"
     required_domain: "Raw/Input + Runtime"
@@ -127,7 +127,7 @@ stage_io_matrix:
         kind: "ProcessingFrame"
         domain: "Processing"
         producer_stage: "radiometric_correction"
-        parent_artifact_id: "raw_frame"
+        parent_artifact_id: "canonical_frame"
         ownership: "OwnedByStageOutput"
         lifetime: "StageOutputScope"
         status: "MetadataOnly у current C++ slice, якщо FrameContext не зберігає typed payload reference"

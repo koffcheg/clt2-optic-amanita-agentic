@@ -146,7 +146,7 @@ Stage0.1 цей carrier не змінює pixels і не змінює geometry. 
 
 ## Connections
 
-- produced_by: dp1.stage.acquisition_input_normalization
+- produced_by: dp1.stage.input_normalization
 - consumes: dp1.domain.raw.frame_packet
 - feeds: dp1.stage.prep
 - constrained_by: dp1.domain.memory_ownership

@@ -1,13 +1,13 @@
 ---
-id: dp1.stage_spec.acquisition_input_normalization.sum_binning
+id: dp1.stage_spec.input_normalization.sum_binning
 title:
   uk: "Специфікація Stage0.2 Binning L0"
   en: "Stage0.2 Binning L0 specification"
-tags: [dp1, canonical, stage-spec, small-tz, acquisition, input-normalization, binning]
+tags: [dp1, canonical, stage-spec, small-tz, input-normalization, binning]
 kind: stage-spec-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/stage_specs/dp1.stage_spec.acquisition_input_normalization.sum_binning.md"
+  file: "project-knowledge/02-dp1/canonical/stage_specs/dp1.stage_spec.input_normalization.sum_binning.md"
 status: "draft"
 ---
 
@@ -27,9 +27,9 @@ Stage0.2 приймає `FramePacket`, перевіряє його проти `P
 
 ## Scope
 
-- Interface stage: `IAcquisitionInputNormalizationStage`.
-- Pipeline slot: `acquisition`.
-- DSL key: `acquisition`.
+- Interface stage: `IInputNormalizationStage`.
+- Pipeline slot: `input_normalization`.
+- DSL key: `input_normalization`.
 - Variant: `software_sum_binning`.
 - Level: `L0`.
 
@@ -44,7 +44,7 @@ Stage0.2 приймає `FramePacket`, перевіряє його проти `P
 
 - `materials/ТЗ/Бінування.docx`;
 - `materials/ТЗ/бінінг_програмування.docx`;
-- `dp1.stage.acquisition_input_normalization`;
+- `dp1.stage.input_normalization`;
 - `dp1.domain.raw.canonical_frame`;
 - `dp1.domain.memory_ownership`;
 - `dp1.domain.coordinates`;
@@ -69,7 +69,7 @@ Stage0.2 приймає `FramePacket`, перевіряє його проти `P
 - `FramePacket`;
 - `FrameContext`;
 - `PipelineConfig.input_route`;
-- `PipelineConfig.acquisition`;
+- `PipelineConfig.input_normalization`;
 - single-channel `cv::Mat` image carrier.
 
 Вхідний `FramePacket` має відповідати `input_route` за:
@@ -90,7 +90,7 @@ Stage0.2 не виконує приховане приведення до graysc
 
 - explicit `CanonicalFrame`;
 - `FrameContext.artifacts` запис `canonical_frame`;
-- `StageTiming` для `StageKey = "acquisition"`.
+- `StageTiming` для `StageKey = "input_normalization"`.
 
 Для `kbin = 1` output semantics збігається зі Stage0.1 pass-through:
 
@@ -119,7 +119,7 @@ Stage0.2 не виконує приховане приведення до graysc
 
 ```json
 {
-  "acquisition": {
+  "input_normalization": {
     "enabled": true,
     "variant": "software_sum_binning",
     "level": "L0",
@@ -132,14 +132,14 @@ Stage0.2 не виконує приховане приведення до graysc
 
 Правила:
 
-- `acquisition.enabled = false` вимикає Stage0 і є runtime failure для pipeline,
+- `input_normalization.enabled = false` вимикає Stage0 і є runtime failure для pipeline,
   який потребує `CanonicalFrame`;
 - `variant = "passthrough"` дозволений тільки для no-binning route;
 - `variant = "software_sum_binning"` дозволяє `kbin = 1`, `2` або `4`;
 - `kbin = 1` означає pass-through/no binning без arithmetic;
 - `kbin = 2` або `kbin = 4` вмикає software sum binning;
 - відсутній `parameters.kbin` для `software_sum_binning` є configuration error;
-- невідомі ключі у `acquisition.parameters` є configuration error;
+- невідомі ключі у `input_normalization.parameters` є configuration error;
 - non-sum mode не може бути виражений через цей variant.
 
 Ознаки бінування мають бути відображені у config-driven provenance
@@ -358,7 +358,7 @@ artifact:
   semantic_name: "canonical_frame"
   kind: "CanonicalFrame"
   domain: "Raw"
-  producer_stage: "acquisition"
+  producer_stage: "input_normalization"
   parent_artifact_id: "raw_frame"
   ownership: "OwnedByStageOutput"
   lifetime: "StageOutputScope"
@@ -377,7 +377,7 @@ Artifact metadata must include:
 
 Stage0.2 must record stage-level timing:
 
-- `StageKey = "acquisition"`;
+- `StageKey = "input_normalization"`;
 - variant `software_sum_binning`;
 - level `L0`;
 - input format;
@@ -427,7 +427,7 @@ Stage0.2 must fail explicitly for:
 
 Unit validation route is defined separately in:
 
-- `validation.dp1.acquisition_input_normalization.sum_binning`
+- `validation.dp1.input_normalization.sum_binning`
 
 Automated tests require separate approval under `TESTING_POLICY`.
 
@@ -444,7 +444,7 @@ implementation gap для Stage0.2 task, а не підстава звужува
 
 ## Connections
 
-- specifies: dp1.stage.acquisition_input_normalization
+- specifies: dp1.stage.input_normalization
 - uses: dp1.domain.raw.frame_packet
 - produces: dp1.domain.raw.canonical_frame
 - constrained_by: dp1.domain.memory_ownership
@@ -453,4 +453,4 @@ implementation gap для Stage0.2 task, а не підстава звужува
 - constrained_by: dp1.config.stage_variant_registry
 - constrained_by: dp1.pipeline.stage_io_matrix
 - constrained_by: dp1.pipeline.stage_domain_bindings
-- validated_by: validation.dp1.acquisition_input_normalization.sum_binning
+- validated_by: validation.dp1.input_normalization.sum_binning

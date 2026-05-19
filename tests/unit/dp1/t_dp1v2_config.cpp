@@ -296,6 +296,8 @@ TEST_F(ConfigTest, LoadDp1Config_WhenCanonicalApplicationAndPipelineFilesAreVali
     EXPECT_EQ(config.pipeline.schema_version, "1.0");
     EXPECT_EQ(config.pipeline.input_route.pixel_format, dp1v2::PixelFormat::U16);
     EXPECT_EQ(config.pipeline.input_route.bit_depth, dp1v2::InputBitDepth::Bit16);
+    EXPECT_TRUE(config.pipeline.stages.input_normalization.enabled);
+    EXPECT_EQ(config.pipeline.stages.input_normalization.variant, "passthrough");
     EXPECT_EQ(config.pipeline.stages.radiometric.variant, "inverse_median");
     EXPECT_TRUE(config.pipeline.stages.radiometric.parameters.contains("inverse_median"));
     ASSERT_TRUE(config.resolved_pipeline.radiometric.inverse_median.has_value());
@@ -477,6 +479,15 @@ TEST_F(ConfigTest, LoadDp1Config_WhenFullStageInterfaceNameIsUsedAsConfigKey_Thr
     json_t* radiometric = json_deep_copy(objectAt(pipeline.get(), {"pipeline", "radiometric"}));
     removeKey(pipeline.get(), {"pipeline"}, "radiometric");
     setObject(pipeline.get(), {"pipeline"}, "radiometric_correction", radiometric);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenOldAcquisitionStageKeyIsUsed_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setObject(pipeline.get(), {"pipeline"}, "acquisition", json_object());
 
     EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
 }

@@ -56,9 +56,9 @@ This is the semantic stage form. C++ implementations may use route-specific over
 
 ```yaml
 stage_interface_binding_sources:
-  - stage: "acquisition_input_normalization"
-    card: "../stages/dp1.stage.acquisition_input_normalization.md"
-    id: "dp1.stage.acquisition_input_normalization"
+  - stage: "input_normalization"
+    card: "../stages/dp1.stage.input_normalization.md"
+    id: "dp1.stage.input_normalization"
   - stage: "prep"
     card: "../stages/dp1.stage.prep.md"
     id: "dp1.stage.prep"
@@ -97,10 +97,10 @@ cards. Артефакт visualization належить `dp1.domain.visualization
 
 ```yaml
 stage0_binding:
-  stage: "acquisition_input_normalization"
+  stage: "input_normalization"
   input: "FramePacket"
   output: "CanonicalFrame"
-  config_contract: "PipelineConfig.input_route + PipelineConfig.acquisition"
+  config_contract: "PipelineConfig.input_route + PipelineConfig.input_normalization"
   frame_context_artifact: "canonical_frame"
   parent_artifact: "raw_frame"
   stage0_1_constraints:
@@ -266,7 +266,7 @@ Stage specs можуть звужувати дозволені domains, але �
 - uses: dp1.domain.struct.segment
 - uses: dp1.domain.struct.validated_object
 - uses: dp1.domain.measurement.record
-- links: dp1.stage.acquisition_input_normalization
+- links: dp1.stage.input_normalization
 - links: dp1.stage.prep
 - links: dp1.stage.radiometric_correction
 - links: dp1.stage.enhancement

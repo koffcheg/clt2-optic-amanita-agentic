@@ -30,7 +30,7 @@ Canonical DP1 `PipelineConfig C` має Stage0 input normalization і вісім
 
 ```yaml
 stages:
-  - acquisition
+  - input_normalization
   - prep
   - radiometric
   - enhancement
@@ -78,7 +78,7 @@ terms:
 
 ```yaml
 stage_variant_registry:
-  - stage: "acquisition"
+  - stage: "input_normalization"
     stage_number: 0
     variants: ["passthrough", "software_sum_binning", "camera_binning_passthrough"]
     typical_levels: ["L0", "L1"]
@@ -229,7 +229,7 @@ Output:
 - constrains: dp1.pipeline.stage_contract
 - constrains: dp1.pipeline.stage_domain_bindings
 - constrains: dp1.pipeline.stage_io_matrix
-- links: dp1.stage.acquisition_input_normalization
+- links: dp1.stage.input_normalization
 - links: dp1.stage.prep
 - links: dp1.stage.radiometric_correction
 - links: dp1.stage.enhancement

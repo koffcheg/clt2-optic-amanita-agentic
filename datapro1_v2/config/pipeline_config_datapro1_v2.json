@@ -12,7 +12,7 @@
     }
   },
   "pipeline": {
-    "acquisition": {
+    "input_normalization": {
       "enabled": true,
       "variant": "passthrough",
       "level": "L0",

@@ -1,13 +1,13 @@
 ---
-id: validation.dp1.acquisition_input_normalization.sum_binning
+id: validation.dp1.input_normalization.sum_binning
 title:
   uk: "Unit validation route для Stage0 software sum binning"
   en: "Unit validation route for Stage0 software sum binning"
-tags: [validation, dp1, canonical, acquisition, input-normalization, binning, unit]
+tags: [validation, dp1, canonical, input-normalization, binning, unit]
 kind: validation-card
 source_role: verification
 source:
-  file: "project-knowledge/05-validation/cards/validation.dp1.acquisition_input_normalization.sum_binning.md"
+  file: "project-knowledge/05-validation/cards/validation.dp1.input_normalization.sum_binning.md"
 status: "draft"
 ---
 
@@ -15,7 +15,7 @@ status: "draft"
 
 Ця картка визначає unit validation route для canonical Stage0 variant
 `software_sum_binning`, описаного у
-`dp1.stage_spec.acquisition_input_normalization.sum_binning`.
+`dp1.stage_spec.input_normalization.sum_binning`.
 
 Нова test implementation належить окремій approved task. Ця картка не створює
 тести, fixtures, mocks або golden files.
@@ -24,15 +24,15 @@ status: "draft"
 
 Target unit under test:
 
-- `AcquisitionInputNormalizationStage` для `variant = "software_sum_binning"`;
-- config validation для `acquisition.parameters.kbin`;
+- `InputNormalizationStage` для `variant = "software_sum_binning"`;
+- config validation для `input_normalization.parameters.kbin`;
 - formation of binned `CanonicalFrame`;
 - binned artifact registration semantics in `FrameContext`;
-- stage-level timing semantics for `StageKey = "acquisition"`.
+- stage-level timing semantics for `StageKey = "input_normalization"`.
 
 Target future test file:
 
-- `tests/unit/dp1/t_dp1v2_acquisition_input_normalization_sum_binning.cpp`
+- `tests/unit/dp1/t_dp1v2_input_normalization_sum_binning.cpp`
 
 Target future build integration:
 
@@ -131,7 +131,7 @@ For successful binned output, tests must assert `FrameContext` contains a
 
 - `kind = CanonicalFrame`;
 - `domain = Raw`;
-- `producer_stage = acquisition`;
+- `producer_stage = input_normalization`;
 - `parent_artifact_id = raw_frame`;
 - `ownership = OwnedByStageOutput`;
 - `lifetime = StageOutputScope`;
@@ -139,7 +139,7 @@ For successful binned output, tests must assert `FrameContext` contains a
 
 Stage timing assertions:
 
-- one `acquisition` stage timing is recorded;
+- one `input_normalization` stage timing is recorded;
 - status is `Completed` for valid binning;
 - status and reason are explicit for invalid input/config;
 - variant is `software_sum_binning`;
@@ -169,8 +169,8 @@ these unit tests.
 
 ## Connections
 
-- validates: dp1.stage_spec.acquisition_input_normalization.sum_binning
-- validates: dp1.stage.acquisition_input_normalization
+- validates: dp1.stage_spec.input_normalization.sum_binning
+- validates: dp1.stage.input_normalization
 - validates: dp1.domain.raw.canonical_frame
 - validates: dp1.domain.memory_ownership
 - validates: dp1.domain.coordinates

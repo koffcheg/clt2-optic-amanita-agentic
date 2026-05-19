@@ -61,7 +61,7 @@ status: "draft"
     }
   },
   "pipeline": {
-    "acquisition": {
+    "input_normalization": {
       "enabled": true,
       "variant": "passthrough",
       "level": "L0",
@@ -121,7 +121,7 @@ status: "draft"
 
 Кожен етап має містити `enabled`, `variant`, `level`, `parameters`.
 
-Для Stage0.1 `pipeline.acquisition.variant` має бути `passthrough`. Binning
+Для Stage0.1 `pipeline.input_normalization.variant` має бути `passthrough`. Binning
 parameters і arithmetic policy належать майбутній Stage0.2 StageSpec і не є
 частиною цього baseline contract.
 Профіль `RT-5` допускає лише `L0` і частково доведені `L1`-варіанти. Профіль
@@ -167,7 +167,7 @@ struct PipelineConfig {
     InputRouteConfig input_route;
     PrepRouteConfig prep_route;
     RuntimeLimitsConfig runtime_limits;
-    StageConfig acquisition;
+    StageConfig input_normalization;
     StageConfig prep;
     StageConfig radiometric;
     StageConfig enhancement;
@@ -226,7 +226,7 @@ coordinate policy і validation rules.
     }
   },
   "pipeline": {
-    "acquisition": {
+    "input_normalization": {
       "enabled": true,
       "variant": "passthrough",
       "level": "L0",
@@ -262,7 +262,7 @@ coordinate policy і validation rules.
     }
   },
   "pipeline": {
-    "acquisition": {
+    "input_normalization": {
       "enabled": true,
       "variant": "passthrough",
       "level": "L0",
@@ -334,7 +334,7 @@ Route selection не є algorithm implementation. Stage implementation має я
 - Перетворення форматів або stateful-моделі не відображені у параметрах.
 - DP1 instance змінює `input_route` між кадрами без explicit reconfiguration
   і buffer reallocation policy.
-- Stage0 приховано виконує conversion/binning, хоча `pipeline.acquisition`
+- Stage0 приховано виконує conversion/binning, хоча `pipeline.input_normalization`
   налаштований як `passthrough`.
 - `prep.variant` вимагає одного memory/coordinate route, а implementation
   використовує інший без explicit stage spec.

@@ -1,13 +1,13 @@
 ---
-id: dp1.stage.acquisition_input_normalization
+id: dp1.stage.input_normalization
 title:
   uk: "Stage0 нормалізації входу DP1"
   en: "DP1 Stage0 input normalization"
-tags: [dp1, canonical, stage, acquisition, input-normalization, canonical-frame]
+tags: [dp1, canonical, stage, input-normalization, canonical-frame]
 kind: stage-interface-card
 source_role: canonical
 source:
-  file: "project-knowledge/02-dp1/canonical/stages/dp1.stage.acquisition_input_normalization.md"
+  file: "project-knowledge/02-dp1/canonical/stages/dp1.stage.input_normalization.md"
 status: "draft"
 ---
 
@@ -23,7 +23,7 @@ Stage0 відповідає за підготовку самого кадру я
 
 ## Interface
 
-`IAcquisitionInputNormalizationStage`.
+`IInputNormalizationStage`.
 
 ## Contract
 
@@ -36,7 +36,7 @@ process(input, context, config) -> output
 - `input` є `FramePacket`;
 - `context` є `FrameContext`;
 - `config` містить `PipelineConfig.input_route` і фрагмент
-  `PipelineConfig.acquisition`;
+  `PipelineConfig.input_normalization`;
 - `output` є explicit `CanonicalFrame`.
 
 Для Stage0.1 контракт обмежений pass-through route: Stage0 тільки перевіряє
@@ -54,7 +54,7 @@ Stage0.1:
    stride з `PipelineConfig.input_route`;
 3. якщо pass-through без перетворення можливий, формує `CanonicalFrame`;
 4. реєструє authoritative artifact `canonical_frame` у `FrameContext`;
-5. записує `StageTiming` для `StageKey = "acquisition"`;
+5. записує `StageTiming` для `StageKey = "input_normalization"`;
 6. якщо потрібне перетворення, binning або unsupported route, повертає failure
    з явною причиною.
 
@@ -63,7 +63,7 @@ Stage0.1:
 - `FramePacket`;
 - `FrameContext`;
 - `PipelineConfig.input_route`;
-- `PipelineConfig.acquisition`;
+- `PipelineConfig.input_normalization`;
 - metadata source frame: `frame_id`, `camera_id`, `source_id`, timestamp,
   geometry, stride, pixel format, bit depth і pixel range.
 
@@ -79,7 +79,7 @@ Stage0.1 не виконує обчислень над pixels. Для pass-throu
 
 - `CanonicalFrame`;
 - `FrameContext.artifacts` запис для `canonical_frame`;
-- `StageTiming` для `acquisition`.
+- `StageTiming` для `input_normalization`.
 
 ## Domain bindings
 
@@ -110,7 +110,7 @@ route_specific_carriers:
 
 ## Config fragment
 
-Ключ DSL: `acquisition`.
+Ключ DSL: `input_normalization`.
 
 Обов'язкові поля: `enabled`, `variant`, `level`, `parameters`.
 
@@ -124,7 +124,7 @@ failure замість прихованої конверсії.
 
 Stage0 має записувати stage-level timing:
 
-- `StageKey = "acquisition"`;
+- `StageKey = "input_normalization"`;
 - validation/wrap duration;
 - status `Completed` або explicit failure status;
 - optional cardinality metadata: width, height, payload bytes.

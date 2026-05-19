@@ -8,21 +8,25 @@
 
 namespace dp1v2 {
 
-struct AcquisitionInputNormalizationInput {
+struct InputNormalizationInput {
     const FramePacket &frame;
 };
 
-struct AcquisitionInputNormalizationOutput {
+struct InputNormalizationOutput {
     CanonicalFrame frame;
 };
 
-class AcquisitionInputNormalizationStage final {
+struct InputNormalizationConfig {
+    InputRouteConfig input_route;
+    StageConfig stage;
+};
+
+class InputNormalizationStage final {
 public:
-    StageOutcome<AcquisitionInputNormalizationOutput> process(
-        const AcquisitionInputNormalizationInput &input,
+    StageOutcome<InputNormalizationOutput> process(
+        const InputNormalizationInput &input,
         FrameContext &context,
-        const InputRouteConfig &input_route,
-        const StageConfig &config) const;
+        const InputNormalizationConfig &config) const;
 };
 
 } // namespace dp1v2

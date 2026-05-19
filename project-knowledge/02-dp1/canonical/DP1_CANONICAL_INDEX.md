@@ -12,7 +12,7 @@ This section defines target DP1 architecture independently from legacy `datapro1
 2. `product/dp1.canonical.source_of_truth.md`
 3. `pipeline/dp1.pipeline.formal_model.md`
 4. `pipeline/dp1.pipeline.stage_contract.md`
-5. `stages/dp1.stage.acquisition_input_normalization.md`
+5. `stages/dp1.stage.input_normalization.md`
 6. `data_domains/structures/raw/dp1.domain.raw.canonical_frame.md`
 7. `pipeline/dp1.pipeline.stage_domain_bindings.md`
 8. `pipeline/dp1.pipeline.stage_io_matrix.md`

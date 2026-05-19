@@ -1,4 +1,4 @@
-#include "dp1v2/stages/acquisition_input_normalization_stage.hpp"
+#include "dp1v2/stages/input_normalization_stage.hpp"
 
 #include <string>
 #include <utility>
@@ -24,8 +24,8 @@ bool samePixelRange(const PixelRange &left, const PixelRange &right) {
            left.black_level == right.black_level && left.saturation_level == right.saturation_level;
 }
 
-StageOutcome<AcquisitionInputNormalizationOutput> failure(const StageExecutionStatus status, std::string reason) {
-    return StageOutcome<AcquisitionInputNormalizationOutput>{
+StageOutcome<InputNormalizationOutput> failure(const StageExecutionStatus status, std::string reason) {
+    return StageOutcome<InputNormalizationOutput>{
         .status = status,
         .reason = std::move(reason),
     };
@@ -63,18 +63,17 @@ CanonicalFrame makeCanonicalFrame(const FramePacket &packet) {
 
 } // namespace
 
-StageOutcome<AcquisitionInputNormalizationOutput> AcquisitionInputNormalizationStage::process(
-    const AcquisitionInputNormalizationInput &input,
+StageOutcome<InputNormalizationOutput> InputNormalizationStage::process(
+    const InputNormalizationInput &input,
     FrameContext &context,
-    const InputRouteConfig &input_route,
-    const StageConfig &config) const {
+    const InputNormalizationConfig &config) const {
     (void)context;
 
-    if (!config.enabled) {
-        return failure(StageExecutionStatus::Disabled, "acquisition stage is disabled");
+    if (!config.stage.enabled) {
+        return failure(StageExecutionStatus::Disabled, "input_normalization stage is disabled");
     }
-    if (config.variant != kPassthroughVariant) {
-        return failure(StageExecutionStatus::Unsupported, "unsupported acquisition variant: " + config.variant);
+    if (config.stage.variant != kPassthroughVariant) {
+        return failure(StageExecutionStatus::Unsupported, "unsupported input_normalization variant: " + config.stage.variant);
     }
 
     const FramePacket &packet = input.frame;
@@ -91,22 +90,22 @@ StageOutcome<AcquisitionInputNormalizationOutput> AcquisitionInputNormalizationS
     if (packet.image.step[0] == 0) {
         return failure(StageExecutionStatus::Failed, "input frame stride is invalid");
     }
-    if (packet.pixel_format != input_route.pixel_format) {
+    if (packet.pixel_format != config.input_route.pixel_format) {
         return failure(StageExecutionStatus::Unsupported, "input_route pixel_format mismatch");
     }
-    if (packet.bit_depth != input_route.bit_depth) {
+    if (packet.bit_depth != config.input_route.bit_depth) {
         return failure(StageExecutionStatus::Unsupported, "input_route bit_depth mismatch");
     }
-    if (!samePixelRange(packet.pixel_range, input_route.pixel_range)) {
+    if (!samePixelRange(packet.pixel_range, config.input_route.pixel_range)) {
         return failure(StageExecutionStatus::Unsupported, "input_route pixel_range mismatch");
     }
-    if (packet.image.depth() != expectedCvDepth(input_route.pixel_format)) {
+    if (packet.image.depth() != expectedCvDepth(config.input_route.pixel_format)) {
         return failure(StageExecutionStatus::Unsupported, "input_route carrier depth mismatch");
     }
 
-    return StageOutcome<AcquisitionInputNormalizationOutput>{
+    return StageOutcome<InputNormalizationOutput>{
         .status = StageExecutionStatus::Completed,
-        .output = AcquisitionInputNormalizationOutput{.frame = makeCanonicalFrame(packet)},
+        .output = InputNormalizationOutput{.frame = makeCanonicalFrame(packet)},
         .reason = "",
     };
 }
