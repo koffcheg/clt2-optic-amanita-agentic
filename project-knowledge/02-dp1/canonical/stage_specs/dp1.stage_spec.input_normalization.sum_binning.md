@@ -21,6 +21,11 @@ Stage0.2 приймає `FramePacket`, перевіряє його проти `P
 бінування. Якщо `kbin = 2` або `kbin = 4`, Stage0 формує нове забіноване
 зображення меншої роздільної здатності.
 
+`software_sum_binning` означає чисте сумування значень пікселів усередині
+кожного `kbin x kbin` блоку. Цей variant не виконує усереднення, resize,
+interpolation, `INTER_AREA`, max pooling, hardware binning або будь-яку
+приховану нормалізацію значень.
+
 Бінування належить Stage0 і виконується перед `Prep`, ROI, tiles або будь-якою
 фрагментацією кадру. Забіноване processing image не розгортається назад до
 початкової роздільної здатності.
@@ -201,6 +206,22 @@ Implementation approach для першої реалізації:
   explicit approval;
 - `cv::resize`, `INTER_AREA`, average pooling і max pooling заборонені.
 
+## Політика чистого сумування
+
+`software_sum_binning` має такі обов'язкові заборони:
+
+- жодного прихованого downcast до source carrier;
+- жодного прихованого scaling або normalization;
+- жодного прихованого clipping, saturation або clamp;
+- жодного повернення original `U8` або `U16` carrier, якщо результат суми
+  потребує ширший carrier для lossless representation;
+- жодного average/resize compatibility path під назвою
+  `software_sum_binning`.
+
+Якщо для сумісності з downstream route потрібен lossy output, він має бути
+окремим compatibility variant із власною назвою, config contract і validation
+route. Такий variant не є canonical pure sum binning.
+
 Stage0.2 не виконує average:
 
 ```text
@@ -209,60 +230,108 @@ Ib(i,j) != (1 / kbin^2) * sum(...)
 
 Stage0.2 не виконує interpolation або geometric resize.
 
-## Pixel type and overflow policy
+## Політика динамічного діапазону і carrier
 
-Stage0.2 використовує widening без clipping.
+Stage0.2 використовує lossless widening без clipping.
+
+Для `kbin = 2` або `kbin = 4`:
+
+```text
+scale = kbin * kbin
+output_min = source.pixel_range.min_value * scale
+output_max = source.pixel_range.max_value * scale
+output_black_level = source.pixel_range.black_level * scale
+output_saturation_level = source.pixel_range.saturation_level * scale
+```
+
+Ці поля описують accumulated output range. Вони не є source range і не мають
+повертатися до source range через приховане scaling або clipping.
 
 ### U8 input
 
-Input:
+Вхід:
 
 - `PixelFormat = U8`;
 - `InputBitDepth = Bit8`;
 - source carrier type: `CV_8UC1`.
 
-Output:
+Вихід:
 
-- output carrier type: `CV_16UC1`;
-- output pixel format: `U16`;
-- output bit depth metadata: `Bit16`;
-- no saturation/clamping;
-- maximum possible sum for `kbin = 4`: `255 * 16 = 4080`.
+- canonical semantics output carrier: `AccumU32` або `U32`;
+- transitional storage carrier `CV_16UC1` може бути дозволений тільки для
+  `U8, kbin <= 4`, якщо metadata явно фіксує accumulated-sum range;
+- без saturation/clamping;
+- без прихованого scaling;
+- без прихованого downcast до `U8`;
+- максимально можлива сума для `kbin = 2`: `255 * 4 = 1020`;
+- максимально можлива сума для `kbin = 4`: `255 * 16 = 4080`.
 
-Pixel range policy:
+Політика `pixel_range`:
 
-- output `pixel_range.min_value = source.pixel_range.min_value * kbin * kbin`;
-- output `pixel_range.max_value = source.pixel_range.max_value * kbin * kbin`;
-- output `pixel_range.black_level = source.pixel_range.black_level * kbin * kbin`;
-- output `pixel_range.saturation_level = source.pixel_range.saturation_level * kbin * kbin`.
+- output `pixel_range.min_value = output_min`;
+- output `pixel_range.max_value = output_max`;
+- output `pixel_range.black_level = output_black_level`;
+- output `pixel_range.saturation_level = output_saturation_level`.
 
 ### U16 input
 
-Input:
+Вхід:
 
 - `PixelFormat = U16`;
 - `InputBitDepth = Bit10`, `Bit12`, `Bit14` або `Bit16`;
 - source carrier type: `CV_16UC1`.
 
-Output:
+Вихід:
 
-- output carrier type: `CV_32SC1` або equivalent unsigned 32-bit carrier if
-  implementation and OpenCV route explicitly support it;
-- output pixel format semantics: `U32`;
-- output bit depth metadata: 32-bit accumulated sum output;
-- no saturation/clamping;
-- maximum possible sum for `kbin = 4`: `65535 * 16 = 1048560`.
+- canonical semantics output carrier: `AccumU32` або `U32`;
+- canonical output carrier має бути невідʼємним accumulated sum carrier;
+- transitional storage carrier `CV_32SC1` / `S32` може бути дозволений тільки як
+  задокументований перехідний route, якщо metadata явно фіксує невідʼємний accumulated carrier,
+  а не signed residual;
+- metadata output bit depth: 32-bit accumulated sum output;
+- без saturation/clamping;
+- без прихованого scaling;
+- без прихованого downcast до `U16`;
+- максимально можлива сума для `kbin = 2`: `65535 * 4 = 262140`;
+- максимально можлива сума для `kbin = 4`: `65535 * 16 = 1048560`.
 
-Pixel range policy:
+Політика `pixel_range`:
 
-- output `pixel_range.min_value = source.pixel_range.min_value * kbin * kbin`;
-- output `pixel_range.max_value = source.pixel_range.max_value * kbin * kbin`;
-- output `pixel_range.black_level = source.pixel_range.black_level * kbin * kbin`;
-- output `pixel_range.saturation_level = source.pixel_range.saturation_level * kbin * kbin`.
+- output `pixel_range.min_value = output_min`;
+- output `pixel_range.max_value = output_max`;
+- output `pixel_range.black_level = output_black_level`;
+- output `pixel_range.saturation_level = output_saturation_level`.
 
-Implementation must not silently clamp U8 or U16 sums to the source carrier
-range. If downstream stages cannot consume widened output, Stage0.2 integration
-must fail explicitly or be deferred until the downstream route is updated.
+### Варіанти carrier policy
+
+Допустимі варіанти policy для майбутньої implementation task:
+
+- `AccumU32` / `U32` canonical baseline: unsigned або явно невідʼємний
+  32-bit accumulated carrier для pure sum output.
+- `S32` transitional carrier: тимчасовий storage route на базі `CV_32SC1`, який
+  дозволений лише якщо metadata забороняє трактувати його як signed residual.
+- Lossy compatibility variant: окремий variant для downscaled, clipped або compatibility output. Він не є `software_sum_binning`.
+
+Рекомендований canonical baseline для Stage0.2-pre: `AccumU32` або `U32` для
+обох `U8` і `U16` sum output. Це прибирає route-dependent carrier narrowing і
+не дозволяє майбутньому runtime приховано повертати source carrier.
+
+Поточний code-backed C++ vocabulary не має `PixelFormat::U32` або
+`PixelFormat::AccumU32`. Це implementation gap для майбутньої Stage0.2 runtime task, а не підстава звужувати canonical policy до `U16` або residual `S32`.
+
+## Сумісність із downstream
+
+`Radiometric` і будь-який downstream stage мають явно оголосити підтримку
+розширений accumulated carrier, перш ніж pipeline route з `software_sum_binning`
+може виконуватися.
+
+Якщо downstream route не підтримує `AccumU32` / `U32` або approved transitional
+`S32` accumulated carrier, pipeline має повернути explicit failure під час config validation або stage boundary validation. Заборонено:
+
+- приховано приводити accumulated carrier назад до `U8` або `U16`;
+- приховано масштабувати accumulated values до source range;
+- приховано clipping/saturation до source carrier range;
+- підміняти pure sum average/resize output.
 
 ## Geometry
 
@@ -368,7 +437,7 @@ artifact:
 Artifact metadata must include:
 
 - output pixel format;
-- output bit depth metadata;
+- metadata output bit depth;
 - output geometry;
 - parent artifact reference;
 - producer stage.
@@ -385,27 +454,33 @@ Stage0.2 must record stage-level timing:
 - status;
 - explicit reason on failure.
 
-Operation-level timing for allocation, copy, and binning loop can be added only
-as a follow-up if profiling scope is explicitly approved.
+Operation-level timing для allocation, copy і binning loop може бути доданий
+лише як follow-up після explicit approval profiling scope. Stage0.2-pre все одно
+вимагає видимої semantics для copy/allocation через `CanonicalFrame.normalization`
+і artifact metadata: binned output має `copied = true`, `binned = true` і
+owned stage-output lifetime. Якщо майбутній profiling додасть operation timings,
+вони мають залишатися у `FrameContext.profiling`, а не в artifact registry.
 
 ## Failure cases
 
-Stage0.2 must fail explicitly for:
+Stage0.2 має повернути explicit failure для таких випадків:
 
 - unsupported `kbin`;
-- missing `kbin` for `software_sum_binning`;
+- відсутній `kbin` для `software_sum_binning`;
 - unsupported pixel format;
 - unsupported input bit depth;
-- non-single-channel input;
-- invalid geometry or stride;
-- width or height not divisible by `kbin`;
-- overflow risk that cannot be represented by the approved widened output type;
+- input не є single-channel;
+- invalid geometry або stride;
+- width або height не діляться на `kbin`;
+- ризик overflow, який не може бути представлений approved widened output type;
 - ambiguous source `pixel_range`;
-- non-sum binning requested;
-- resize, pooling, interpolation, or `INTER_AREA` requested instead of sum
-  binning;
-- conversion requested outside Stage0.2 scope;
-- downstream route cannot consume widened binned output.
+- запитано non-sum binning;
+- запитано resize, pooling, interpolation або `INTER_AREA` замість sum binning;
+- conversion запитано поза scope Stage0.2;
+- downstream route не може спожити widened binned output;
+- requested lossy compatibility behavior через `software_sum_binning`;
+- приховане повернення до original `U8` або `U16` carrier після sum;
+- `S32` carrier трактується як signed residual замість невідʼємного accumulated sum carrier.
 
 ## Non-goals
 
@@ -420,8 +495,7 @@ Stage0.2 must fail explicitly for:
 - CameraProSim runtime expansion.
 - OverlayRunner.
 - Downstream stage expansion.
-- Measurement coordinate conversion implementation, unless a separate task
-  explicitly includes it.
+- Measurement coordinate conversion implementation, якщо окрема task явно не включає це у scope.
 
 ## Validation route
 
