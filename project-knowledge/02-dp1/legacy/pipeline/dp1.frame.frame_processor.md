@@ -42,4 +42,3 @@ status: "draft"
 - input: dp1.frame.frame_n_header
 - uses: dp1.config.prg_config, dp1.types.TDataproConfig/TDataproVar
 - preprocessing: dp1.preproc.binning_sum
-- validated_by: validation.amnt0004.dp1_binning

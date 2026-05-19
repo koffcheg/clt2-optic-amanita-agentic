@@ -197,6 +197,7 @@ struct ResolvedPipelineConfig {
 };
 
 struct PipelineStagesConfig {
+    StageConfig input_normalization;
     StageConfig prep;
     StageConfig radiometric;
     StageConfig enhancement;

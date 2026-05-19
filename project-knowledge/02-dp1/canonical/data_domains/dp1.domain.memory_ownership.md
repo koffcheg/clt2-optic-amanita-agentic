@@ -43,6 +43,24 @@ status: "draft"
 Спільні mutable image buffers між виконавцями заборонені без явного
 synchronization contract в implementation task.
 
+
+Правила ownership для `CanonicalFrame`:
+
+- `CanonicalFrame` є explicit output Stage0 і authoritative input для `Prep`.
+- У Stage0.1 `CanonicalFrame.image` може бути `BorrowedReadOnly` view на payload
+  `FramePacket` без full-frame copy.
+- Borrowed payload не має переживати declared `InputBoundary` або `FrameBoundary`,
+  якщо implementation явно не гарантує довший lifetime.
+- `FrameContext.artifacts` запис `canonical_frame` відображає provenance і
+  payload semantics, але не переносить ownership heavy image buffer у context.
+- Якщо payload reference більше не валідний, artifact має бути `MetadataOnly`
+  або `ExpiredReference`.
+- Майбутні conversion або binning routes мають позначати payload як
+  `OwnedConverted` або `OwnedBinned` і потребують окремої StageSpec.
+- Downstream stages мають читати `CanonicalFrame.image` як read-only, якщо
+  окрема stage spec явно не передає owned mutable buffer.
+
+
 Транспортна пам'ять і алгоритмічна пам'ять історії є різними шарами володіння:
 
 - Позичені транспортні view можуть посилатися на producer-owned або runtime-owned
@@ -128,6 +146,7 @@ context, але payload залишається у фактичного влас�
 ## Failure cases
 
 - `TileRawView` виконує deep copy raw ROI для кожного tile без stage spec.
+- `CanonicalFrame` має borrowed payload, але artifact або structure позначає його як owned.
 - Виконавець пише у shared processing buffer.
 - `TileResult` переносить `cv::Mat` payload.
 - Full-frame `F32` buffers створюються в tile route для кожного stage.
@@ -160,6 +179,7 @@ context, але payload залишається у фактичного влас�
 ## Connections
 
 - constrains: dp1.domain.raw.frame_packet
+- constrains: dp1.domain.raw.canonical_frame
 - constrains: dp1.domain.raw.tile_raw_view
 - constrains: dp1.domain.processing.frame
 - constrains: dp1.domain.processing.tile_processing_frame

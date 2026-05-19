@@ -88,7 +88,7 @@ TEST(FrameContextTest, RegisterRadiometricArtifactIsStageOutputScopeMetadata)
     EXPECT_EQ(artifact.status, dp1v2::FrameArtifactStatus::MetadataOnly);
     EXPECT_EQ(artifact.semantic_name, "radiometric.processing_frame");
     EXPECT_EQ(artifact.producer_stage, "radiometric_correction");
-    EXPECT_EQ(artifact.parent_artifact_id, "raw_frame");
+    EXPECT_EQ(artifact.parent_artifact_id, "canonical_frame");
     EXPECT_EQ(artifact.pixel_format, dp1v2::PixelFormat::S16);
     EXPECT_EQ(artifact.bit_depth, dp1v2::InputBitDepth::Bit16);
 

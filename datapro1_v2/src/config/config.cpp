@@ -496,6 +496,7 @@ bool is_valid_level(const std::string &value) {
 }
 
 bool is_allowed_variant(const std::string_view stage, const std::string_view variant) {
+    static const std::vector<std::string_view> input_normalization{"passthrough"};
     static const std::vector<std::string_view> prep{"full_frame", "roi", "tiles", "adaptive_roi"};
     static const std::vector<std::string_view> radiometric{
         "mean_subtraction", "gaussian_subtraction", "median", "inverse_median",
@@ -511,6 +512,9 @@ bool is_allowed_variant(const std::string_view stage, const std::string_view var
     static const std::vector<std::string_view> measurement{
         "centroid_bbox", "photometry_basic", "rotated_bbox_moments_subpixel"};
 
+    if (stage == "input_normalization") {
+        return contains(input_normalization, variant);
+    }
     if (stage == "prep") {
         return contains(prep, variant);
     }
@@ -924,11 +928,21 @@ dp1v2::StageConfig parse_stage_config(const json_t *stages_json, const char *sta
 
 dp1v2::PipelineStagesConfig parse_pipeline_stages(const json_t *stages_json) {
     reject_unknown_keys(stages_json,
-                        {"prep", "radiometric", "enhancement", "matched_filter", "candidate_extraction",
-                         "segmentation", "object_filtering", "measurement"},
+                        {"input_normalization", "prep", "radiometric", "enhancement", "matched_filter",
+                         "candidate_extraction", "segmentation", "object_filtering", "measurement"},
                         "pipeline.pipeline");
 
     dp1v2::PipelineStagesConfig stages{};
+    if (json_object_get(stages_json, "input_normalization")) {
+        stages.input_normalization = parse_stage_config(stages_json, "input_normalization");
+    } else {
+        stages.input_normalization = dp1v2::StageConfig{
+            .enabled = true,
+            .variant = "passthrough",
+            .level = "L0",
+            .parameters = {},
+        };
+    }
     stages.prep = parse_stage_config(stages_json, "prep");
     stages.radiometric = parse_stage_config(stages_json, "radiometric");
     stages.enhancement = parse_stage_config(stages_json, "enhancement");

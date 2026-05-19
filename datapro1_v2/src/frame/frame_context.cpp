@@ -8,6 +8,8 @@ namespace {
 
 constexpr const char *kRawFrameArtifactId = "raw_frame";
 constexpr const char *kInputProducerStage = "input";
+constexpr const char *kCanonicalFrameArtifactId = "canonical_frame";
+constexpr const char *kInputNormalizationProducerStage = "input_normalization";
 constexpr const char *kRadiometricProcessingArtifactId = "radiometric.processing_frame";
 constexpr const char *kRadiometricProducerStage = "radiometric_correction";
 
@@ -104,6 +106,23 @@ FrameArtifactRef register_raw_frame_artifact(FrameContext &context, const FrameP
     return upsert_frame_artifact(context, artifact);
 }
 
+FrameArtifactRef register_canonical_frame_artifact(FrameContext &context, const CanonicalFrame &frame) {
+    FrameArtifactRef artifact{};
+    artifact.id = kCanonicalFrameArtifactId;
+    artifact.kind = FrameArtifactKind::CanonicalFrame;
+    artifact.domain = FrameArtifactDomain::Raw;
+    artifact.ownership = FrameArtifactOwnership::BorrowedReadOnly;
+    artifact.lifetime = FrameArtifactLifetime::InputBoundary;
+    artifact.status = FrameArtifactStatus::Available;
+    artifact.semantic_name = kCanonicalFrameArtifactId;
+    artifact.producer_stage = kInputNormalizationProducerStage;
+    artifact.parent_artifact_id = frame.parent_artifact_id.empty() ? kRawFrameArtifactId : frame.parent_artifact_id;
+    artifact.pixel_format = frame.pixel_format;
+    artifact.bit_depth = frame.bit_depth;
+    artifact.geometry = frame.geometry;
+    return upsert_frame_artifact(context, artifact);
+}
+
 FrameArtifactRef register_radiometric_processing_artifact(
     FrameContext &context,
     const ProcessingFrame &frame) {
@@ -116,7 +135,7 @@ FrameArtifactRef register_radiometric_processing_artifact(
     artifact.status = FrameArtifactStatus::MetadataOnly;
     artifact.semantic_name = kRadiometricProcessingArtifactId;
     artifact.producer_stage = kRadiometricProducerStage;
-    artifact.parent_artifact_id = kRawFrameArtifactId;
+    artifact.parent_artifact_id = kCanonicalFrameArtifactId;
     artifact.pixel_format = frame.pixel_format;
     artifact.bit_depth = context.input_bit_depth;
     artifact.geometry = frame.geometry;

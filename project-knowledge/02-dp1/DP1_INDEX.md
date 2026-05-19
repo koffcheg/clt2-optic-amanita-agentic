@@ -16,7 +16,7 @@ Canonical DP1:
 1. Product definition and source-of-truth route.
 2. Formal pipeline model `Π`.
 3. Data domains: Raw, Processing, Mask, Measurement, Visualization, conversion rules.
-4. Eight main stage-interface cards derived from the Big TZ interface requirements.
+4. Stage0 input normalization plus eight main stage-interface cards derived from the Big TZ interface requirements.
 5. Configuration model `C` and complexity levels.
 6. Canonical conformance validation.
 
@@ -32,9 +32,10 @@ Legacy DP1:
 
 ## Next Work
 
-1. Write full small stage specifications for canonical DP1.
-2. Define the complete configuration schema `C`.
-3. Define canonical Measurement payload schema.
+1. Prepare Stage0.1 implementation from the canonical Input Normalization and CanonicalFrame baseline.
+2. Write full small stage specifications for canonical DP1, including Stage0.2 binning before implementation.
+3. Define the complete configuration schema `C`.
+4. Define canonical Measurement payload schema.
 
 ## Reading Route
 

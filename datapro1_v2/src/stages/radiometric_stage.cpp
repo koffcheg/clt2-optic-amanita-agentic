@@ -24,7 +24,7 @@ int bitDepthToInt(InputBitDepth bit_depth)
     return static_cast<int>(bit_depth);
 }
 
-InverseMedianInputRoute makeInverseMedianRoute(const FramePacket& frame)
+InverseMedianInputRoute makeInverseMedianRoute(const CanonicalFrame& frame)
 {
     InverseMedianInputRoute route{};
     route.frame_size = frame.image.size();
@@ -54,7 +54,7 @@ PixelFormat processingPixelFormatFor(const cv::Mat& image)
     return PixelFormat::F32;
 }
 
-PixelRange signedResidualRangeFor(const FramePacket& frame)
+PixelRange signedResidualRangeFor(const CanonicalFrame& frame)
 {
     return PixelRange{
         .min_value = frame.pixel_range.min_value - frame.pixel_range.max_value,
@@ -65,7 +65,7 @@ PixelRange signedResidualRangeFor(const FramePacket& frame)
 }
 
 ProcessingFrame makeProcessingFrame(
-    const FramePacket& input_frame,
+    const CanonicalFrame& input_frame,
     const cv::Mat& output_image,
     RangePolicy range_policy)
 {
@@ -148,7 +148,7 @@ RadiometricStage::validateInverseMedianFullFrameConfig(const StageConfig& config
 }
 
 StageOutcome<RadiometricFullFrameOutput> RadiometricStage::makeInverseMedianFullFrameOutcome(
-    const FramePacket& input_frame,
+    const CanonicalFrame& input_frame,
     const InverseMedianResult& result) const
 {
     if (result.status == InverseMedianStatus::Disabled) {

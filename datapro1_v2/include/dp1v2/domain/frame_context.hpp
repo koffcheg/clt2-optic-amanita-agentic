@@ -16,6 +16,7 @@ struct PipelineConfig;
 
 enum class FrameArtifactKind : std::uint8_t {
     RawFrame,
+    CanonicalFrame,
     ProcessingFrame,
     BinaryMask,
     CandidateSet,

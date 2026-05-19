@@ -70,14 +70,20 @@ This is a target model only. Creating directories, tests, or fixtures requires a
 
 ### Stage-Level Algorithm Validation
 
+- `validation.dp1.input_normalization` - unit validation route for the
+  Stage0.1 pass-through baseline of canonical DP1 `input_normalization`.
+  link: `cards/validation.dp1.input_normalization.md`
+
 - `validation.dp1.radiometric_correction.inverse_median` - validation route for
   the `inverse_median` variant of canonical DP1 `radiometric_correction`.
   link: `cards/validation.dp1.radiometric_correction.inverse_median.md`
 
-### Task-Specific Run-Based Validation
+- `validation.dp1.input_normalization.sum_binning` - unit validation
+  route for the `software_sum_binning` variant of canonical DP1 Stage0
+  `input_normalization`.
+  link: `cards/validation.dp1.input_normalization.sum_binning.md`
 
-- `validation.amnt0004.dp1_binning` - validation card for DP1 sum-binning run-based validation.
-  link: `cards/validation.amnt0004.dp1_binning.md`
+### Task-Specific Run-Based Validation
 
 - `validation.dp1.file_frame_source_frame_packet` - validation route for the first bounded DP1 input codegen slice: `FileFrameSource -> FramePacket`.
   link: `cards/validation.dp1.file_frame_source_frame_packet.md`

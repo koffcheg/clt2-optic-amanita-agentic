@@ -14,7 +14,7 @@ status: "draft"
 
 ## Definition
 
-Готує ROI, tiles, borders, нормалізацію типів і перетворення координат.
+Готує processing geometry для `CanonicalFrame`: full-frame, ROI, tiles, border/overlap, valid area і metadata для local/global coordinate mapping.
 
 ## Interface
 
@@ -26,48 +26,47 @@ status: "draft"
 
 ## Algorithmic idea
 
-Організувати обробку кадру без втрати геометрії: вибрати full-frame або ROI,
+Організувати просторову схему обробки `CanonicalFrame` без втрати геометрії: вибрати full-frame або ROI,
 розбити дані на tiles за потреби, додати border/overlap і зберегти metadata
 для переходів `local <-> global`.
 
 ## Inputs
 
-Домен сирих даних `Raw`; фрагмент конфігурації для політики ROI, tile,
+`CanonicalFrame`; фрагмент конфігурації для політики ROI, tile,
 overlap і border.
 
 ## Internal computation domain
 
-`Raw` або `Processing`, явно визначений майбутньою специфікацією етапу.
-Допустимі формати: `CV_16UC1`; `CV_8UC1` лише для явно задекларованого
-швидкого тракту.
+`Raw` або route-specific metadata domain, явно визначений майбутньою специфікацією етапу.
+Prep не виконує pixel-format normalization, bit-depth conversion або binning.
 
 ## Outputs
 
-Підготовлене представлення кадру/ROI/tiles і metadata для перетворення
+Processing layout: full-frame/ROI/tile descriptors і metadata для перетворення
 координат.
 
 ## Domain bindings
 
 ```yaml
 frame_level_binding:
-  allowed_input: "dp1.domain.raw.frame_packet"
+  allowed_input: "dp1.domain.raw.canonical_frame"
   runtime_context: "dp1.domain.runtime.frame_context"
   allowed_output:
-    - "dp1.domain.raw.frame_packet"
-    - "dp1.domain.processing.frame"
-  notes: "Підготовка source data та ROI/tile route. Без candidates, masks або measurements."
+    - "dp1.domain.raw.canonical_frame"
+    - "dp1.domain.runtime.tile_desc"
+  notes: "Підготовка processing geometry для CanonicalFrame. Без binning, conversion, candidates, masks або measurements."
 route_specific_carriers:
   - route: "full_frame"
-    input_carrier: "FramePacket"
-    output_carrier: "FramePacket або ProcessingFrame"
+    input_carrier: "CanonicalFrame"
+    output_carrier: "CanonicalFrame view або route-specific ProcessingLayout"
   - route: "roi"
-    input_carrier: "FramePacket + ROI metadata"
+    input_carrier: "CanonicalFrame + ROI metadata"
     output_carrier: "ROI-scoped raw/processing representation, якщо це визначено stage spec"
   - route: "tiles"
-    input_carrier: "FramePacket"
+    input_carrier: "CanonicalFrame"
     output_carrier: "TileDesc[]"
   - route: "adaptive_roi"
-    input_carrier: "FramePacket + explicit ROI source/state"
+    input_carrier: "CanonicalFrame + explicit ROI source/state"
     output_carrier: "ROI metadata або route-specific processing units, якщо це визначено stage spec"
 ```
 
@@ -80,12 +79,12 @@ route_specific_carriers:
 
 - `L0`: full-frame або ROI без tiles, мінімум копій.
 - `L1`: tiles з overlap і явним обліком координат.
-- `L2`: multi-scale, адаптивні ROI, складна схема tiles.
+- `L2`: адаптивні ROI або складна схема tiles за окремою stage spec.
 
 ## OpenCV mapping
 
 - `cv::Rect` ROI: `native`.
-- `resize`: `native`, якщо обрано multi-scale режим.
+- `resize`: заборонено для Prep, якщо майбутня погоджена stage spec явно не винесе spatial resampling в окремий non-normalization route.
 - Tiling і border policy: `custom`.
 
 ## Config fragment
@@ -100,8 +99,8 @@ route_specific_carriers:
 
 ## Timing / profiling
 
-Профілювати час підготовки, кількість tiles, витрати на копіювання, витрати на
-border/overlap і перетворення форматів.
+Профілювати час підготовки, кількість tiles, витрати на копіювання і витрати на
+border/overlap. Перетворення форматів не належить Prep.
 
 Profiling records мають використовувати `StageKey = "prep"` і структури з
 `dp1.domain.profiling`: `StageTiming`, `OperationTiming`, `CardinalityMetrics`
@@ -110,11 +109,11 @@ tile-scoped.
 
 ## Must not do
 
-Виявлення, вимірювання або обчислення на основі візуалізації.
+Виявлення, вимірювання, pixel normalization, bit-depth conversion, binning або обчислення на основі візуалізації.
 
 ## Constraints
 
-Не допускаються неявні перетворення типів. Динамічний діапазон raw має зберігатися відповідно до правил перетворення.
+Не допускаються неявні перетворення типів. Динамічний діапазон `CanonicalFrame` має зберігатися; будь-яка normalization/conversion належить Stage0 або окремій stage spec.
 
 Критичні інваріанти:
 - відсутність зайвих копій;
@@ -138,12 +137,10 @@ tile-scoped.
 ## Connections
 
 - uses: dp1.domain.raw
-- uses: dp1.domain.raw.frame_packet
+- uses: dp1.domain.raw.canonical_frame
 - uses: dp1.domain.runtime.frame_context
 - uses: dp1.domain.profiling
-- may_produce: dp1.domain.processing.frame
 - may_produce: dp1.domain.runtime.tile_desc
-- uses: dp1.domain.conversion_rules
 - constrained_by: dp1.config.stage_variant_registry
 - constrained_by: dp1.pipeline.stage_io_matrix
 - feeds: dp1.stage.radiometric_correction

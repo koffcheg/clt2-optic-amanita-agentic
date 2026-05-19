@@ -3,8 +3,8 @@
 #include <optional>
 
 #include "dp1v2/config/config.hpp"
+#include "dp1v2/domain/canonical_frame.hpp"
 #include "dp1v2/domain/frame_context.hpp"
-#include "dp1v2/domain/frame_packet.hpp"
 #include "dp1v2/domain/processing_frame.hpp"
 #include "dp1v2/domain/tile_context.hpp"
 #include "dp1v2/domain/tile_processing_frame.hpp"
@@ -17,7 +17,7 @@ namespace dp1v2 {
 
 /// Full-frame radiometric input. The raw frame is read-only for this stage.
 struct RadiometricFullFrameInput {
-    const FramePacket &frame;
+    const CanonicalFrame &frame;
 };
 
 /// Full-frame radiometric output in Processing domain.
@@ -87,7 +87,7 @@ private:
     std::optional<StageOutcome<RadiometricFullFrameOutput>> validateInverseMedianFullFrameConfig(
         const StageConfig &config) const;
     StageOutcome<RadiometricFullFrameOutput> makeInverseMedianFullFrameOutcome(
-        const FramePacket &input_frame,
+        const CanonicalFrame &input_frame,
         const InverseMedianResult &result) const;
 
     std::optional<InverseMedianParametersConfig> inverse_median_config_;

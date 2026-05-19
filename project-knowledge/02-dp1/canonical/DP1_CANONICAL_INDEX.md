@@ -12,17 +12,19 @@ This section defines target DP1 architecture independently from legacy `datapro1
 2. `product/dp1.canonical.source_of_truth.md`
 3. `pipeline/dp1.pipeline.formal_model.md`
 4. `pipeline/dp1.pipeline.stage_contract.md`
-5. `pipeline/dp1.pipeline.stage_domain_bindings.md`
-6. `pipeline/dp1.pipeline.stage_io_matrix.md`
-7. `data_domains/*.md` and `data_domains/structures/**/*.md`
-8. `stages/*.md`
-9. `configuration/dp1.config.pipeline_configuration_c.md`
-10. `configuration/dp1.config.stage_variant_registry.md`
-11. `configuration/dp1.config.complexity_levels.md`
-12. `stage_specs/*.md`
-13. `validation/dp1.validation.canonical_conformance.md`
-14. `validation/dp1.validation.stage_contract_checks.md`
-15. `../../04-protocols/cards/protocols.dp1_dp2.measurement_handoff.md`
+5. `stages/dp1.stage.input_normalization.md`
+6. `data_domains/structures/raw/dp1.domain.raw.canonical_frame.md`
+7. `pipeline/dp1.pipeline.stage_domain_bindings.md`
+8. `pipeline/dp1.pipeline.stage_io_matrix.md`
+9. `data_domains/*.md` and `data_domains/structures/**/*.md`
+10. `stages/*.md`
+11. `configuration/dp1.config.pipeline_configuration_c.md`
+12. `configuration/dp1.config.stage_variant_registry.md`
+13. `configuration/dp1.config.complexity_levels.md`
+14. `stage_specs/*.md`
+15. `validation/dp1.validation.canonical_conformance.md`
+16. `validation/dp1.validation.stage_contract_checks.md`
+17. `../../04-protocols/cards/protocols.dp1_dp2.measurement_handoff.md`
 
 ## Code generation rule
 
@@ -82,6 +84,7 @@ define a multi-camera input container inside one DP1 instance.
 ## Current domain structures
 
 - `data_domains/structures/raw/dp1.domain.raw.frame_packet.md` - `FramePacket` structure in Raw/Input domain.
+- `data_domains/structures/raw/dp1.domain.raw.canonical_frame.md` - `CanonicalFrame` normalized DP1 input emitted by Stage0.
 - `data_domains/structures/raw/dp1.domain.raw.tile_raw_view.md` - `TileRawView` read-only ROI view in Raw/Input domain.
 - `data_domains/structures/processing/dp1.domain.processing.frame.md` - `ProcessingFrame` structure in Processing domain.
 - `data_domains/structures/processing/dp1.domain.processing.tile_processing_frame.md` - `TileProcessingFrame` tile-local processing payload in Processing domain.
@@ -103,6 +106,18 @@ They do not implement parallelism and do not claim current runtime support.
 - `data_domains/structures/runtime/dp1.domain.runtime.tile_context.md` - `TileContext` for per-worker reusable tile-local buffers and diagnostics.
 - `data_domains/structures/runtime/dp1.domain.runtime.tile_result.md` - `TileResult` for tile-local outputs before merge.
 
+## Stage0 Input Normalization
+
+Stage0 establishes the canonical DP1 input boundary:
+
+```text
+FramePacket -> Stage0 Input Normalization -> CanonicalFrame -> Prep
+```
+
+For Stage0.1, `PipelineConfig.input_route` is the validation contract. Stage0.1
+may emit only a pass-through borrowed/read-only `CanonicalFrame`; binning, pixel
+conversion, ROI, and tiling are deferred to separate approved tasks.
+
 ## Prep Execution Variants
 
 DP1 supports several `prep.variant` execution routes:
@@ -117,7 +132,9 @@ DP1 supports several `prep.variant` execution routes:
 The tile execution route uses:
 
 ```text
-FramePacket.image
+FramePacket
+  -> Stage0 Input Normalization
+  -> CanonicalFrame
   -> TileDesc[]
   -> TileRawView per tile
   -> TileContext per worker
@@ -137,8 +154,8 @@ structure names such as `raw16` or `proc32`.
 
 ## Current pipeline bindings
 
-- `pipeline/dp1.pipeline.stage_domain_bindings.md` - cross-stage binding overview with links to the eight authoritative stage-interface binding sections, plus pipeline-level tile/merge and hidden-output rules.
-- `pipeline/dp1.pipeline.stage_io_matrix.md` - canonical input/output matrix for the eight DP1 stages and tile merge boundary.
+- `pipeline/dp1.pipeline.stage_domain_bindings.md` - cross-stage binding overview with links to Stage0 and the eight authoritative computational stage-interface binding sections, plus pipeline-level tile/merge and hidden-output rules.
+- `pipeline/dp1.pipeline.stage_io_matrix.md` - canonical input/output matrix for Stage0 input normalization, the eight computational DP1 stages, and tile merge boundary.
 
 ## Current configuration contracts
 
@@ -166,7 +183,7 @@ structure names such as `raw16` or `proc32`.
   pilot small-TZ stage spec for `candidate_extraction` variant
   `global_threshold` at `L0`.
 
-The current canonical stage-interface card set covers only the eight main DP1
+The current canonical stage-interface card set covers Stage0 input normalization plus the eight main DP1
 detection/measurement stages. Infrastructure stages such as visualization and
 persistence are intentionally not described in this pass. Runtime visualization
 configuration is described separately as application configuration.
