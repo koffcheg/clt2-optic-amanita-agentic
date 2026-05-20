@@ -449,8 +449,7 @@ Stage0 Input Normalization must record stage-level timing:
 - explicit reason on failure.
 
 Operation-level timing для allocation, copy і binning loop може бути доданий
-лише як follow-up після explicit approval profiling scope. Stage0 Input Normalization-pre все одно
-вимагає видимої semantics для copy/allocation через `CanonicalFrame.normalization`
+лише як follow-up після explicit approval profiling scope. До runtime implementation ця specification все одно вимагає видимої semantics для copy/allocation через `CanonicalFrame.normalization`
 і artifact metadata: binned output має `copied = true`, `binned = true` і
 owned stage-output lifetime. Якщо майбутній profiling додасть operation timings,
 вони мають залишатися у `FrameContext.profiling`, а не в artifact registry.
