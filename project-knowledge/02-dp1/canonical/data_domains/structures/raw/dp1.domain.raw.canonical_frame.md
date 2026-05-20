@@ -17,7 +17,7 @@ status: "draft"
 `Stage0 Input Normalization`. Він відділяє source/raw boundary `FramePacket`
 від кадру, який готовий для `Stage1 Prep` і подальших stages.
 
-У Stage0.1 `CanonicalFrame` є pass-through borrowed/read-only view на payload
+У Stage0 Input Normalization baseline (implementation slice Stage0.1) `CanonicalFrame` є pass-through borrowed/read-only view на payload
 `FramePacket`, якщо source frame відповідає `PipelineConfig.input_route`.
 
 ## Assumptions
@@ -27,7 +27,7 @@ status: "draft"
   artifact, але не стає власником heavy image payload за замовчуванням.
 - Binning/conversion fields можуть бути присутні в conceptual structure, але
   Stage0.1 встановлює no-op provenance.
-- Майбутній route Stage0.2 `software_sum_binning` може emit-ити розширений
+- Майбутній route Stage0 Input Normalization (implementation slice Stage0.2-pre) `software_sum_binning` може emit-ити розширений
   accumulated carrier. Такий carrier описує суму, а не source pixel range.
 
 ## Theorem / Contract
@@ -115,6 +115,8 @@ stage0_1_defaults:
 
 ## Interpretation
 
+Stage0.1 and Stage0.2-pre are implementation/task slice labels, not canonical stage names. The canonical stage remains Stage0 Input Normalization.
+
 `CanonicalFrame` означає, що DP1 має єдиний input carrier після Stage0. Для
 Stage0.1 цей carrier не змінює pixels і не змінює geometry. Він тільки робить
 межу input normalization явною, перевіреною і відображеною у `FrameContext`.
@@ -167,7 +169,7 @@ saturation_level = source_saturation_level * scale
 - Exact C++ enum names для `PayloadOwnership` і `NormalizationSource`.
 - Чи має `parent_artifact_id` бути string id або typed `FrameArtifactRef`.
 - Чи потрібен окремий `CanonicalBinnedFrame` card після Stage0.2.
-- Остаточна назва canonical accumulated carrier: `AccumU32` або `U32`.
+- `U32` допускається тільки як future naming detail при незмінній `AccumU32` semantics.
 
 ## Connections
 

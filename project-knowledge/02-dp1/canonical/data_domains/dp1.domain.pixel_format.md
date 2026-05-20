@@ -30,7 +30,7 @@ Canonical DP1 має мінімально розрізняти такі форм
 - `MaskU8` — carrier для бінарної маски, зазвичай `CV_8UC1`.
 - `S16` — signed 16-bit residual carrier для route, де `uint8` input формує signed residual.
 - `S32` — signed 32-bit residual carrier для route, де `uint16` input формує signed residual.
-- `AccumU32` або `U32` — невідʼємний 32-bit accumulated carrier для lossless pure sum output, зокрема Stage0 `software_sum_binning`.
+- `AccumU32` — невідʼємний 32-bit accumulated semantic carrier для lossless pure sum output, зокрема Stage0 Input Normalization `software_sum_binning`.
 
 Формат має бути явно заданий у data object або route-level metadata. Неявне виведення semantics тільки з `cv::Mat::type()` недостатнє для canonical contract.
 
@@ -83,7 +83,7 @@ enum class PixelFormat {
     MaskU8,
     S16,
     S32,
-    AccumU32 // або U32; остаточна назва потребує implementation decision
+    AccumU32
 };
 
 enum class InputBitDepth {
@@ -183,9 +183,9 @@ canonical pixel format для DP1 visualization.
 `S16` і `S32` потрібні для signed residual routes, зокрема для stage specs, де
 residual не має втрачати від'ємні значення до downstream processing.
 
-`AccumU32` / `U32` потрібен для pure sum routes, де значення не є residual і не
-мають бути від'ємними. Для Stage0 `software_sum_binning` цей carrier є
-рекомендованим canonical baseline. Якщо implementation тимчасово використовує
+`AccumU32` потрібен для pure sum routes, де значення не є residual і не
+мають бути від'ємними. Для Stage0 Input Normalization `software_sum_binning` цей carrier є
+canonical baseline. Якщо implementation тимчасово використовує
 `CV_32SC1`, route metadata має явно вказувати `AccumulatedSumRange`, щоб
 downstream не трактував buffer як signed residual.
 
@@ -217,7 +217,7 @@ downstream не трактував buffer як signed residual.
 - Єдина canonical threshold range policy для `U8`, `U16` і `F32`.
 - Чи потрібні окремі packed/color formats поза grayscale canonical route.
 - Canonical default для `black_level`, якщо camera metadata його не надає.
-- Остаточна назва accumulated carrier у C++ vocabulary: `AccumU32` або `U32`.
+- Чи потрібен future enum alias `U32` як implementation naming detail при незмінній `AccumU32` semantics.
 
 ## Connections
 

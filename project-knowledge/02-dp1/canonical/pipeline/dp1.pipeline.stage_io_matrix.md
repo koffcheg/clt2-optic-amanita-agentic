@@ -89,7 +89,7 @@ stage_io_matrix:
         lifetime: "InputBoundary або FrameBoundary для Stage0.1; StageOutputScope для Stage0.2 binned output"
         status: "Available"
     required_domain: "Raw/Input"
-    notes: "Stage0.1 перевіряє input_route і формує CanonicalFrame без binning, conversion, ROI або tiles. Stage0.2-pre software_sum_binning може формувати owned binned CanonicalFrame з розширений accumulated carrier; якщо downstream route не підтримує такий carrier, pipeline має повернути explicit failure."
+    notes: "Stage0 Input Normalization перевіряє input_route і формує CanonicalFrame baseline без binning, conversion, ROI або tiles. Implementation/task slices Stage0.1 and Stage0.2-pre are not canonical stage names. Variant `software_sum_binning` може формувати owned binned CanonicalFrame з `AccumU32` semantics; якщо downstream route не підтримує widened carrier, pipeline має повернути explicit failure."
 
   - stage: "prep"
     input:

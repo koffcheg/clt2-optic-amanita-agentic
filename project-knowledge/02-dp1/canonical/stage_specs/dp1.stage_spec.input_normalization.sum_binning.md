@@ -1,8 +1,8 @@
 ---
 id: dp1.stage_spec.input_normalization.sum_binning
 title:
-  uk: "Специфікація Stage0.2 Binning L0"
-  en: "Stage0.2 Binning L0 specification"
+  uk: "Специфікація Stage0 Input Normalization software_sum_binning"
+  en: "Stage0 Input Normalization software_sum_binning policy"
 tags: [dp1, canonical, stage-spec, small-tz, input-normalization, binning]
 kind: stage-spec-card
 source_role: canonical
@@ -13,10 +13,10 @@ status: "draft"
 
 ## Definition
 
-`Stage0.2 Binning L0` є малою специфікацією для bounded software sum binning у
+`Stage0 Input Normalization: software_sum_binning` є малою специфікацією для bounded software sum binning у
 `Stage0 Input Normalization`.
 
-Stage0.2 приймає `FramePacket`, перевіряє його проти `PipelineConfig.input_route`
+Stage0 Input Normalization приймає `FramePacket`, перевіряє його проти `PipelineConfig.input_route`
 і формує `CanonicalFrame`. Якщо `kbin = 1`, Stage0 працює як pass-through без
 бінування. Якщо `kbin = 2` або `kbin = 4`, Stage0 формує нове забіноване
 зображення меншої роздільної здатності.
@@ -56,13 +56,13 @@ interpolation, `INTER_AREA`, max pooling, hardware binning або будь-як�
 - `dp1.config.pipeline_configuration_c`;
 - `dp1.config.stage_variant_registry`.
 
-Факти з ТЗ, які є обов'язковими для Stage0.2:
+Факти з ТЗ, які є обов'язковими для Stage0 Input Normalization:
 
 - зараз реалізується лише сумуючий binning;
 - `kbin` є єдиним параметром бінування у цьому slice;
 - допустимі `kbin`: `2` і `4`;
 - `kbin = 1` означає disabled/pass-through;
-- Stage0.2 виконується перед фрагментацією кадру на ROI або tiles;
+- Stage0 Input Normalization виконується перед фрагментацією кадру на ROI або tiles;
 - назад зображення не повертається;
 - координати вимірювань мають бути перераховані у систему координат початкового
   кадру перед записом output або DP2 handoff;
@@ -86,7 +86,7 @@ interpolation, `INTER_AREA`, max pooling, hardware binning або будь-як�
 - stride;
 - single-channel shape.
 
-Stage0.2 не виконує приховане приведення до grayscale. Якщо вхід має більше
+Stage0 Input Normalization не виконує приховане приведення до grayscale. Якщо вхід має більше
 одного каналу, stage повертає explicit failure.
 
 ## Outputs
@@ -222,17 +222,17 @@ Implementation approach для першої реалізації:
 окремим compatibility variant із власною назвою, config contract і validation
 route. Такий variant не є canonical pure sum binning.
 
-Stage0.2 не виконує average:
+Stage0 Input Normalization не виконує average:
 
 ```text
 Ib(i,j) != (1 / kbin^2) * sum(...)
 ```
 
-Stage0.2 не виконує interpolation або geometric resize.
+Stage0 Input Normalization не виконує interpolation або geometric resize.
 
 ## Політика динамічного діапазону і carrier
 
-Stage0.2 використовує lossless widening без clipping.
+Stage0 Input Normalization використовує lossless widening без clipping.
 
 Для `kbin = 2` або `kbin = 4`:
 
@@ -249,6 +249,8 @@ output_saturation_level = source.pixel_range.saturation_level * scale
 
 ### U8 input
 
+Stage0.1 and Stage0.2-pre are implementation/task slice labels, not canonical stage names. The canonical stage remains Stage0 Input Normalization.
+
 Вхід:
 
 - `PixelFormat = U8`;
@@ -257,9 +259,7 @@ output_saturation_level = source.pixel_range.saturation_level * scale
 
 Вихід:
 
-- canonical semantics output carrier: `AccumU32` або `U32`;
-- transitional storage carrier `CV_16UC1` може бути дозволений тільки для
-  `U8, kbin <= 4`, якщо metadata явно фіксує accumulated-sum range;
+- canonical semantics output carrier: `AccumU32`;
 - без saturation/clamping;
 - без прихованого scaling;
 - без прихованого downcast до `U8`;
@@ -283,7 +283,7 @@ output_saturation_level = source.pixel_range.saturation_level * scale
 
 Вихід:
 
-- canonical semantics output carrier: `AccumU32` або `U32`;
+- canonical semantics output carrier: `AccumU32`;
 - canonical output carrier має бути невідʼємним accumulated sum carrier;
 - transitional storage carrier `CV_32SC1` / `S32` може бути дозволений тільки як
   задокументований перехідний route, якщо metadata явно фіксує невідʼємний accumulated carrier,
@@ -306,18 +306,12 @@ output_saturation_level = source.pixel_range.saturation_level * scale
 
 Допустимі варіанти policy для майбутньої implementation task:
 
-- `AccumU32` / `U32` canonical baseline: unsigned або явно невідʼємний
-  32-bit accumulated carrier для pure sum output.
-- `S32` transitional carrier: тимчасовий storage route на базі `CV_32SC1`, який
-  дозволений лише якщо metadata забороняє трактувати його як signed residual.
-- Lossy compatibility variant: окремий variant для downscaled, clipped або compatibility output. Він не є `software_sum_binning`.
+- `AccumU32` є єдиний canonical semantic carrier для pure `software_sum_binning`.
+- `S32` transitional carrier дозволений лише як тимчасовий storage route на базі `CV_32SC1`, якщо metadata явно декларує `AccumU32` semantics і забороняє трактування як signed residual.
+- `U32` може згадуватися тільки як можливий future enum/storage naming detail, не як окрема canonical semantic альтернатива.
+- Lossy compatibility variant (downcast/scaled/clipped output) може існувати лише окремо і не є `software_sum_binning`.
 
-Рекомендований canonical baseline для Stage0.2-pre: `AccumU32` або `U32` для
-обох `U8` і `U16` sum output. Це прибирає route-dependent carrier narrowing і
-не дозволяє майбутньому runtime приховано повертати source carrier.
-
-Поточний code-backed C++ vocabulary не має `PixelFormat::U32` або
-`PixelFormat::AccumU32`. Це implementation gap для майбутньої Stage0.2 runtime task, а не підстава звужувати canonical policy до `U16` або residual `S32`.
+Поточний code-backed C++ vocabulary може не мати `PixelFormat::AccumU32`; це implementation gap для окремої runtime task, а не підстава звужувати canonical policy.
 
 ## Сумісність із downstream
 
@@ -325,7 +319,7 @@ output_saturation_level = source.pixel_range.saturation_level * scale
 розширений accumulated carrier, перш ніж pipeline route з `software_sum_binning`
 може виконуватися.
 
-Якщо downstream route не підтримує `AccumU32` / `U32` або approved transitional
+Якщо downstream route не підтримує `AccumU32` semantics або approved transitional
 `S32` accumulated carrier, pipeline має повернути explicit failure під час config validation або stage boundary validation. Заборонено:
 
 - приховано приводити accumulated carrier назад до `U8` або `U16`;
@@ -351,8 +345,8 @@ binned_height = H / kbin
 
 Odd or non-divisible dimensions policy:
 
-- if `W % kbin != 0`, Stage0.2 returns explicit failure;
-- if `H % kbin != 0`, Stage0.2 returns explicit failure;
+- if `W % kbin != 0`, Stage0 Input Normalization returns explicit failure;
+- if `H % kbin != 0`, Stage0 Input Normalization returns explicit failure;
 - no crop;
 - no padding;
 - no resize.
@@ -372,14 +366,14 @@ Coordinate spaces:
 - final `MeasurementRecord` and DP2-facing handoff must use
   `SourceFrameGlobal`.
 
-Stage0.2 defines this mapping:
+Stage0 Input Normalization defines this mapping:
 
 ```text
 x0 = xoff + kbin * xb
 y0 = yoff + kbin * yb
 ```
 
-For Stage0.2 full-frame baseline:
+For Stage0 Input Normalization full-frame baseline:
 
 ```text
 xoff = 0
@@ -389,7 +383,7 @@ yoff = 0
 `x0` and `y0` are the coordinates that must be written as measurements. Do not
 add `(kbin - 1) / 2`; the source documents define corner-based coordinates.
 
-Stage0.2 must preserve enough metadata for later measurement globalization:
+Stage0 Input Normalization must preserve enough metadata for later measurement globalization:
 
 - `kbin`;
 - `xoff`;
@@ -398,7 +392,7 @@ Stage0.2 must preserve enough metadata for later measurement globalization:
 - binned geometry;
 - relation `CanonicalFrameGlobal -> SourceFrameGlobal`.
 
-If coordinate conversion is not implemented in Stage0.2, Stage0.2 still has to
+If coordinate conversion is not implemented in Stage0 Input Normalization, Stage0 Input Normalization still has to
 emit metadata/provenance sufficient for the later measurement or merge boundary
 to convert coordinates before output.
 
@@ -419,7 +413,7 @@ registry alone must not extend `cv::Mat` lifetime.
 
 ## FrameContext artifact
 
-Successful binned Stage0.2 registers:
+Successful binned Stage0 Input Normalization registers:
 
 ```yaml
 artifact:
@@ -444,7 +438,7 @@ Artifact metadata must include:
 
 ## Timing / profiling
 
-Stage0.2 must record stage-level timing:
+Stage0 Input Normalization must record stage-level timing:
 
 - `StageKey = "input_normalization"`;
 - variant `software_sum_binning`;
@@ -455,7 +449,7 @@ Stage0.2 must record stage-level timing:
 - explicit reason on failure.
 
 Operation-level timing для allocation, copy і binning loop може бути доданий
-лише як follow-up після explicit approval profiling scope. Stage0.2-pre все одно
+лише як follow-up після explicit approval profiling scope. Stage0 Input Normalization-pre все одно
 вимагає видимої semantics для copy/allocation через `CanonicalFrame.normalization`
 і artifact metadata: binned output має `copied = true`, `binned = true` і
 owned stage-output lifetime. Якщо майбутній profiling додасть operation timings,
@@ -463,7 +457,7 @@ owned stage-output lifetime. Якщо майбутній profiling додаст�
 
 ## Failure cases
 
-Stage0.2 має повернути explicit failure для таких випадків:
+Stage0 Input Normalization має повернути explicit failure для таких випадків:
 
 - unsupported `kbin`;
 - відсутній `kbin` для `software_sum_binning`;
@@ -476,7 +470,7 @@ Stage0.2 має повернути explicit failure для таких випад
 - ambiguous source `pixel_range`;
 - запитано non-sum binning;
 - запитано resize, pooling, interpolation або `INTER_AREA` замість sum binning;
-- conversion запитано поза scope Stage0.2;
+- conversion запитано поза scope Stage0 Input Normalization;
 - downstream route не може спожити widened binned output;
 - requested lossy compatibility behavior через `software_sum_binning`;
 - приховане повернення до original `U8` або `U16` carrier після sum;
@@ -507,13 +501,13 @@ Automated tests require separate approval under `TESTING_POLICY`.
 
 ## Source-of-truth and canonicalization safety
 
-Ця StageSpec є необхідним джерелом для майбутньої Stage0.2 code generation.
+Ця StageSpec є необхідним джерелом для майбутньої Stage0 Input Normalization code generation.
 Вона не стверджує, що `software_sum_binning` уже реалізований у
 `datapro1_v2`.
 
 Якщо поточний code/config vocabulary не підтримує `U32`,
 `software_sum_binning` variant або downstream widened outputs, це є
-implementation gap для Stage0.2 task, а не підстава звужувати цю специфікацію
+implementation gap для Stage0 Input Normalization task, а не підстава звужувати цю специфікацію
 без explicit approval.
 
 ## Connections

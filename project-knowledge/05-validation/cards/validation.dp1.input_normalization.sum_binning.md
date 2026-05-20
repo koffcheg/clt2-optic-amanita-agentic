@@ -13,6 +13,8 @@ status: "draft"
 
 ## Definition
 
+Stage0.1 and Stage0.2-pre are implementation/task slice labels, not canonical stage names. The canonical stage remains Stage0 Input Normalization.
+
 Ця картка визначає unit validation route для canonical Stage0 variant
 `software_sum_binning`, описаного у
 `dp1.stage_spec.input_normalization.sum_binning`.
@@ -47,8 +49,8 @@ status: "draft"
 Обовʼязкові future GoogleTest cases для algorithm coverage:
 
 - `Stage0_WhenKbin1_EmitsPassthroughCanonicalFrame`
-- `Stage0_WhenU8Kbin2_SumsIntoU16CanonicalFrame`
-- `Stage0_WhenU8Kbin4_SumsIntoU16CanonicalFrame`
+- `Stage0_WhenU8Kbin2_SumsIntoAccumU32SemanticCarrier`
+- `Stage0_WhenU8Kbin4_SumsIntoAccumU32SemanticCarrier`
 - `Stage0_WhenU16Kbin2_SumsIntoAccumU32CanonicalFrame`
 - `Stage0_WhenU16Kbin4_SumsIntoAccumU32CanonicalFrame`
 - `Stage0_WhenU8Kbin4UsesMaxValues_DoesNotClampToU8`
@@ -120,7 +122,7 @@ average pooling, resize, `INTER_AREA`, scaling і hidden compatibility conversio
 - output `pixel_range` fields множаться на `kbin * kbin`;
 - output range fields використовують `output_min`, `output_max`, `black_level` and
   `saturation_level` для accumulated range, а не source range;
-- output carrier metadata є `AccumU32` / `U32` або explicit approved transitional невідʼємним accumulated `S32`;
+- output carrier metadata декларує `AccumU32` semantics; transitional `S32` допустимий тільки як non-negative storage carrier з explicit metadata;
 - `normalization.source = Stage0`;
 - `normalization.copied = true`;
 - `normalization.converted = false`;
