@@ -30,12 +30,14 @@ Canonical DP1 має мінімально розрізняти такі форм
 - `MaskU8` — carrier для бінарної маски, зазвичай `CV_8UC1`.
 - `S16` — signed 16-bit residual carrier для route, де `uint8` input формує signed residual.
 - `S32` — signed 32-bit residual carrier для route, де `uint16` input формує signed residual.
+- `AccumU32` — невідʼємний 32-bit accumulated semantic carrier для lossless pure sum output, зокрема Stage0 Input Normalization `software_sum_binning`.
 
 Формат має бути явно заданий у data object або route-level metadata. Неявне виведення semantics тільки з `cv::Mat::type()` недостатнє для canonical contract.
 
 Canonical processing route за замовчуванням використовує `F32` /
 `CV_32FC1`. `S16` і `S32` дозволені тільки як explicit signed residual route.
-`U8` або `U16` у Processing domain дозволені тільки як explicit
+`S32` може бути тимчасовим storage carrier для Stage0 accumulated sum тільки за
+умови explicit metadata, що це невідʼємний accumulated carrier, а не signed residual. `U8` або `U16` у Processing domain дозволені тільки як explicit
 fast/compatibility route, якщо це окремо зафіксовано у stage-interface card або
 future stage spec.
 
@@ -80,7 +82,8 @@ enum class PixelFormat {
     F32,
     MaskU8,
     S16,
-    S32
+    S32,
+    AccumU32
 };
 
 enum class InputBitDepth {
@@ -110,6 +113,7 @@ enum class RangePolicy {
     RawSensorRange,
     NormalizedFloat,
     SignedResidual,
+    AccumulatedSumRange,
     DetectorResponse,
     ClippedToInputRange,
     ScaledToInputRange
@@ -179,6 +183,12 @@ canonical pixel format для DP1 visualization.
 `S16` і `S32` потрібні для signed residual routes, зокрема для stage specs, де
 residual не має втрачати від'ємні значення до downstream processing.
 
+`AccumU32` потрібен для pure sum routes, де значення не є residual і не
+мають бути від'ємними. Для Stage0 Input Normalization `software_sum_binning` цей carrier є
+canonical baseline. Якщо implementation тимчасово використовує
+`CV_32SC1`, route metadata має явно вказувати `AccumulatedSumRange`, щоб
+downstream не трактував buffer як signed residual.
+
 Для `prep.variant = "tiles"` full-frame processing або mask buffers не є
 частиною цього route. Вони можуть існувати в інших `prep` variants або як
 окрема вимога stage spec.
@@ -191,6 +201,9 @@ residual не має втрачати від'ємні значення до down
 - `CV_16UC1` трактується як `Bit16`, хоча camera route задає `Bit12`.
 - Signed residual route примусово приводиться до unsigned carrier без explicit
   `RangePolicy`.
+- Accumulated sum route трактується як signed residual тільки через `CV_32SC1`.
+- Pure sum output приховано приводиться назад до `U8` або `U16` без окремого
+  lossy compatibility variant.
 
 ## Typical misuse
 
@@ -204,6 +217,7 @@ residual не має втрачати від'ємні значення до down
 - Єдина canonical threshold range policy для `U8`, `U16` і `F32`.
 - Чи потрібні окремі packed/color formats поза grayscale canonical route.
 - Canonical default для `black_level`, якщо camera metadata його не надає.
+- Чи потрібен future enum alias `U32` як implementation naming detail при незмінній `AccumU32` semantics.
 
 ## Connections
 

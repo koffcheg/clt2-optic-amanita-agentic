@@ -85,11 +85,11 @@ stage_io_matrix:
         domain: "Raw/CanonicalInput"
         producer_stage: "input_normalization"
         parent_artifact_id: "raw_frame"
-        ownership: "BorrowedReadOnly у Stage0.1 pass-through"
-        lifetime: "InputBoundary або FrameBoundary, якщо implementation явно гарантує lifetime"
+        ownership: "BorrowedReadOnly у Stage0.1 pass-through; OwnedByStageOutput у Stage0.2 `software_sum_binning`"
+        lifetime: "InputBoundary або FrameBoundary для Stage0.1; StageOutputScope для Stage0.2 binned output"
         status: "Available"
     required_domain: "Raw/Input"
-    notes: "Stage0.1 перевіряє input_route і формує CanonicalFrame без binning, conversion, ROI або tiles."
+    notes: "Stage0 Input Normalization перевіряє input_route і формує CanonicalFrame baseline без binning, conversion, ROI або tiles. Implementation/task slices Stage0.1 and Stage0.2-pre are not canonical stage names. Variant `software_sum_binning` може формувати owned binned CanonicalFrame з `AccumU32` semantics; якщо downstream route не підтримує widened carrier, pipeline має повернути explicit failure."
 
   - stage: "prep"
     input:
@@ -321,14 +321,14 @@ fields:
 
 ## Input / Output
 
-Input:
+Вхід:
 
 - `dp1.pipeline.stage_contract`;
 - stage-interface cards;
 - data-domain structure cards;
 - `PipelineConfig`.
 
-Output:
+Вихід:
 
 - canonical cross-stage compatibility matrix;
 - validation source для `dp1.validation.stage_contract_checks`.
