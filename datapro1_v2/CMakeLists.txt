@@ -46,6 +46,7 @@ target_sources(
         src/source/source_factory.cpp
         src/stages/calibration.cpp
         src/stages/input_normalization_stage.cpp
+        src/stages/prep_stage.cpp
         src/stages/radiometric_stage.inverse_median.cpp
         src/stages/radiometric_stage.cpp
         src/visualization/visualization_sink.cpp
@@ -125,12 +126,14 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 ../tests/unit/dp1/t_dp1v2_source.cpp
                 ../tests/unit/dp1/t_dp1v2_frame_context.cpp
                 ../tests/unit/dp1/t_dp1v2_input_normalization_stage.cpp
+                ../tests/unit/dp1/t_dp1v2_prep_stage.cpp
                 src/runtime/cyclic_frame_buffer.cpp
                 src/config/config.cpp
                 src/frame/frame_packet_builder.cpp
                 src/frame/frame_context.cpp
                 src/visualization/visualization_sink.cpp
                 src/stages/input_normalization_stage.cpp
+                src/stages/prep_stage.cpp
                 src/stages/radiometric_stage.inverse_median.cpp
                 src/source/uri_file_source.cpp
         )

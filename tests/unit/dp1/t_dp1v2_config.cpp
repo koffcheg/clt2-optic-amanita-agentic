@@ -235,6 +235,23 @@ void setObject(json_t* root, std::initializer_list<const char*> object_path, con
     ASSERT_EQ(json_object_set_new(objectAt(root, object_path), key, value), 0);
 }
 
+json_t* makePrepTilesParameters(
+    const json_int_t tile_width,
+    const json_int_t tile_height,
+    const json_int_t overlap_x,
+    const json_int_t overlap_y)
+{
+    json_t* tiles = json_object();
+    EXPECT_EQ(json_object_set_new(tiles, "tile_width", json_integer(tile_width)), 0);
+    EXPECT_EQ(json_object_set_new(tiles, "tile_height", json_integer(tile_height)), 0);
+    EXPECT_EQ(json_object_set_new(tiles, "overlap_x", json_integer(overlap_x)), 0);
+    EXPECT_EQ(json_object_set_new(tiles, "overlap_y", json_integer(overlap_y)), 0);
+
+    json_t* parameters = json_object();
+    EXPECT_EQ(json_object_set_new(parameters, "tiles", tiles), 0);
+    return parameters;
+}
+
 class ConfigTest : public ::testing::Test {
 protected:
     void SetUp() override
@@ -502,6 +519,123 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPipelineConfigCStageKeyRadiometricIsUsed_Re
     EXPECT_TRUE(config.pipeline.stages.radiometric.enabled);
     EXPECT_EQ(config.pipeline.stages.radiometric.variant, "inverse_median");
     EXPECT_EQ(config.pipeline.stages.radiometric.level, "L1");
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepFullFrameParametersAreEmpty_ReturnsNoPrepTilesConfig)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+
+    const dp1v2::Dp1Config config = loadDp1(application, pipeline);
+
+    EXPECT_FALSE(config.resolved_pipeline.prep.tiles.has_value());
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesParametersAreValid_ReturnsTypedPrepTilesConfig)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setString(pipeline.get(), {"pipeline", "prep"}, "level", "L1");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 16, 16));
+
+    const dp1v2::Dp1Config config = loadDp1(application, pipeline);
+
+    ASSERT_TRUE(config.resolved_pipeline.prep.tiles.has_value());
+    EXPECT_EQ(config.resolved_pipeline.prep.tiles->tile_width, 256);
+    EXPECT_EQ(config.resolved_pipeline.prep.tiles->tile_height, 256);
+    EXPECT_EQ(config.resolved_pipeline.prep.tiles->overlap_x, 16);
+    EXPECT_EQ(config.resolved_pipeline.prep.tiles->overlap_y, 16);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesObjectIsMissing_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", json_object());
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTileWidthIsZero_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(0, 256, 16, 16));
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTileHeightIsZero_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 0, 16, 16));
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepOverlapXIsNegative_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, -1, 16));
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepOverlapYIsNegative_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 16, -1));
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepOverlapXReachesTileWidth_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 256, 16));
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepOverlapYReachesTileHeight_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 16, 256));
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesHasUnknownKey_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 16, 16));
+    setInteger(pipeline.get(), {"pipeline", "prep", "parameters", "tiles"}, "border", 8);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepFullFrameHasUnknownParameter_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setInteger(pipeline.get(), {"pipeline", "prep", "parameters"}, "tile_width", 256);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
 }
 
 TEST_F(ConfigTest, LoadDp1Config_WhenStageVariantIsNotRegistered_ThrowsConfigError)

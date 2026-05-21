@@ -309,6 +309,20 @@ int read_optional_parameter_int(const dp1v2::ParameterMap &parameters,
     return *value;
 }
 
+int read_required_parameter_int(const dp1v2::ParameterMap &parameters,
+                                const std::string &key,
+                                const std::string &context) {
+    const auto it = parameters.find(key);
+    if (it == parameters.end()) {
+        throw std::logic_error("error on config file, " + context + "." + key + " is required integer");
+    }
+    const auto *value = std::get_if<int>(&it->second.value);
+    if (value == nullptr) {
+        throw std::logic_error("error on config file, " + context + "." + key + " must be integer");
+    }
+    return *value;
+}
+
 std::string read_optional_parameter_string(const dp1v2::ParameterMap &parameters,
                                            const std::string &key,
                                            const std::string &default_value,
@@ -881,6 +895,47 @@ dp1v2::InputRouteConfig parse_input_route(const json_t *route_json) {
     return config;
 }
 
+dp1v2::PrepTilesParametersConfig resolve_prep_tiles_parameters(const dp1v2::ParameterMap &parameters) {
+    const auto *tiles_parameters = require_parameter_object(
+        parameters, "tiles", "pipeline.pipeline.prep.parameters");
+
+    reject_unknown_parameter_keys(
+        *tiles_parameters,
+        {"tile_width", "tile_height", "overlap_x", "overlap_y"},
+        "pipeline.pipeline.prep.parameters.tiles");
+
+    dp1v2::PrepTilesParametersConfig config{};
+    config.tile_width = read_required_parameter_int(
+        *tiles_parameters, "tile_width", "pipeline.pipeline.prep.parameters.tiles");
+    config.tile_height = read_required_parameter_int(
+        *tiles_parameters, "tile_height", "pipeline.pipeline.prep.parameters.tiles");
+    config.overlap_x = read_required_parameter_int(
+        *tiles_parameters, "overlap_x", "pipeline.pipeline.prep.parameters.tiles");
+    config.overlap_y = read_required_parameter_int(
+        *tiles_parameters, "overlap_y", "pipeline.pipeline.prep.parameters.tiles");
+
+    if (config.tile_width <= 0) {
+        throw std::logic_error("error on config file, prep.tiles.tile_width must be > 0");
+    }
+    if (config.tile_height <= 0) {
+        throw std::logic_error("error on config file, prep.tiles.tile_height must be > 0");
+    }
+    if (config.overlap_x < 0) {
+        throw std::logic_error("error on config file, prep.tiles.overlap_x must be >= 0");
+    }
+    if (config.overlap_y < 0) {
+        throw std::logic_error("error on config file, prep.tiles.overlap_y must be >= 0");
+    }
+    if (config.overlap_x >= config.tile_width) {
+        throw std::logic_error("error on config file, prep.tiles.overlap_x must be < tile_width");
+    }
+    if (config.overlap_y >= config.tile_height) {
+        throw std::logic_error("error on config file, prep.tiles.overlap_y must be < tile_height");
+    }
+
+    return config;
+}
+
 dp1v2::InverseMedianParametersConfig resolve_inverse_median_parameters(const dp1v2::ParameterMap &parameters) {
     const auto *inverse_parameters = require_parameter_object(
         parameters, "inverse_median", "pipeline.pipeline.radiometric.parameters");
@@ -971,6 +1026,33 @@ dp1v2::PipelineConfig parse_pipeline_config(const json_t *pipeline_json) {
 }
 
 
+dp1v2::PrepResolvedConfig resolve_prep_config(const dp1v2::StageConfig &stage) {
+    dp1v2::PrepResolvedConfig resolved{};
+
+    if (stage.variant == "full_frame") {
+        reject_unknown_parameter_keys(
+            stage.parameters,
+            {},
+            "pipeline.pipeline.prep.parameters");
+        return resolved;
+    }
+
+    if (stage.variant == "tiles") {
+        resolved.tiles = resolve_prep_tiles_parameters(stage.parameters);
+        return resolved;
+    }
+
+    if (stage.variant == "roi" || stage.variant == "adaptive_roi") {
+        reject_unknown_parameter_keys(
+            stage.parameters,
+            {},
+            "pipeline.pipeline.prep.parameters");
+        return resolved;
+    }
+
+    return resolved;
+}
+
 dp1v2::RadiometricResolvedConfig resolve_radiometric_config(const dp1v2::StageConfig &stage) {
     dp1v2::RadiometricResolvedConfig resolved{};
     if (stage.variant == "inverse_median") {
@@ -981,6 +1063,7 @@ dp1v2::RadiometricResolvedConfig resolve_radiometric_config(const dp1v2::StageCo
 
 dp1v2::ResolvedPipelineConfig resolve_pipeline_config(const dp1v2::PipelineConfig &pipeline) {
     dp1v2::ResolvedPipelineConfig resolved{};
+    resolved.prep = resolve_prep_config(pipeline.stages.prep);
     resolved.radiometric = resolve_radiometric_config(pipeline.stages.radiometric);
     return resolved;
 }

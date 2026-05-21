@@ -13,12 +13,14 @@ target_sources(
         unit/dp1/t_dp1v2_source.cpp
         unit/dp1/t_dp1v2_frame_context.cpp
         unit/dp1/t_dp1v2_input_normalization_stage.cpp
+        unit/dp1/t_dp1v2_prep_stage.cpp
         ../datapro1_v2/src/runtime/cyclic_frame_buffer.cpp
         ../datapro1_v2/src/config/config.cpp
         ../datapro1_v2/src/frame/frame_packet_builder.cpp
         ../datapro1_v2/src/frame/frame_context.cpp
         ../datapro1_v2/src/visualization/visualization_sink.cpp
         ../datapro1_v2/src/stages/input_normalization_stage.cpp
+        ../datapro1_v2/src/stages/prep_stage.cpp
         ../datapro1_v2/src/stages/radiometric_stage.inverse_median.cpp
         ../datapro1_v2/src/source/uri_file_source.cpp
 )
