@@ -67,6 +67,8 @@ public:
 
     explicit PrepStage(PrepResolvedConfig resolved_config);
 
+    /// For Prep, tile support means tile layout/view building capability, not
+    /// end-to-end downstream tile execution in the runtime pipeline.
     StageCapabilities capabilities() const noexcept override;
 
     StageOutcome<PrepFullFrameOutput> process(

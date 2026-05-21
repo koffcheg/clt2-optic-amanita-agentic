@@ -27,14 +27,18 @@ dp1v2::StageConfig tilesConfig(const bool enabled = true)
     };
 }
 
-dp1v2::PrepResolvedConfig resolvedTilesConfig()
+dp1v2::PrepResolvedConfig resolvedTilesConfig(
+    const int tile_width = 256,
+    const int tile_height = 256,
+    const int overlap_x = 16,
+    const int overlap_y = 16)
 {
     dp1v2::PrepResolvedConfig config{};
     config.tiles = dp1v2::PrepTilesParametersConfig{
-        .tile_width = 256,
-        .tile_height = 256,
-        .overlap_x = 16,
-        .overlap_y = 16,
+        .tile_width = tile_width,
+        .tile_height = tile_height,
+        .overlap_x = overlap_x,
+        .overlap_y = overlap_y,
     };
     return config;
 }
@@ -81,6 +85,14 @@ dp1v2::StageOutcome<dp1v2::PrepTilesOutput> processTiles(
 {
     dp1v2::FrameContext context{};
     return stage.process(dp1v2::PrepTilesInput{.frame = frame}, context, config);
+}
+
+void expectRect(const cv::Rect &actual, const cv::Rect &expected)
+{
+    EXPECT_EQ(actual.x, expected.x);
+    EXPECT_EQ(actual.y, expected.y);
+    EXPECT_EQ(actual.width, expected.width);
+    EXPECT_EQ(actual.height, expected.height);
 }
 
 } // namespace
@@ -139,6 +151,7 @@ TEST(PrepStageTest, FullFrameRejectsInvalidCanonicalFrame)
         processFrame(geometry_mismatch_frame, fullFrameConfig()).status,
         dp1v2::StageExecutionStatus::Failed);
 }
+
 TEST(PrepStageTest, CapabilitiesExposeTilesOnlyWhenResolvedConfigExists)
 {
     const dp1v2::PrepStage default_stage;
@@ -164,14 +177,146 @@ TEST(PrepStageTest, TilesRouteFailsWhenResolvedConfigIsMissing)
     EXPECT_EQ(outcome.reason, "prep tiles resolved configuration is missing");
 }
 
-TEST(PrepStageTest, TilesRouteWithResolvedConfigRemainsExplicitlyUnsupportedUntilImplemented)
+TEST(PrepStageTest, TilesBuildsGridWithoutOverlap)
 {
-    cv::Mat image(2, 3, CV_16UC1);
+    cv::Mat image(4, 5, CV_16UC1);
+    image.setTo(cv::Scalar(1024));
     const dp1v2::CanonicalFrame frame = makeCanonicalFrame(image);
-    dp1v2::PrepStage stage(resolvedTilesConfig());
+    dp1v2::PrepStage stage(resolvedTilesConfig(2, 2, 0, 0));
 
     const auto outcome = processTiles(frame, stage, tilesConfig());
 
-    EXPECT_EQ(outcome.status, dp1v2::StageExecutionStatus::Unsupported);
-    EXPECT_EQ(outcome.reason, "prep tiles route is not implemented");
+    ASSERT_EQ(outcome.status, dp1v2::StageExecutionStatus::Completed);
+    ASSERT_EQ(outcome.output.tiles.size(), 6U);
+    ASSERT_EQ(outcome.output.tile_views.size(), outcome.output.tiles.size());
+
+    expectRect(outcome.output.tiles.front().roi_with_border, cv::Rect(0, 0, 2, 2));
+    expectRect(outcome.output.tiles.front().valid_area, cv::Rect(0, 0, 2, 2));
+    EXPECT_EQ(outcome.output.tiles.front().tile_id, 0);
+    EXPECT_EQ(outcome.output.tiles.front().origin_in_frame, cv::Point(0, 0));
+
+    expectRect(outcome.output.tiles.back().roi_with_border, cv::Rect(4, 2, 1, 2));
+    expectRect(outcome.output.tiles.back().valid_area, cv::Rect(0, 0, 1, 2));
+    EXPECT_EQ(outcome.output.tiles.back().tile_id, 5);
+    EXPECT_EQ(outcome.output.tiles.back().origin_in_frame, cv::Point(4, 2));
+}
+
+TEST(PrepStageTest, TilesBuildsGridWithOverlapAndClipping)
+{
+    cv::Mat image(6, 6, CV_16UC1);
+    image.setTo(cv::Scalar(1024));
+    const dp1v2::CanonicalFrame frame = makeCanonicalFrame(image);
+    dp1v2::PrepStage stage(resolvedTilesConfig(3, 3, 1, 1));
+
+    const auto outcome = processTiles(frame, stage, tilesConfig());
+
+    ASSERT_EQ(outcome.status, dp1v2::StageExecutionStatus::Completed);
+    ASSERT_EQ(outcome.output.tiles.size(), 4U);
+    ASSERT_EQ(outcome.output.tile_views.size(), outcome.output.tiles.size());
+
+    expectRect(outcome.output.tiles[0].roi_with_border, cv::Rect(0, 0, 4, 4));
+    expectRect(outcome.output.tiles[0].valid_area, cv::Rect(0, 0, 3, 3));
+    expectRect(outcome.output.tiles[1].roi_with_border, cv::Rect(2, 0, 4, 4));
+    expectRect(outcome.output.tiles[1].valid_area, cv::Rect(1, 0, 3, 3));
+    expectRect(outcome.output.tiles[2].roi_with_border, cv::Rect(0, 2, 4, 4));
+    expectRect(outcome.output.tiles[2].valid_area, cv::Rect(0, 1, 3, 3));
+    expectRect(outcome.output.tiles[3].roi_with_border, cv::Rect(2, 2, 4, 4));
+    expectRect(outcome.output.tiles[3].valid_area, cv::Rect(1, 1, 3, 3));
+
+    for (const dp1v2::TileDesc &desc : outcome.output.tiles) {
+        EXPECT_EQ(desc.frame_id, frame.frame_id);
+        EXPECT_EQ(desc.origin_in_frame, desc.roi_with_border.tl());
+        EXPECT_EQ(desc.coordinate_space, dp1v2::CoordinateSpace::TileLocal);
+    }
+}
+
+TEST(PrepStageTest, TileViewsAreNonOwningRoiViews)
+{
+    cv::Mat image(4, 5, CV_16UC1);
+    image.setTo(cv::Scalar(1024));
+    const dp1v2::CanonicalFrame frame = makeCanonicalFrame(image);
+    dp1v2::PrepStage stage(resolvedTilesConfig(3, 2, 1, 1));
+
+    const auto outcome = processTiles(frame, stage, tilesConfig());
+
+    ASSERT_EQ(outcome.status, dp1v2::StageExecutionStatus::Completed);
+    ASSERT_EQ(outcome.output.tiles.size(), 4U);
+    ASSERT_EQ(outcome.output.tile_views.size(), outcome.output.tiles.size());
+
+    for (std::size_t index = 0; index < outcome.output.tiles.size(); ++index) {
+        const dp1v2::TileDesc &desc = outcome.output.tiles[index];
+        const dp1v2::TileRawView &view = outcome.output.tile_views[index];
+
+        EXPECT_EQ(desc.frame_id, frame.frame_id);
+        EXPECT_EQ(desc.tile_id, static_cast<int>(index));
+        EXPECT_EQ(desc.origin_in_frame, desc.roi_with_border.tl());
+        EXPECT_EQ(desc.coordinate_space, dp1v2::CoordinateSpace::TileLocal);
+
+        EXPECT_EQ(view.frame_id, frame.frame_id);
+        EXPECT_EQ(view.camera_id, frame.camera_id);
+        EXPECT_EQ(view.tile_id, desc.tile_id);
+        EXPECT_EQ(view.pixel_format, frame.pixel_format);
+        EXPECT_EQ(view.bit_depth, frame.bit_depth);
+        EXPECT_EQ(view.pixel_range.min_value, frame.pixel_range.min_value);
+        EXPECT_EQ(view.pixel_range.max_value, frame.pixel_range.max_value);
+        EXPECT_EQ(view.pixel_range.black_level, frame.pixel_range.black_level);
+        EXPECT_EQ(view.pixel_range.saturation_level, frame.pixel_range.saturation_level);
+        EXPECT_EQ(view.geometry.width, desc.roi_with_border.width);
+        EXPECT_EQ(view.geometry.height, desc.roi_with_border.height);
+        EXPECT_EQ(view.geometry.origin_px, desc.roi_with_border.tl());
+        EXPECT_EQ(view.origin_in_frame, desc.origin_in_frame);
+        expectRect(view.valid_area, desc.valid_area);
+        EXPECT_EQ(view.coordinate_space, dp1v2::CoordinateSpace::TileLocal);
+
+        EXPECT_EQ(view.image.rows, desc.roi_with_border.height);
+        EXPECT_EQ(view.image.cols, desc.roi_with_border.width);
+        EXPECT_EQ(view.image.datastart, frame.image.datastart);
+        EXPECT_EQ(view.image.dataend, frame.image.dataend);
+        EXPECT_EQ(view.image.data, frame.image.ptr(desc.roi_with_border.y, desc.roi_with_border.x));
+    }
+}
+
+TEST(PrepStageTest, TilesRejectInvalidCanonicalFrame)
+{
+    dp1v2::PrepStage stage(resolvedTilesConfig(2, 2, 0, 0));
+
+    const dp1v2::CanonicalFrame empty_frame = makeCanonicalFrame(cv::Mat{});
+    EXPECT_EQ(
+        processTiles(empty_frame, stage, tilesConfig()).status,
+        dp1v2::StageExecutionStatus::Failed);
+
+    cv::Mat image(2, 3, CV_16UC1);
+    dp1v2::CanonicalFrame geometry_mismatch_frame = makeCanonicalFrame(image);
+    geometry_mismatch_frame.geometry.width = image.cols + 1;
+    EXPECT_EQ(
+        processTiles(geometry_mismatch_frame, stage, tilesConfig()).status,
+        dp1v2::StageExecutionStatus::Failed);
+
+    cv::Mat multichannel_image(2, 3, CV_16UC3);
+    const dp1v2::CanonicalFrame multichannel_frame = makeCanonicalFrame(multichannel_image);
+    EXPECT_EQ(
+        processTiles(multichannel_frame, stage, tilesConfig()).status,
+        dp1v2::StageExecutionStatus::Failed);
+
+    dp1v2::CanonicalFrame tile_local_frame = makeCanonicalFrame(image);
+    tile_local_frame.coordinate_space = dp1v2::CoordinateSpace::TileLocal;
+    EXPECT_EQ(
+        processTiles(tile_local_frame, stage, tilesConfig()).status,
+        dp1v2::StageExecutionStatus::Failed);
+}
+
+TEST(PrepStageTest, TilesRejectsNonTilesVariant)
+{
+    cv::Mat image(2, 3, CV_16UC1);
+    const dp1v2::CanonicalFrame frame = makeCanonicalFrame(image);
+    dp1v2::PrepStage stage(resolvedTilesConfig(2, 2, 0, 0));
+
+    for (const char *variant : {"full_frame", "roi", "adaptive_roi"}) {
+        dp1v2::StageConfig config = tilesConfig();
+        config.variant = variant;
+
+        const auto outcome = processTiles(frame, stage, config);
+
+        EXPECT_EQ(outcome.status, dp1v2::StageExecutionStatus::Unsupported) << variant;
+    }
 }
