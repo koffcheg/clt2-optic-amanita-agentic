@@ -7,20 +7,17 @@
 #include "dp1v2/frame/frame_context.hpp"
 #include "dp1v2/result/result_builder.hpp"
 #include "dp1v2/stages/input_normalization_stage.hpp"
+#include "dp1v2/stages/prep_stage.hpp"
 #include "dp1v2/stages/radiometric_stage.hpp"
 
 namespace dp1v2 {
 namespace {
 
-constexpr const char* kInverseMedianVariant = "inverse_median";
 constexpr std::string_view kInputBoundaryName = "input";
 constexpr std::string_view kInputNormalizationStageName = "input_normalization";
+constexpr std::string_view kPrepStageName = "prep";
 constexpr std::string_view kRadiometricStageName = "radiometric";
 constexpr std::string_view kRadiometricCanonicalStageName = "radiometric_correction";
-
-bool shouldRunRadiometricStage(const StageConfig& radiometric_config) {
-    return radiometric_config.enabled && radiometric_config.variant == kInverseMedianVariant;
-}
 
 StageStatusCode toStageStatusCode(const StageExecutionStatus status) {
     switch (status) {
@@ -44,6 +41,8 @@ SingleFramePipelineResult process_single_frame(
     const RawFrameEnvelope& envelope,
     const int cam_index,
     const PipelineConfig& pipeline_config,
+    const InputNormalizationStage& input_normalization_stage,
+    PrepStage& prep_stage,
     RadiometricStage& radiometric_stage,
     VisualizationSink& visualization_sink) {
     const auto input_start = std::chrono::steady_clock::now();
@@ -75,7 +74,6 @@ SingleFramePipelineResult process_single_frame(
         input_start,
         std::chrono::steady_clock::now());
 
-    const InputNormalizationStage input_normalization_stage;
     const auto input_normalization_start = std::chrono::steady_clock::now();
     const auto input_normalization_result = input_normalization_stage.process(
         InputNormalizationInput{.frame = packet_result.packet},
@@ -120,44 +118,71 @@ SingleFramePipelineResult process_single_frame(
 
     const CanonicalFrame &canonical_frame = input_normalization_result.output.frame;
 
-    if (shouldRunRadiometricStage(pipeline_config.stages.radiometric)) {
-        const auto radiometric_start = std::chrono::steady_clock::now();
-        const auto radiometric_result = radiometric_stage.process(
-            RadiometricFullFrameInput{.frame = canonical_frame},
-            frame_context,
-            pipeline_config.stages.radiometric);
-        const auto radiometric_end = std::chrono::steady_clock::now();
-        if (visualization_sink.enabled_for_stage(kRadiometricStageName)) {
-            visualization_sink.write_stage_output(frame_context, kRadiometricStageName, radiometric_result);
-        }
-        if (radiometric_result.status == StageExecutionStatus::Completed) {
-            register_radiometric_processing_artifact(frame_context, radiometric_result.output.frame);
-        }
-        const PixelFormat radiometric_output_format =
-            radiometric_result.status == StageExecutionStatus::Completed
-                ? radiometric_result.output.frame.pixel_format
-                : frame_context.input_format;
-        record_stage_timing(
-            frame_context,
-            kRadiometricCanonicalStageName,
-            toStageStatusCode(radiometric_result.status),
-            pipeline_config.stages.radiometric.variant,
-            pipeline_config.stages.radiometric.level,
-            frame_context.input_format,
-            radiometric_output_format,
-            radiometric_start,
-            radiometric_end,
-            radiometric_result.reason);
-        if (radiometric_result.status == StageExecutionStatus::Failed ||
-            radiometric_result.status == StageExecutionStatus::Unsupported) {
-            return SingleFramePipelineResult{
-                .lifecycle = FrameLifecycleResult{
-                    .status = FrameTerminalStatus::Failed,
-                    .reason = "radiometric_stage_failed",
-                },
-                .sink = ResultSinkOutcome{},
-            };
-        }
+    const auto prep_start = std::chrono::steady_clock::now();
+    const auto prep_result = prep_stage.process(
+        PrepFullFrameInput{.frame = canonical_frame},
+        frame_context,
+        pipeline_config.stages.prep);
+    const auto prep_end = std::chrono::steady_clock::now();
+    record_stage_timing(
+        frame_context,
+        kPrepStageName,
+        toStageStatusCode(prep_result.status),
+        pipeline_config.stages.prep.variant,
+        pipeline_config.stages.prep.level,
+        canonical_frame.pixel_format,
+        canonical_frame.pixel_format,
+        prep_start,
+        prep_end,
+        prep_result.reason);
+    if (prep_result.status != StageExecutionStatus::Completed) {
+        return SingleFramePipelineResult{
+            .lifecycle = FrameLifecycleResult{
+                .status = FrameTerminalStatus::Failed,
+                .reason = "prep_stage_failed: " + prep_result.reason,
+            },
+            .sink = ResultSinkOutcome{},
+        };
+    }
+
+    const CanonicalFrame &prepared_frame = *prep_result.output.frame;
+
+    const auto radiometric_start = std::chrono::steady_clock::now();
+    const auto radiometric_result = radiometric_stage.process(
+        RadiometricFullFrameInput{.frame = prepared_frame},
+        frame_context,
+        pipeline_config.stages.radiometric);
+    const auto radiometric_end = std::chrono::steady_clock::now();
+    if (visualization_sink.enabled_for_stage(kRadiometricStageName)) {
+        visualization_sink.write_stage_output(frame_context, kRadiometricStageName, radiometric_result);
+    }
+    if (radiometric_result.status == StageExecutionStatus::Completed) {
+        register_radiometric_processing_artifact(frame_context, radiometric_result.output.frame);
+    }
+    const PixelFormat radiometric_output_format =
+        radiometric_result.status == StageExecutionStatus::Completed
+            ? radiometric_result.output.frame.pixel_format
+            : frame_context.input_format;
+    record_stage_timing(
+        frame_context,
+        kRadiometricCanonicalStageName,
+        toStageStatusCode(radiometric_result.status),
+        pipeline_config.stages.radiometric.variant,
+        pipeline_config.stages.radiometric.level,
+        frame_context.input_format,
+        radiometric_output_format,
+        radiometric_start,
+        radiometric_end,
+        radiometric_result.reason);
+    if (radiometric_result.status == StageExecutionStatus::Failed ||
+        radiometric_result.status == StageExecutionStatus::Unsupported) {
+        return SingleFramePipelineResult{
+            .lifecycle = FrameLifecycleResult{
+                .status = FrameTerminalStatus::Failed,
+                .reason = "radiometric_stage_failed",
+            },
+            .sink = ResultSinkOutcome{},
+        };
     }
 
     const auto result = build_empty_result(frame_context);

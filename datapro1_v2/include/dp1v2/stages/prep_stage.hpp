@@ -1,10 +1,11 @@
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include "dp1v2/config/config.hpp"
+#include "dp1v2/domain/canonical_frame.hpp"
 #include "dp1v2/domain/frame_context.hpp"
-#include "dp1v2/domain/frame_packet.hpp"
 #include "dp1v2/domain/tile_desc.hpp"
 #include "dp1v2/domain/tile_raw_view.hpp"
 #include "dp1v2/stages/stage_capabilities.hpp"
@@ -14,20 +15,20 @@ namespace dp1v2 {
 
 /// Full-frame prep input. `frame` is read-only and keeps the raw image lifetime.
 struct PrepFullFrameInput {
-    const FramePacket &frame;
+    const CanonicalFrame &frame;
 };
 
 /// Full-frame prep output. `frame` is a non-owning pointer to the input carrier.
 struct PrepFullFrameOutput {
-    const FramePacket *frame = nullptr;
+    const CanonicalFrame *frame = nullptr;
 };
 
 /// Tile-route prep input. `frame` is read-only and tile views must not mutate it.
 struct PrepTilesInput {
-    const FramePacket &frame;
+    const CanonicalFrame &frame;
 };
 
-/// Tile-route prep output with metadata and non-owning ROI views into `FramePacket::image`.
+/// Tile-route prep output with metadata and non-owning ROI views into `CanonicalFrame::image`.
 struct PrepTilesOutput {
     std::vector<TileDesc> tiles;
     std::vector<TileRawView> tile_views;
@@ -57,6 +58,29 @@ public:
         const PrepTilesInput &input,
         FrameContext &context,
         const StageConfig &config) = 0;
+
+};
+
+class PrepStage final : public IPrepStage {
+public:
+    PrepStage() = default;
+
+    explicit PrepStage(PrepResolvedConfig resolved_config);
+
+    StageCapabilities capabilities() const noexcept override;
+
+    StageOutcome<PrepFullFrameOutput> process(
+        const PrepFullFrameInput &input,
+        FrameContext &context,
+        const StageConfig &config) override;
+
+    StageOutcome<PrepTilesOutput> process(
+        const PrepTilesInput &input,
+        FrameContext &context,
+        const StageConfig &config) override;
+
+private:
+    std::optional<PrepTilesParametersConfig> tiles_config_;
 };
 
 } // namespace dp1v2

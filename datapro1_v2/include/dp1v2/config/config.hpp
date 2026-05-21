@@ -181,6 +181,13 @@ struct InverseMedianParametersConfig {
     InverseMedianOutputMode output_dynamic_range_mode = InverseMedianOutputMode::RawSigned;
 };
 
+struct PrepTilesParametersConfig {
+    int tile_width = 0;
+    int tile_height = 0;
+    int overlap_x = 0;
+    int overlap_y = 0;
+};
+
 struct StageConfig {
     bool enabled = false;
     std::string variant;
@@ -188,11 +195,16 @@ struct StageConfig {
     ParameterMap parameters;
 };
 
+struct PrepResolvedConfig {
+    std::optional<PrepTilesParametersConfig> tiles;
+};
+
 struct RadiometricResolvedConfig {
     std::optional<InverseMedianParametersConfig> inverse_median;
 };
 
 struct ResolvedPipelineConfig {
+    PrepResolvedConfig prep;
     RadiometricResolvedConfig radiometric;
 };
 

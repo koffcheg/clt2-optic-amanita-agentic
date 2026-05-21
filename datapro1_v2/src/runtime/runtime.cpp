@@ -7,6 +7,8 @@
 #include "dp1v2/source/source.hpp"
 #include "dp1v2/source/source_factory.hpp"
 #include "dp1v2/app/startup.hpp"
+#include "dp1v2/stages/input_normalization_stage.hpp"
+#include "dp1v2/stages/prep_stage.hpp"
 #include "dp1v2/stages/radiometric_stage.hpp"
 #include "dp1v2/visualization/visualization_sink.hpp"
 
@@ -95,6 +97,8 @@ RuntimeLoopResult run_bounded_runtime_loop(const StartupContext &context, IFrame
 
     RuntimeLoopResult loop_result{};
     std::size_t empty_reads = 0;
+    const InputNormalizationStage input_normalization_stage;
+    PrepStage prep_stage(context.config.resolved_pipeline.prep);
     RadiometricStage radiometric_stage(context.config.resolved_pipeline.radiometric);
     VisualizationSink visualization_sink(context.config.application.visualization);
 
@@ -148,6 +152,8 @@ RuntimeLoopResult run_bounded_runtime_loop(const StartupContext &context, IFrame
             source_result.envelope,
             context.cli.cam_index,
             context.config.pipeline,
+            input_normalization_stage,
+            prep_stage,
             radiometric_stage,
             visualization_sink);
         loop_result.last_frame = frame_result.lifecycle;
