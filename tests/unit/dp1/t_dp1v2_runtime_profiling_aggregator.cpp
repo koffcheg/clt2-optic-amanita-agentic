@@ -162,6 +162,61 @@ TEST(RuntimeProfilingAggregatorTest, GatingPreventsFrameFormatterWhenFrameReport
     EXPECT_TRUE(dp1v2::should_emit_frame_profile_log(logging, profiling, true));
 }
 
+TEST(RuntimeProfilingAggregatorTest, GatingControlsWindowSummaryLogging)
+{
+    dp1v2::LoggingConfig logging{};
+    dp1v2::ProfilingConfig profiling{};
+    logging.enabled = true;
+    profiling.enabled = true;
+    profiling.reports.emit_window_summary = true;
+    profiling.logging_bridge.emit_aggregated_summaries = true;
+    profiling.logging_bridge.summary_every_n_frames = 0;
+
+    EXPECT_TRUE(dp1v2::should_emit_window_profile_log(logging, profiling));
+
+    profiling.reports.emit_window_summary = false;
+    EXPECT_FALSE(dp1v2::should_emit_window_profile_log(logging, profiling));
+
+    profiling.reports.emit_window_summary = true;
+    profiling.logging_bridge.emit_aggregated_summaries = false;
+    EXPECT_FALSE(dp1v2::should_emit_window_profile_log(logging, profiling));
+}
+
+TEST(RuntimeProfilingAggregatorTest, WindowSummaryDueUsesAggregationWindowFrames)
+{
+    dp1v2::ProfilingConfig profiling{};
+    dp1v2::RuntimeProfilingSummary summary{};
+
+    profiling.aggregation_window_frames = 3;
+    summary.frames_total = 2;
+    EXPECT_FALSE(dp1v2::is_window_summary_due(profiling, summary));
+
+    summary.frames_total = 3;
+    EXPECT_TRUE(dp1v2::is_window_summary_due(profiling, summary));
+}
+
+TEST(RuntimeProfilingAggregatorTest, WindowSummaryDueWithSingleFrameWindow)
+{
+    dp1v2::ProfilingConfig profiling{};
+    dp1v2::RuntimeProfilingSummary summary{};
+
+    profiling.aggregation_window_frames = 1;
+    summary.frames_total = 1;
+    EXPECT_TRUE(dp1v2::is_window_summary_due(profiling, summary));
+}
+
+TEST(RuntimeProfilingAggregatorTest, WindowSummaryDueIgnoresSummaryEveryNFrames)
+{
+    dp1v2::ProfilingConfig profiling{};
+    dp1v2::RuntimeProfilingSummary summary{};
+
+    profiling.aggregation_window_frames = 1;
+    profiling.logging_bridge.summary_every_n_frames = 1000;
+    summary.frames_total = 1;
+
+    EXPECT_TRUE(dp1v2::is_window_summary_due(profiling, summary));
+}
+
 TEST(RuntimeProfilingAggregatorTest, FormatsControlledTilesFailureSummary)
 {
     const dp1v2::SingleFramePipelineResult result = makeTilesControlledFailureResult();

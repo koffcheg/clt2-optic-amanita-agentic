@@ -64,6 +64,7 @@ bool should_emit_frame_profile_log(
 
 bool should_emit_window_profile_log(const LoggingConfig &logging, const ProfilingConfig &profiling);
 bool should_emit_run_profile_log(const LoggingConfig &logging, const ProfilingConfig &profiling);
+bool is_window_summary_due(const ProfilingConfig &profiling, const RuntimeProfilingSummary &summary);
 
 bool is_controlled_tiles_frame_failure(const SingleFramePipelineResult &result);
 

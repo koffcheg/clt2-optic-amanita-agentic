@@ -47,12 +47,8 @@ JsonPtr makeApplicationConfig()
   "logging": {
     "enabled": true,
     "config_file": "config/datapro1_v2-log.xml",
-    "default_level": "INFO",
     "realtime_profile": "rt_safe",
-    "structured_messages": true,
-    "sampling": {
-      "frame_summary_every_n": 100
-    }
+        "structured_messages": true
   },
   "profiling": {
     "enabled": true,
@@ -66,7 +62,6 @@ JsonPtr makeApplicationConfig()
     },
     "logging_bridge": {
       "emit_aggregated_summaries": true,
-      "summary_every_n_frames": 300,
       "emit_budget_warnings": false
     }
   },
@@ -147,7 +142,7 @@ JsonPtr makeFullApplicationConfig()
     "logging_bridge": {
       "emit_aggregated_summaries": true,
       "summary_every_n_frames": 300,
-      "emit_budget_warnings": true
+            "emit_budget_warnings": false
     },
     "external_trace": {
       "enabled": false,
@@ -410,6 +405,40 @@ TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalLoggingProfilingConfigIsVali
     EXPECT_EQ(config.profiling.external_trace.backend, "none");
 }
 
+TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalLoggingMissingDefaultLevel_Parses)
+{
+    JsonPtr application = makeFullApplicationConfig();
+    removeKey(application.get(), {"logging"}, "default_level");
+
+    EXPECT_NO_THROW(loadApplication(application));
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalLoggingMissingSampling_Parses)
+{
+    JsonPtr application = makeFullApplicationConfig();
+    removeKey(application.get(), {"logging"}, "sampling");
+
+    EXPECT_NO_THROW(loadApplication(application));
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalProfilingMissingSummaryEveryNFrames_Parses)
+{
+    JsonPtr application = makeFullApplicationConfig();
+    removeKey(application.get(), {"profiling", "logging_bridge"}, "summary_every_n_frames");
+
+    EXPECT_NO_THROW(loadApplication(application));
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalProfilingMissingAdvancedSections_Parses)
+{
+    JsonPtr application = makeFullApplicationConfig();
+    removeKey(application.get(), {"profiling"}, "raw_trace");
+    removeKey(application.get(), {"profiling"}, "operation_timing");
+    removeKey(application.get(), {"profiling"}, "external_trace");
+
+    EXPECT_NO_THROW(loadApplication(application));
+}
+
 TEST_F(ConfigTest, LoadApplicationConfig_WhenFullLoggingProfilingConfigIsValid_ReturnsTypedConfig)
 {
     JsonPtr application = makeFullApplicationConfig();
@@ -421,7 +450,7 @@ TEST_F(ConfigTest, LoadApplicationConfig_WhenFullLoggingProfilingConfigIsValid_R
     EXPECT_EQ(config.logging.mdc.fields[0], "pipeline_run_id");
     EXPECT_TRUE(config.logging.async.enabled);
     EXPECT_FALSE(config.logging.async.blocking);
-    EXPECT_TRUE(config.profiling.logging_bridge.emit_budget_warnings);
+    EXPECT_FALSE(config.profiling.logging_bridge.emit_budget_warnings);
     EXPECT_FALSE(config.profiling.external_trace.enabled);
 }
 
@@ -443,10 +472,26 @@ TEST_F(ConfigTest, LoadApplicationConfig_WhenExplicitInvalidOperationTimingField
     EXPECT_THROW(loadApplication(application), std::logic_error);
 }
 
+TEST_F(ConfigTest, LoadApplicationConfig_WhenEmitBudgetWarningsEnabled_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    setBool(application.get(), {"profiling", "logging_bridge"}, "emit_budget_warnings", true);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
 TEST_F(ConfigTest, LoadApplicationConfig_WhenLoggingHasUnknownKey_ThrowsConfigError)
 {
     JsonPtr application = makeApplicationConfig();
     setInteger(application.get(), {"logging"}, "unknown", 1);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenProfilingHasUnknownKey_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    setInteger(application.get(), {"profiling"}, "unknown", 1);
 
     EXPECT_THROW(loadApplication(application), std::logic_error);
 }

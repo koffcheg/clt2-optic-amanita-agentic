@@ -11,12 +11,8 @@
   "logging": {
     "enabled": true,
     "config_file": "config/datapro1_v2-log.xml",
-    "default_level": "INFO",
     "realtime_profile": "rt_safe",
-    "structured_messages": true,
-    "sampling": {
-      "frame_summary_every_n": 100
-    }
+    "structured_messages": true
   },
   "profiling": {
     "enabled": true,
@@ -36,7 +32,6 @@
     },
     "logging_bridge": {
       "emit_aggregated_summaries": true,
-      "summary_every_n_frames": 300,
       "emit_budget_warnings": false
     }
   },

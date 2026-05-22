@@ -237,12 +237,19 @@ bool should_emit_window_profile_log(const LoggingConfig &logging, const Profilin
     return logging.enabled
            && profiling.enabled
            && profiling.reports.emit_window_summary
-           && profiling.logging_bridge.emit_aggregated_summaries
-           && profiling.logging_bridge.summary_every_n_frames > 0;
+           && profiling.logging_bridge.emit_aggregated_summaries;
 }
 
 bool should_emit_run_profile_log(const LoggingConfig &logging, const ProfilingConfig &profiling) {
     return logging.enabled && profiling.enabled && profiling.reports.emit_run_summary;
+}
+
+bool is_window_summary_due(const ProfilingConfig &profiling, const RuntimeProfilingSummary &summary) {
+    if (profiling.aggregation_window_frames <= 0) {
+        return false;
+    }
+    const std::uint64_t window_frames = static_cast<std::uint64_t>(profiling.aggregation_window_frames);
+    return summary.frames_total >= window_frames;
 }
 
 bool is_controlled_tiles_frame_failure(const SingleFramePipelineResult &result) {

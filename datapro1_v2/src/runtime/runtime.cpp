@@ -117,9 +117,7 @@ void maybe_emit_window_summary_log(
         return;
     }
 
-    const std::uint64_t summary_every = static_cast<std::uint64_t>(
-        context.config.application.profiling.logging_bridge.summary_every_n_frames);
-    if (aggregator.window_summary().frames_total < summary_every) {
+    if (!is_window_summary_due(context.config.application.profiling, aggregator.window_summary())) {
         return;
     }
 

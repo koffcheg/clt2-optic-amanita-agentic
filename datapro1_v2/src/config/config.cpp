@@ -605,7 +605,8 @@ dp1v2::LoggingConfig parse_logging_config(const json_t *logging_json) {
     dp1v2::LoggingConfig config{};
     config.enabled = read_required_bool(logging_json, "enabled", "application.logging");
     config.config_file = read_required_string(logging_json, "config_file", "application.logging");
-    config.default_level = read_required_string(logging_json, "default_level", "application.logging");
+    config.default_level = read_optional_string(
+        logging_json, "default_level", config.default_level, "application.logging");
     config.realtime_profile = read_required_string(logging_json, "realtime_profile", "application.logging");
     config.structured_messages = read_required_bool(logging_json, "structured_messages", "application.logging");
     config.sanitize_external_strings = read_optional_bool(
@@ -624,22 +625,23 @@ dp1v2::LoggingConfig parse_logging_config(const json_t *logging_json) {
             mdc_json, "fields", config.mdc.fields, "application.logging.mdc");
     }
 
-    const json_t *sampling_json = read_required_object(logging_json, "sampling", "application.logging");
-    reject_unknown_keys(sampling_json,
-                        {"frame_summary_every_n", "rate_limit_per_event_per_sec", "duplicate_suppression"},
-                        "application.logging.sampling");
-    config.sampling.frame_summary_every_n = read_required_int(
-        sampling_json, "frame_summary_every_n", "application.logging.sampling");
-    config.sampling.rate_limit_per_event_per_sec = read_optional_int(
-        sampling_json,
-        "rate_limit_per_event_per_sec",
-        config.sampling.rate_limit_per_event_per_sec,
-        "application.logging.sampling");
-    config.sampling.duplicate_suppression = read_optional_bool(
-        sampling_json,
-        "duplicate_suppression",
-        config.sampling.duplicate_suppression,
-        "application.logging.sampling");
+    if (const json_t *sampling_json = read_optional_object(logging_json, "sampling", "application.logging")) {
+        reject_unknown_keys(sampling_json,
+                            {"frame_summary_every_n", "rate_limit_per_event_per_sec", "duplicate_suppression"},
+                            "application.logging.sampling");
+        config.sampling.frame_summary_every_n = read_required_int(
+            sampling_json, "frame_summary_every_n", "application.logging.sampling");
+        config.sampling.rate_limit_per_event_per_sec = read_optional_int(
+            sampling_json,
+            "rate_limit_per_event_per_sec",
+            config.sampling.rate_limit_per_event_per_sec,
+            "application.logging.sampling");
+        config.sampling.duplicate_suppression = read_optional_bool(
+            sampling_json,
+            "duplicate_suppression",
+            config.sampling.duplicate_suppression,
+            "application.logging.sampling");
+    }
 
     if (const json_t *async_json = read_optional_object(logging_json, "async", "application.logging")) {
         reject_unknown_keys(async_json, {"enabled", "buffer_size", "blocking", "discard_policy"}, "application.logging.async");
@@ -835,6 +837,9 @@ dp1v2::ProfilingConfig parse_profiling_config(const json_t *profiling_json) {
     static const std::vector<std::string_view> report_formats{"json", "csv", "none"};
     if (!contains(report_formats, config.reports.format)) {
         throw std::logic_error("error on config file, unsupported application.profiling.reports.format: " + config.reports.format);
+    }
+    if (config.logging_bridge.emit_budget_warnings) {
+        throw std::logic_error("error on config file, profiling budget warnings are outside current minimal implementation");
     }
     if (config.logging_bridge.summary_every_n_frames < 0) {
         throw std::logic_error("error on config file, profiling logging bridge interval must be >= 0");
