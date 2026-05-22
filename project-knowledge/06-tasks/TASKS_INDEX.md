@@ -41,7 +41,7 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0019` - unit and visual-unit tests for dp1v2 inverse_median and cyclic_frame_buffer - completed
 - `AMNT-0020` - canonical logging policy and DP1 application logging configuration - completed
 - `AMNT-0021` - canonical DP1 profiling policy and profiling knowledge cards - completed
-- `AMNT-0022` - first DP1 codegen gate for FileFrameSource to FramePacket - draft
+- `AMNT-0022` - first DP1 codegen gate for FileFrameSource to FramePacket - completed
 - `AMNT-0023` - canonical DP1 v2 configuration model and validation - completed
 - `AMNT-0024` - unit tests for canonical DP1 v2 configuration - completed
 - `AMNT-0025` - canonical DP1 v2 domain carriers and stage interfaces - completed
@@ -54,20 +54,30 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0032` - canonical DP1 application visualization configuration - completed
 - `AMNT-0033` - DP1 visualization config unit-test coverage - completed
 - `AMNT-0034` - FrameContext registry scope and architecture decision - completed
-- `AMNT-0035` - canonical FrameContext semantics reconciliation - draft
-- `AMNT-0036` - stage contract output reflection rule - draft
-- `AMNT-0037` - stage I/O matrix context artifact column - draft
-- `AMNT-0038` - FrameContext registry memory ownership alignment - draft
-- `AMNT-0039` - validation checks for FrameContext artifact reflection - draft
-- `AMNT-0040` - minimal C++ FrameArtifact data model - draft
-- `AMNT-0041` - FrameContext artifact registration helpers - draft
-- `AMNT-0042` - register raw frame artifact in current runtime - draft
-- `AMNT-0043` - register radiometric output artifact in current runtime - draft
-- `AMNT-0044` - align existing stage header comments with FrameContext reflection - draft
-- `AMNT-0045` - profiling policy link for FrameContext registry - draft
-- `AMNT-0046` - FrameContext registry current slice review and gap classification - draft
-- `AMNT-0047` - FrameContext lifetime and StageTiming baseline review fix - draft
+- `AMNT-0035` - canonical FrameContext semantics reconciliation - completed
+- `AMNT-0036` - stage contract output reflection rule - completed
+- `AMNT-0037` - stage I/O matrix context artifact column - completed
+- `AMNT-0038` - FrameContext registry memory ownership alignment - completed
+- `AMNT-0039` - validation checks for FrameContext artifact reflection - completed
+- `AMNT-0040` - minimal C++ FrameArtifact data model - completed
+- `AMNT-0041` - FrameContext artifact registration helpers - completed
+- `AMNT-0042` - register raw frame artifact in current runtime - completed
+- `AMNT-0043` - register radiometric output artifact in current runtime - completed
+- `AMNT-0044` - align existing stage header comments with FrameContext reflection - completed
+- `AMNT-0045` - profiling policy link for FrameContext registry - completed
+- `AMNT-0046` - FrameContext registry current slice review and gap classification - completed
+- `AMNT-0047` - FrameContext lifetime and StageTiming baseline review fix - completed
 - `AMNT-0048` - Stage0.1 knowledge base for Input Normalization and CanonicalFrame baseline - completed
 - `AMNT-0049` - Stage0.1 CanonicalFrame baseline implementation - completed
-- `AMNT-0050` - Stage0.2 Binning L0 - draft
-- `AMNT-0051` - Stage0.1 READY input_normalization rename and tests - draft
+- `AMNT-0050` - Stage0.2 Binning L0 - completed
+- `AMNT-0051` - Stage0.1 READY input_normalization rename and tests - completed
+- `AMNT-0052` - DP1 v2 PrepStage CanonicalFrame contract - completed
+- `AMNT-0053` - DP1 v2 PrepStage full-frame L0 no-copy route - completed
+- `AMNT-0054` - DP1 v2 PrepStage full-frame L0 unit tests - completed
+- `AMNT-0055` - DP1 v2 runtime PrepStage integration - completed
+- `AMNT-0056` - DP1 v2 typed resolved config for prep tiles - completed
+- `AMNT-0057` - DP1 v2 prep tile capability and radiometric timing follow-ups - completed
+- `AMNT-0058` - DP1 v2 PrepStage tiles L1 layout implementation - completed
+- `AMNT-0059` - DP1 v2 PrepStage real tile layout unit tests - completed
+- `AMNT-0060` - DP1 v2 runtime Prep tiles dispatch - completed
+- `AMNT-0061` - Fix Prep tiles reviewer follow-up notes - completed
