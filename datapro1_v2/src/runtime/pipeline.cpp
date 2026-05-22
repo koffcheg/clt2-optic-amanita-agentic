@@ -18,6 +18,10 @@ constexpr std::string_view kInputNormalizationStageName = "input_normalization";
 constexpr std::string_view kPrepStageName = "prep";
 constexpr std::string_view kRadiometricStageName = "radiometric";
 constexpr std::string_view kRadiometricCanonicalStageName = "radiometric_correction";
+constexpr std::string_view kPrepFullFrameVariant = "full_frame";
+constexpr std::string_view kPrepTilesVariant = "tiles";
+constexpr std::string_view kPrepTilesDownstreamNotConnectedReason =
+    "prep tiles layout is built, but downstream tile pipeline is not connected yet";
 
 StageStatusCode toStageStatusCode(const StageExecutionStatus status) {
     switch (status) {
@@ -118,38 +122,100 @@ SingleFramePipelineResult process_single_frame(
 
     const CanonicalFrame &canonical_frame = input_normalization_result.output.frame;
 
-    const auto prep_start = std::chrono::steady_clock::now();
-    const auto prep_result = prep_stage.process(
-        PrepFullFrameInput{.frame = canonical_frame},
-        frame_context,
-        pipeline_config.stages.prep);
-    const auto prep_end = std::chrono::steady_clock::now();
-    record_stage_timing(
-        frame_context,
-        kPrepStageName,
-        toStageStatusCode(prep_result.status),
-        pipeline_config.stages.prep.variant,
-        pipeline_config.stages.prep.level,
-        canonical_frame.pixel_format,
-        canonical_frame.pixel_format,
-        prep_start,
-        prep_end,
-        prep_result.reason);
-    if (prep_result.status != StageExecutionStatus::Completed) {
+    const CanonicalFrame *prepared_frame = nullptr;
+    const std::string_view prep_variant(pipeline_config.stages.prep.variant);
+
+    if (prep_variant == kPrepFullFrameVariant) {
+        const auto prep_start = std::chrono::steady_clock::now();
+        const auto prep_result = prep_stage.process(
+            PrepFullFrameInput{.frame = canonical_frame},
+            frame_context,
+            pipeline_config.stages.prep);
+        const auto prep_end = std::chrono::steady_clock::now();
+        record_stage_timing(
+            frame_context,
+            kPrepStageName,
+            toStageStatusCode(prep_result.status),
+            pipeline_config.stages.prep.variant,
+            pipeline_config.stages.prep.level,
+            canonical_frame.pixel_format,
+            canonical_frame.pixel_format,
+            prep_start,
+            prep_end,
+            prep_result.reason);
+        if (prep_result.status != StageExecutionStatus::Completed) {
+            return SingleFramePipelineResult{
+                .lifecycle = FrameLifecycleResult{
+                    .status = FrameTerminalStatus::Failed,
+                    .reason = "prep_stage_failed: " + prep_result.reason,
+                },
+                .sink = ResultSinkOutcome{},
+            };
+        }
+        prepared_frame = prep_result.output.frame;
+    } else if (prep_variant == kPrepTilesVariant) {
+        const auto prep_start = std::chrono::steady_clock::now();
+        const auto prep_result = prep_stage.process(
+            PrepTilesInput{.frame = canonical_frame},
+            frame_context,
+            pipeline_config.stages.prep);
+        const auto prep_end = std::chrono::steady_clock::now();
+        record_stage_timing(
+            frame_context,
+            kPrepStageName,
+            toStageStatusCode(prep_result.status),
+            pipeline_config.stages.prep.variant,
+            pipeline_config.stages.prep.level,
+            canonical_frame.pixel_format,
+            canonical_frame.pixel_format,
+            prep_start,
+            prep_end,
+            prep_result.reason);
+        if (prep_result.status != StageExecutionStatus::Completed) {
+            return SingleFramePipelineResult{
+                .lifecycle = FrameLifecycleResult{
+                    .status = FrameTerminalStatus::Failed,
+                    .reason = "prep_stage_failed: " + prep_result.reason,
+                },
+                .sink = ResultSinkOutcome{},
+            };
+        }
         return SingleFramePipelineResult{
             .lifecycle = FrameLifecycleResult{
                 .status = FrameTerminalStatus::Failed,
-                .reason = "prep_stage_failed: " + prep_result.reason,
+                .reason = std::string(kPrepTilesDownstreamNotConnectedReason),
+            },
+            .sink = ResultSinkOutcome{},
+        };
+    } else {
+        const auto prep_start = std::chrono::steady_clock::now();
+        const std::string prep_reason =
+            "unsupported runtime prep variant: " + pipeline_config.stages.prep.variant;
+        record_stage_timing(
+            frame_context,
+            kPrepStageName,
+            StageStatusCode::Unsupported,
+            pipeline_config.stages.prep.variant,
+            pipeline_config.stages.prep.level,
+            canonical_frame.pixel_format,
+            canonical_frame.pixel_format,
+            prep_start,
+            std::chrono::steady_clock::now(),
+            prep_reason);
+        return SingleFramePipelineResult{
+            .lifecycle = FrameLifecycleResult{
+                .status = FrameTerminalStatus::Failed,
+                .reason = "prep_stage_failed: " + prep_reason,
             },
             .sink = ResultSinkOutcome{},
         };
     }
 
-    const CanonicalFrame &prepared_frame = *prep_result.output.frame;
+    const CanonicalFrame &prepared_frame_ref = *prepared_frame;
 
     const auto radiometric_start = std::chrono::steady_clock::now();
     const auto radiometric_result = radiometric_stage.process(
-        RadiometricFullFrameInput{.frame = prepared_frame},
+        RadiometricFullFrameInput{.frame = prepared_frame_ref},
         frame_context,
         pipeline_config.stages.radiometric);
     const auto radiometric_end = std::chrono::steady_clock::now();
@@ -162,14 +228,14 @@ SingleFramePipelineResult process_single_frame(
     const PixelFormat radiometric_output_format =
         radiometric_result.status == StageExecutionStatus::Completed
             ? radiometric_result.output.frame.pixel_format
-            : frame_context.input_format;
+            : prepared_frame_ref.pixel_format;
     record_stage_timing(
         frame_context,
         kRadiometricCanonicalStageName,
         toStageStatusCode(radiometric_result.status),
         pipeline_config.stages.radiometric.variant,
         pipeline_config.stages.radiometric.level,
-        frame_context.input_format,
+        prepared_frame_ref.pixel_format,
         radiometric_output_format,
         radiometric_start,
         radiometric_end,

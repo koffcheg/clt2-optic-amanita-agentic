@@ -16,7 +16,6 @@ namespace dp1v2 {
 struct SingleFramePipelineResult {
     FrameLifecycleResult lifecycle;
     ResultSinkOutcome sink;
-    std::string evidence_path;
 };
 
 SingleFramePipelineResult process_single_frame(
