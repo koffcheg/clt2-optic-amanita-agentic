@@ -127,6 +127,7 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 ../tests/unit/dp1/t_dp1v2_frame_context.cpp
                 ../tests/unit/dp1/t_dp1v2_input_normalization_stage.cpp
                 ../tests/unit/dp1/t_dp1v2_prep_stage.cpp
+                ../tests/unit/dp1/t_dp1v2_pipeline.cpp
                 src/runtime/cyclic_frame_buffer.cpp
                 src/config/config.cpp
                 src/frame/frame_packet_builder.cpp
@@ -134,6 +135,9 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 src/visualization/visualization_sink.cpp
                 src/stages/input_normalization_stage.cpp
                 src/stages/prep_stage.cpp
+                src/stages/radiometric_stage.cpp
+                src/result/result_builder.cpp
+                src/runtime/pipeline.cpp
                 src/stages/radiometric_stage.inverse_median.cpp
                 src/source/uri_file_source.cpp
         )
@@ -143,6 +147,8 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 include
                 ../common/model
                 ${OpenCV_INCLUDE_DIRS}
+                ../datapro1/src
+                ../common/utils
         )
         if (TARGET opencv_world)
             target_link_libraries(dp1v2_unit_tests PRIVATE opencv_world)

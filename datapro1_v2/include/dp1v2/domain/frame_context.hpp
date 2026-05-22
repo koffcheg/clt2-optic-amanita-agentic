@@ -96,8 +96,16 @@ struct StageTiming {
     std::string reason;
 };
 
+struct FrameCardinalityMetrics {
+    std::uint32_t tile_count = 0;
+    std::uint32_t roi_count = 0;
+    std::uint32_t candidate_count = 0;
+    std::uint32_t measurement_count = 0;
+};
+
 struct FrameProfiling {
     std::vector<StageTiming> stage_timings;
+    FrameCardinalityMetrics cardinality;
 };
 
 struct FrameContext {

@@ -76,6 +76,33 @@ StageTiming record_stage_timing(
     return context.profiling.stage_timings.back();
 }
 
+StageStatus record_stage_status(FrameContext &context, const StageStatusUpdate &update) {
+    StageStatus status{};
+    status.stage_key = std::string(update.stage_key);
+    status.status = update.status;
+    status.variant = std::string(update.variant);
+    status.level = std::string(update.level);
+    status.route = std::string(update.route);
+    status.reason = std::string(update.reason);
+    context.stage_statuses.push_back(status);
+    return context.stage_statuses.back();
+}
+
+DiagnosticMessage record_diagnostic(
+    FrameContext &context,
+    const std::string_view code,
+    const std::string_view message) {
+    DiagnosticMessage diagnostic{};
+    diagnostic.code = std::string(code);
+    diagnostic.message = std::string(message);
+    context.diagnostics.push_back(diagnostic);
+    return context.diagnostics.back();
+}
+
+void set_frame_tile_count(FrameContext &context, const std::uint32_t tile_count) {
+    context.profiling.cardinality.tile_count = tile_count;
+}
+
 FrameContext build_frame_context(const FramePacket &packet, const int cam_index) {
     FrameContext context{};
     context.frame_id = packet.frame_id;

@@ -1,6 +1,7 @@
 #include "dp1v2/runtime/pipeline.hpp"
 
 #include <chrono>
+#include <cstdint>
 #include <string>
 #include <string_view>
 
@@ -37,6 +38,45 @@ StageStatusCode toStageStatusCode(const StageExecutionStatus status) {
         return StageStatusCode::Failed;
     }
     return StageStatusCode::Failed;
+}
+
+FrameContextSnapshot make_frame_context_snapshot(const FrameContext &context) {
+    return FrameContextSnapshot{
+        .stage_statuses = context.stage_statuses,
+        .profiling = context.profiling,
+        .diagnostics = context.diagnostics,
+        .artifacts = context.artifacts,
+    };
+}
+
+SingleFramePipelineResult make_pipeline_result(
+    const FrameContext &context,
+    const FrameLifecycleResult &lifecycle,
+    const ResultSinkOutcome &sink = ResultSinkOutcome{}) {
+    return SingleFramePipelineResult{
+        .lifecycle = lifecycle,
+        .sink = sink,
+        .frame = make_frame_context_snapshot(context),
+    };
+}
+
+void record_pipeline_stage_status(
+    FrameContext &context,
+    const std::string_view stage_key,
+    const StageConfig &config,
+    const StageStatusCode status,
+    const std::string_view route,
+    const std::string_view reason = {}) {
+    record_stage_status(
+        context,
+        StageStatusUpdate{
+            .stage_key = stage_key,
+            .status = status,
+            .variant = config.variant,
+            .level = config.level,
+            .route = route,
+            .reason = reason,
+        });
 }
 
 } // namespace
@@ -77,6 +117,13 @@ SingleFramePipelineResult process_single_frame(
         packet_result.packet.pixel_format,
         input_start,
         std::chrono::steady_clock::now());
+    record_stage_status(
+        frame_context,
+        StageStatusUpdate{
+            .stage_key = kInputBoundaryName,
+            .status = StageStatusCode::Completed,
+            .route = "input",
+        });
 
     const auto input_normalization_start = std::chrono::steady_clock::now();
     const auto input_normalization_result = input_normalization_stage.process(
@@ -105,19 +152,25 @@ SingleFramePipelineResult process_single_frame(
         input_normalization_start,
         input_normalization_end,
         input_normalization_result.reason);
+    record_pipeline_stage_status(
+        frame_context,
+        kInputNormalizationStageName,
+        pipeline_config.stages.input_normalization,
+        toStageStatusCode(input_normalization_result.status),
+        pipeline_config.stages.prep.variant,
+        input_normalization_result.reason);
     if (input_normalization_result.status != StageExecutionStatus::Completed) {
         std::string lifecycle_reason = "input_normalization_stage_failed";
         if (!input_normalization_result.reason.empty()) {
             lifecycle_reason += ": ";
             lifecycle_reason += input_normalization_result.reason;
         }
-        return SingleFramePipelineResult{
-            .lifecycle = FrameLifecycleResult{
+        return make_pipeline_result(
+            frame_context,
+            FrameLifecycleResult{
                 .status = FrameTerminalStatus::Failed,
                 .reason = lifecycle_reason,
-            },
-            .sink = ResultSinkOutcome{},
-        };
+            });
     }
 
     const CanonicalFrame &canonical_frame = input_normalization_result.output.frame;
@@ -143,14 +196,20 @@ SingleFramePipelineResult process_single_frame(
             prep_start,
             prep_end,
             prep_result.reason);
+        record_pipeline_stage_status(
+            frame_context,
+            kPrepStageName,
+            pipeline_config.stages.prep,
+            toStageStatusCode(prep_result.status),
+            prep_variant,
+            prep_result.reason);
         if (prep_result.status != StageExecutionStatus::Completed) {
-            return SingleFramePipelineResult{
-                .lifecycle = FrameLifecycleResult{
+            return make_pipeline_result(
+                frame_context,
+                FrameLifecycleResult{
                     .status = FrameTerminalStatus::Failed,
                     .reason = "prep_stage_failed: " + prep_result.reason,
-                },
-                .sink = ResultSinkOutcome{},
-            };
+                });
         }
         prepared_frame = prep_result.output.frame;
     } else if (prep_variant == kPrepTilesVariant) {
@@ -171,22 +230,41 @@ SingleFramePipelineResult process_single_frame(
             prep_start,
             prep_end,
             prep_result.reason);
+        record_pipeline_stage_status(
+            frame_context,
+            kPrepStageName,
+            pipeline_config.stages.prep,
+            toStageStatusCode(prep_result.status),
+            prep_variant,
+            prep_result.reason);
         if (prep_result.status != StageExecutionStatus::Completed) {
-            return SingleFramePipelineResult{
-                .lifecycle = FrameLifecycleResult{
+            return make_pipeline_result(
+                frame_context,
+                FrameLifecycleResult{
                     .status = FrameTerminalStatus::Failed,
                     .reason = "prep_stage_failed: " + prep_result.reason,
-                },
-                .sink = ResultSinkOutcome{},
-            };
+                });
         }
-        return SingleFramePipelineResult{
-            .lifecycle = FrameLifecycleResult{
+        set_frame_tile_count(
+            frame_context,
+            static_cast<std::uint32_t>(prep_result.output.tiles.size()));
+        record_pipeline_stage_status(
+            frame_context,
+            kRadiometricCanonicalStageName,
+            pipeline_config.stages.radiometric,
+            StageStatusCode::NotStarted,
+            prep_variant,
+            kPrepTilesDownstreamNotConnectedReason);
+        record_diagnostic(
+            frame_context,
+            "prep.tiles.downstream_not_connected",
+            kPrepTilesDownstreamNotConnectedReason);
+        return make_pipeline_result(
+            frame_context,
+            FrameLifecycleResult{
                 .status = FrameTerminalStatus::Failed,
                 .reason = std::string(kPrepTilesDownstreamNotConnectedReason),
-            },
-            .sink = ResultSinkOutcome{},
-        };
+            });
     } else {
         const auto prep_start = std::chrono::steady_clock::now();
         const std::string prep_reason =
@@ -202,13 +280,19 @@ SingleFramePipelineResult process_single_frame(
             prep_start,
             std::chrono::steady_clock::now(),
             prep_reason);
-        return SingleFramePipelineResult{
-            .lifecycle = FrameLifecycleResult{
+        record_pipeline_stage_status(
+            frame_context,
+            kPrepStageName,
+            pipeline_config.stages.prep,
+            StageStatusCode::Unsupported,
+            prep_variant,
+            prep_reason);
+        return make_pipeline_result(
+            frame_context,
+            FrameLifecycleResult{
                 .status = FrameTerminalStatus::Failed,
                 .reason = "prep_stage_failed: " + prep_reason,
-            },
-            .sink = ResultSinkOutcome{},
-        };
+            });
     }
 
     const CanonicalFrame &prepared_frame_ref = *prepared_frame;
@@ -240,27 +324,33 @@ SingleFramePipelineResult process_single_frame(
         radiometric_start,
         radiometric_end,
         radiometric_result.reason);
+    record_pipeline_stage_status(
+        frame_context,
+        kRadiometricCanonicalStageName,
+        pipeline_config.stages.radiometric,
+        toStageStatusCode(radiometric_result.status),
+        kPrepFullFrameVariant,
+        radiometric_result.reason);
     if (radiometric_result.status == StageExecutionStatus::Failed ||
         radiometric_result.status == StageExecutionStatus::Unsupported) {
-        return SingleFramePipelineResult{
-            .lifecycle = FrameLifecycleResult{
+        return make_pipeline_result(
+            frame_context,
+            FrameLifecycleResult{
                 .status = FrameTerminalStatus::Failed,
                 .reason = "radiometric_stage_failed",
-            },
-            .sink = ResultSinkOutcome{},
-        };
+            });
     }
 
     const auto result = build_empty_result(frame_context);
     const auto sink = publish_result_to_sinks(result);
 
-    return SingleFramePipelineResult{
-        .lifecycle = FrameLifecycleResult{
+    return make_pipeline_result(
+        frame_context,
+        FrameLifecycleResult{
             .status = sink.ok() ? FrameTerminalStatus::Completed : FrameTerminalStatus::Failed,
             .reason = sink.reason,
         },
-        .sink = sink,
-    };
+        sink);
 }
 
 } // namespace dp1v2

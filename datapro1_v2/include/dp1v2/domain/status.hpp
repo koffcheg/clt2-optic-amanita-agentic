@@ -17,6 +17,9 @@ enum class StageStatusCode : std::uint8_t {
 struct StageStatus {
     std::string stage_key;
     StageStatusCode status = StageStatusCode::NotStarted;
+    std::string variant;
+    std::string level;
+    std::string route;
     std::string reason;
 };
 
