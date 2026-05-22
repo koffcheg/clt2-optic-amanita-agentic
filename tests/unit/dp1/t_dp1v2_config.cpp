@@ -45,6 +45,56 @@ JsonPtr makeApplicationConfig()
     }
   },
   "logging": {
+    "enabled": true,
+    "config_file": "config/datapro1_v2-log.xml",
+    "default_level": "INFO",
+    "realtime_profile": "rt_safe",
+    "structured_messages": true,
+    "sampling": {
+      "frame_summary_every_n": 100
+    }
+  },
+  "profiling": {
+    "enabled": true,
+    "mode": "lightweight",
+    "levels": ["P0", "P1", "P2", "P4", "P5"],
+    "aggregation_window_frames": 300,
+    "reports": {
+      "emit_frame_reports": false,
+      "emit_window_summary": true,
+      "emit_run_summary": true
+    },
+    "logging_bridge": {
+      "emit_aggregated_summaries": true,
+      "summary_every_n_frames": 300,
+      "emit_budget_warnings": false
+    }
+  },
+  "dp2": {
+    "enabled": false,
+    "mode": "disabled",
+    "host": "127.0.0.1",
+    "port": 11511,
+    "reconnect_interval_s": 3
+  }
+}
+)json");
+}
+
+JsonPtr makeFullApplicationConfig()
+{
+    return parseJson(R"json(
+{
+  "schema_version": "1.0",
+  "source": {
+    "mode": "file",
+    "file": {
+      "path": "unit/input_%06d.tiff",
+      "recursive": false,
+      "repeat": false
+    }
+  },
+  "logging": {
     "enabled": false,
     "config_file": "config/datapro1_v2-log.xml",
     "default_level": "INFO",
@@ -322,6 +372,83 @@ TEST_F(ConfigTest, LoadDp1Config_WhenCanonicalApplicationAndPipelineFilesAreVali
     EXPECT_EQ(config.resolved_pipeline.radiometric.inverse_median->stride, 1);
     EXPECT_EQ(config.resolved_pipeline.radiometric.inverse_median->output_dynamic_range_mode,
               dp1v2::InverseMedianOutputMode::RawSigned);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalLoggingProfilingConfigIsValid_AppliesAdvancedDefaults)
+{
+    JsonPtr application = makeApplicationConfig();
+
+    const dp1v2::ApplicationConfig config = loadApplication(application);
+
+    EXPECT_TRUE(config.logging.enabled);
+    EXPECT_TRUE(config.logging.sanitize_external_strings);
+    EXPECT_EQ(config.logging.max_field_length, 256);
+    EXPECT_EQ(config.logging.max_messages_per_frame, 64);
+    EXPECT_EQ(config.logging.max_messages_per_tile, 16);
+    EXPECT_TRUE(config.logging.mdc.enabled);
+    EXPECT_TRUE(config.logging.mdc.fields.empty());
+    EXPECT_EQ(config.logging.sampling.frame_summary_every_n, 100);
+    EXPECT_EQ(config.logging.sampling.rate_limit_per_event_per_sec, 1);
+    EXPECT_TRUE(config.logging.sampling.duplicate_suppression);
+    EXPECT_TRUE(config.logging.async.enabled);
+    EXPECT_EQ(config.logging.async.buffer_size, 1024);
+    EXPECT_FALSE(config.logging.async.blocking);
+    EXPECT_EQ(config.logging.async.discard_policy, "drop_debug_and_summarize");
+    EXPECT_TRUE(config.logging.logger_overrides.empty());
+
+    EXPECT_FALSE(config.profiling.raw_trace.enabled);
+    EXPECT_EQ(config.profiling.raw_trace.max_frames, 0);
+    EXPECT_EQ(config.profiling.raw_trace.max_events_per_frame, 64);
+    EXPECT_FALSE(config.profiling.operation_timing.enabled);
+    EXPECT_TRUE(config.profiling.operation_timing.include_format_conversions);
+    EXPECT_TRUE(config.profiling.operation_timing.include_memory_copies);
+    EXPECT_FALSE(config.profiling.operation_timing.include_allocations);
+    EXPECT_EQ(config.profiling.reports.format, "json");
+    EXPECT_TRUE(config.profiling.reports.output_dir.empty());
+    EXPECT_FALSE(config.profiling.logging_bridge.emit_budget_warnings);
+    EXPECT_FALSE(config.profiling.external_trace.enabled);
+    EXPECT_EQ(config.profiling.external_trace.backend, "none");
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenFullLoggingProfilingConfigIsValid_ReturnsTypedConfig)
+{
+    JsonPtr application = makeFullApplicationConfig();
+
+    const dp1v2::ApplicationConfig config = loadApplication(application);
+
+    EXPECT_FALSE(config.logging.enabled);
+    ASSERT_EQ(config.logging.mdc.fields.size(), 5U);
+    EXPECT_EQ(config.logging.mdc.fields[0], "pipeline_run_id");
+    EXPECT_TRUE(config.logging.async.enabled);
+    EXPECT_FALSE(config.logging.async.blocking);
+    EXPECT_TRUE(config.profiling.logging_bridge.emit_budget_warnings);
+    EXPECT_FALSE(config.profiling.external_trace.enabled);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenExplicitInvalidAdvancedLoggingFieldExists_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    setBool(application.get(), {"logging"}, "sanitize_external_strings", false);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenExplicitInvalidOperationTimingFieldExists_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* operation_timing = json_object();
+    ASSERT_EQ(json_object_set_new(operation_timing, "include_memory_copies", json_boolean(false)), 0);
+    setObject(application.get(), {"profiling"}, "operation_timing", operation_timing);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenLoggingHasUnknownKey_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    setInteger(application.get(), {"logging"}, "unknown", 1);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
 }
 
 TEST_F(ConfigTest, LoadApplicationConfig_WhenPipelineWrapperExists_ThrowsConfigError)
@@ -745,7 +872,9 @@ TEST_F(ConfigTest, LoadDp1Config_WhenExternalTraceIsEnabled_ThrowsConfigError)
 {
     JsonPtr application = makeApplicationConfig();
     JsonPtr pipeline = makePipelineConfig();
-    setBool(application.get(), {"profiling", "external_trace"}, "enabled", true);
+    json_t* external_trace = json_object();
+    ASSERT_EQ(json_object_set_new(external_trace, "enabled", json_boolean(true)), 0);
+    setObject(application.get(), {"profiling"}, "external_trace", external_trace);
 
     EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
 }
@@ -754,7 +883,9 @@ TEST_F(ConfigTest, LoadDp1Config_WhenLoggingAsyncBlocksRtSafeProfile_ThrowsConfi
 {
     JsonPtr application = makeApplicationConfig();
     JsonPtr pipeline = makePipelineConfig();
-    setBool(application.get(), {"logging", "async"}, "blocking", true);
+    json_t* async = json_object();
+    ASSERT_EQ(json_object_set_new(async, "blocking", json_boolean(true)), 0);
+    setObject(application.get(), {"logging"}, "async", async);
 
     EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
 }

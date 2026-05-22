@@ -39,6 +39,8 @@ target_sources(
         src/result/result_sink.cpp
         src/runtime/runtime.cpp
         src/runtime/pipeline.cpp
+        src/runtime/profiling_log_formatter.cpp
+        src/runtime/runtime_profiling_aggregator.cpp
         src/runtime/cyclic_frame_buffer.cpp
         src/source/source.cpp
         src/source/uri_file_source.cpp
@@ -100,9 +102,13 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_CURRENT_SOURCE_DIR}/config/pipeline_config_datapro1_v2.json
         ${CMAKE_CURRENT_BINARY_DIR}/config/pipeline_config_datapro1_v2.json
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/config/datapro1_v2-log.xml
+        ${CMAKE_CURRENT_BINARY_DIR}/config/datapro1_v2-log.xml
         DEPENDS
         ${CMAKE_CURRENT_SOURCE_DIR}/config/application_config_datapro1_v2.json
-        ${CMAKE_CURRENT_SOURCE_DIR}/config/pipeline_config_datapro1_v2.json)
+        ${CMAKE_CURRENT_SOURCE_DIR}/config/pipeline_config_datapro1_v2.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/config/datapro1_v2-log.xml)
 
 if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     option(DP1V2_BUILD_LOCAL_TESTS "Build datapro1_v2 unit and visual-unit tests in a standalone configure" ON)
@@ -128,6 +134,8 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 ../tests/unit/dp1/t_dp1v2_input_normalization_stage.cpp
                 ../tests/unit/dp1/t_dp1v2_prep_stage.cpp
                 ../tests/unit/dp1/t_dp1v2_pipeline.cpp
+                ../tests/unit/dp1/t_dp1v2_profiling_log_formatter.cpp
+                ../tests/unit/dp1/t_dp1v2_runtime_profiling_aggregator.cpp
                 src/runtime/cyclic_frame_buffer.cpp
                 src/config/config.cpp
                 src/frame/frame_packet_builder.cpp
@@ -138,6 +146,8 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 src/stages/radiometric_stage.cpp
                 src/result/result_builder.cpp
                 src/runtime/pipeline.cpp
+                src/runtime/profiling_log_formatter.cpp
+                src/runtime/runtime_profiling_aggregator.cpp
                 src/stages/radiometric_stage.inverse_median.cpp
                 src/source/uri_file_source.cpp
         )

@@ -42,6 +42,9 @@ StageStatusCode toStageStatusCode(const StageExecutionStatus status) {
 
 FrameContextSnapshot make_frame_context_snapshot(const FrameContext &context) {
     return FrameContextSnapshot{
+        .frame_id = context.frame_id,
+        .camera_id = context.camera_id,
+        .source_id = context.source_id,
         .stage_statuses = context.stage_statuses,
         .profiling = context.profiling,
         .diagnostics = context.diagnostics,
@@ -50,9 +53,12 @@ FrameContextSnapshot make_frame_context_snapshot(const FrameContext &context) {
 }
 
 SingleFramePipelineResult make_pipeline_result(
-    const FrameContext &context,
+    FrameContext &context,
+    const std::chrono::steady_clock::time_point frame_start,
     const FrameLifecycleResult &lifecycle,
     const ResultSinkOutcome &sink = ResultSinkOutcome{}) {
+    context.profiling.frame_duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now() - frame_start).count();
     return SingleFramePipelineResult{
         .lifecycle = lifecycle,
         .sink = sink,
@@ -89,7 +95,8 @@ SingleFramePipelineResult process_single_frame(
     PrepStage& prep_stage,
     RadiometricStage& radiometric_stage,
     VisualizationSink& visualization_sink) {
-    const auto input_start = std::chrono::steady_clock::now();
+    const auto frame_start = std::chrono::steady_clock::now();
+    const auto input_start = frame_start;
     const auto packet_result = make_frame_packet(
         envelope.frame,
         envelope.header_hint,
@@ -167,6 +174,7 @@ SingleFramePipelineResult process_single_frame(
         }
         return make_pipeline_result(
             frame_context,
+            frame_start,
             FrameLifecycleResult{
                 .status = FrameTerminalStatus::Failed,
                 .reason = lifecycle_reason,
@@ -206,6 +214,7 @@ SingleFramePipelineResult process_single_frame(
         if (prep_result.status != StageExecutionStatus::Completed) {
             return make_pipeline_result(
                 frame_context,
+                frame_start,
                 FrameLifecycleResult{
                     .status = FrameTerminalStatus::Failed,
                     .reason = "prep_stage_failed: " + prep_result.reason,
@@ -240,6 +249,7 @@ SingleFramePipelineResult process_single_frame(
         if (prep_result.status != StageExecutionStatus::Completed) {
             return make_pipeline_result(
                 frame_context,
+                frame_start,
                 FrameLifecycleResult{
                     .status = FrameTerminalStatus::Failed,
                     .reason = "prep_stage_failed: " + prep_result.reason,
@@ -261,6 +271,7 @@ SingleFramePipelineResult process_single_frame(
             kPrepTilesDownstreamNotConnectedReason);
         return make_pipeline_result(
             frame_context,
+            frame_start,
             FrameLifecycleResult{
                 .status = FrameTerminalStatus::Failed,
                 .reason = std::string(kPrepTilesDownstreamNotConnectedReason),
@@ -289,6 +300,7 @@ SingleFramePipelineResult process_single_frame(
             prep_reason);
         return make_pipeline_result(
             frame_context,
+            frame_start,
             FrameLifecycleResult{
                 .status = FrameTerminalStatus::Failed,
                 .reason = "prep_stage_failed: " + prep_reason,
@@ -335,6 +347,7 @@ SingleFramePipelineResult process_single_frame(
         radiometric_result.status == StageExecutionStatus::Unsupported) {
         return make_pipeline_result(
             frame_context,
+            frame_start,
             FrameLifecycleResult{
                 .status = FrameTerminalStatus::Failed,
                 .reason = "radiometric_stage_failed",
@@ -346,6 +359,7 @@ SingleFramePipelineResult process_single_frame(
 
     return make_pipeline_result(
         frame_context,
+        frame_start,
         FrameLifecycleResult{
             .status = sink.ok() ? FrameTerminalStatus::Completed : FrameTerminalStatus::Failed,
             .reason = sink.reason,

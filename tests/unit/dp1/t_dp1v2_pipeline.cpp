@@ -67,6 +67,20 @@ dp1v2::PipelineConfig makeTilesPipelineConfig()
     return config;
 }
 
+dp1v2::PipelineConfig makeFullFramePipelineConfig()
+{
+    dp1v2::PipelineConfig config = makeTilesPipelineConfig();
+    config.stages.prep = stageConfig(true, "full_frame", "L0");
+    return config;
+}
+
+dp1v2::RadiometricResolvedConfig makeRadiometricResolvedConfig()
+{
+    dp1v2::RadiometricResolvedConfig config{};
+    config.inverse_median = dp1v2::InverseMedianParametersConfig{};
+    return config;
+}
+
 dp1v2::PrepResolvedConfig makePrepResolvedConfig()
 {
     dp1v2::PrepResolvedConfig config{};
@@ -175,6 +189,7 @@ TEST(PipelineTest, TilesPrepRouteBuildsLayoutThenStopsBeforeRadiometric)
     EXPECT_EQ(prep_status->route, "tiles");
 
     EXPECT_GT(result.frame.profiling.cardinality.tile_count, 0U);
+    EXPECT_GT(result.frame.profiling.frame_duration_ns, 0);
 
     const dp1v2::StageStatus *radiometric_status =
         findStageStatus(result.frame, "radiometric_correction");
@@ -187,4 +202,29 @@ TEST(PipelineTest, TilesPrepRouteBuildsLayoutThenStopsBeforeRadiometric)
     EXPECT_EQ(findStageTiming(result.frame, "radiometric_correction"), nullptr);
     EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
     EXPECT_TRUE(hasDiagnostic(result.frame, "prep.tiles.downstream_not_connected"));
+}
+
+TEST(PipelineTest, FullFrameRouteRecordsFrameDuration)
+{
+    const dp1v2::PipelineConfig pipeline_config = makeFullFramePipelineConfig();
+    const dp1v2::InputNormalizationStage input_normalization_stage;
+    dp1v2::PrepStage prep_stage;
+    dp1v2::RadiometricStage radiometric_stage(makeRadiometricResolvedConfig());
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    const dp1v2::SingleFramePipelineResult result = dp1v2::process_single_frame(
+        makeEnvelope(),
+        7,
+        pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        radiometric_stage,
+        visualization_sink);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+    EXPECT_GT(result.frame.profiling.frame_duration_ns, 0);
+    EXPECT_NE(findStageTiming(result.frame, "input"), nullptr);
+    EXPECT_NE(findStageTiming(result.frame, "input_normalization"), nullptr);
+    EXPECT_NE(findStageTiming(result.frame, "prep"), nullptr);
+    EXPECT_NE(findStageTiming(result.frame, "radiometric_correction"), nullptr);
 }

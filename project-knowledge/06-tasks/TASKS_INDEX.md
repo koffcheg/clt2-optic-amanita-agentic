@@ -81,3 +81,8 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0059` - DP1 v2 PrepStage real tile layout unit tests - completed
 - `AMNT-0060` - DP1 v2 runtime Prep tiles dispatch - completed
 - `AMNT-0061` - Fix Prep tiles reviewer follow-up notes - completed
+- `AMNT-0062` - DP1 v2 minimal logging and profiling config authoring - completed
+- `AMNT-0063` - DP1 v2 minimal frame-level profiling duration - completed
+- `AMNT-0064` - DP1 v2 minimal log4cxx configuration - completed
+- `AMNT-0065` - DP1 v2 bounded frame profiling log formatter - completed
+- `AMNT-0066` - DP1 v2 bounded runtime profiling logging bridge - completed

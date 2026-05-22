@@ -104,6 +104,7 @@ struct FrameCardinalityMetrics {
 };
 
 struct FrameProfiling {
+    std::int64_t frame_duration_ns = 0;
     std::vector<StageTiming> stage_timings;
     FrameCardinalityMetrics cardinality;
 };

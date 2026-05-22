@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -16,6 +17,9 @@
 namespace dp1v2 {
 
 struct FrameContextSnapshot {
+    std::uint64_t frame_id = 0;
+    int camera_id = -1;
+    std::string source_id;
     std::vector<StageStatus> stage_statuses;
     FrameProfiling profiling;
     std::vector<DiagnosticMessage> diagnostics;
