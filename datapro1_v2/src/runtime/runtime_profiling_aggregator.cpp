@@ -1,5 +1,7 @@
 #include "dp1v2/runtime/runtime_profiling_aggregator.hpp"
 
+#include "dp1v2/runtime/log_field_sanitizer.hpp"
+
 #include <iomanip>
 #include <sstream>
 #include <string_view>
@@ -96,13 +98,22 @@ const RuntimeStageDurationSummary *find_stage_summary(
 }
 
 void record_duration(RuntimeProfilingSummary &summary, const std::int64_t duration_ns) {
+    ++summary.frame_duration_samples;
     summary.total_frame_duration_ns += duration_ns;
-    if (summary.frames_total == 1 || duration_ns < summary.min_frame_duration_ns) {
+    if (summary.frame_duration_samples == 1 || duration_ns < summary.min_frame_duration_ns) {
         summary.min_frame_duration_ns = duration_ns;
     }
     if (duration_ns > summary.max_frame_duration_ns) {
         summary.max_frame_duration_ns = duration_ns;
     }
+}
+
+std::int64_t min_duration_for_log(const RuntimeProfilingSummary &summary) {
+    return summary.frame_duration_samples == 0 ? 0 : summary.min_frame_duration_ns;
+}
+
+std::int64_t max_duration_for_log(const RuntimeProfilingSummary &summary) {
+    return summary.frame_duration_samples == 0 ? 0 : summary.max_frame_duration_ns;
 }
 
 void record_stage(RuntimeProfilingSummary &summary, const StageTiming &timing) {
@@ -138,20 +149,6 @@ const StageStatus *find_stage_status(
         }
     }
     return nullptr;
-}
-
-std::string sanitized_field_value(const std::string_view value) {
-    std::string sanitized;
-    sanitized.reserve(value.size());
-    for (const char ch : value) {
-        if (ch == '\r' || ch == '\n' || ch == '\t' || ch == ' ' ||
-            ch == '=' || ch == '"' || ch == ';') {
-            sanitized.push_back('_');
-        } else {
-            sanitized.push_back(ch);
-        }
-    }
-    return sanitized;
 }
 
 std::uint64_t average_tile_count(const RuntimeProfilingSummary &summary) {
@@ -279,10 +276,10 @@ std::string format_frame_failed_log(const SingleFramePipelineResult &result) {
     if (controlled) {
         stream << " reason=prep_tiles_downstream_not_connected";
     } else if (!result.lifecycle.reason.empty()) {
-        stream << " reason=" << sanitized_field_value(result.lifecycle.reason);
+        stream << " reason=" << sanitize_log_field(result.lifecycle.reason);
     }
     if (prep != nullptr && !prep->variant.empty()) {
-        stream << " prep_variant=" << prep->variant;
+        stream << " prep_variant=" << sanitize_log_field(prep->variant);
     }
     stream << " tile_count=" << result.frame.profiling.cardinality.tile_count;
     if (radiometric != nullptr) {
@@ -299,11 +296,11 @@ std::string format_profiling_window_summary_log(const RuntimeProfilingSummary &s
            << " failed=" << summary.failed
            << " dropped=" << summary.dropped
            << " avg_frame_duration_ms=";
-    append_ms(stream, average_ns(summary.total_frame_duration_ns, summary.frames_total));
+    append_ms(stream, average_ns(summary.total_frame_duration_ns, summary.frame_duration_samples));
     stream << " min_frame_duration_ms=";
-    append_ms(stream, summary.min_frame_duration_ns);
+    append_ms(stream, min_duration_for_log(summary));
     stream << " max_frame_duration_ms=";
-    append_ms(stream, summary.max_frame_duration_ns);
+    append_ms(stream, max_duration_for_log(summary));
     append_stage_average(stream, summary, "input", "stage_input_avg_ms");
     append_stage_average(stream, summary, "input_normalization", "stage_input_normalization_avg_ms");
     append_stage_average(stream, summary, "prep", "stage_prep_avg_ms");
@@ -323,12 +320,12 @@ std::string format_profiling_run_summary_log(const RuntimeProfilingRunSummary &s
            << " source_read_attempts=" << summary.source_read_attempts
            << " source_empty_reads=" << summary.source_empty_reads
            << " avg_frame_duration_ms=";
-    append_ms(stream, average_ns(summary.profile.total_frame_duration_ns, summary.profile.frames_total));
+    append_ms(stream, average_ns(summary.profile.total_frame_duration_ns, summary.profile.frame_duration_samples));
     stream << " max_frame_duration_ms=";
-    append_ms(stream, summary.profile.max_frame_duration_ns);
+    append_ms(stream, max_duration_for_log(summary.profile));
     stream << " last_status=" << process_status_to_cstr(summary.last_status);
     if (!summary.last_reason.empty()) {
-        stream << " last_reason=" << summary.last_reason;
+        stream << " last_reason=" << sanitize_log_field(summary.last_reason);
     }
     return stream.str();
 }

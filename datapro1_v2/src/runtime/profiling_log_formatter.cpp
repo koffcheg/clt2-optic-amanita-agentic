@@ -1,5 +1,7 @@
 #include "dp1v2/runtime/profiling_log_formatter.hpp"
 
+#include "dp1v2/runtime/log_field_sanitizer.hpp"
+
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -10,7 +12,6 @@ namespace {
 
 constexpr std::string_view kPrepTilesDownstreamNotConnectedCode =
     "prep.tiles.downstream_not_connected";
-constexpr std::size_t kMaxFieldValueLength = 128;
 
 const char *stage_status_to_cstr(const StageStatusCode status) {
     switch (status) {
@@ -62,30 +63,13 @@ const char *pixel_format_to_cstr(const PixelFormat pixel_format) {
     return "unknown";
 }
 
-std::string sanitized_field_value(const std::string_view value) {
-    std::string sanitized;
-    sanitized.reserve(value.size());
-    for (const char ch : value) {
-        if (sanitized.size() >= kMaxFieldValueLength) {
-            break;
-        }
-        if (ch == '\r' || ch == '\n' || ch == '\t' || ch == ' ' ||
-            ch == '=' || ch == '"' || ch == ';') {
-            sanitized.push_back('_');
-        } else {
-            sanitized.push_back(ch);
-        }
-    }
-    return sanitized;
-}
-
 std::string diagnostic_code_to_reason(const std::string_view code) {
     std::string reason;
     reason.reserve(code.size());
     for (const char ch : code) {
         reason.push_back(ch == '.' ? '_' : ch);
     }
-    return sanitized_field_value(reason);
+    return sanitize_log_field(reason);
 }
 
 bool has_diagnostic_code(
@@ -129,12 +113,12 @@ std::string format_stage_timings(const std::vector<StageTiming> &stage_timings) 
         if (index > 0) {
             stream << ';';
         }
-        stream << sanitized_field_value(timing.stage_key) << ':'
+         stream << sanitize_log_field(timing.stage_key) << ':'
                << stage_status_to_cstr(timing.status) << ':';
         append_duration_ms(stream, timing.duration_ns);
         if (!timing.variant.empty() || !timing.level.empty()) {
-            stream << ':' << sanitized_field_value(timing.variant)
-                   << ':' << sanitized_field_value(timing.level)
+             stream << ':' << sanitize_log_field(timing.variant)
+                 << ':' << sanitize_log_field(timing.level)
                    << ':' << pixel_format_to_cstr(timing.input_format)
                    << "->" << pixel_format_to_cstr(timing.output_format);
         }
@@ -149,10 +133,10 @@ std::string format_stage_routes(const std::vector<StageStatus> &stage_statuses) 
         if (index > 0) {
             stream << ';';
         }
-        stream << sanitized_field_value(status.stage_key) << ':'
+        stream << sanitize_log_field(status.stage_key) << ':'
                << stage_status_to_cstr(status.status);
         if (!status.route.empty()) {
-            stream << ':' << sanitized_field_value(status.route);
+            stream << ':' << sanitize_log_field(status.route);
         }
     }
     return stream.str();
@@ -162,7 +146,7 @@ std::string frame_reason(const SingleFramePipelineResult &result, const bool con
     if (controlled && has_diagnostic_code(result.frame, kPrepTilesDownstreamNotConnectedCode)) {
         return diagnostic_code_to_reason(kPrepTilesDownstreamNotConnectedCode);
     }
-    return sanitized_field_value(result.lifecycle.reason);
+    return sanitize_log_field(result.lifecycle.reason);
 }
 
 } // namespace
@@ -176,7 +160,7 @@ std::string format_frame_profile_log(const SingleFramePipelineResult &result) {
            << " frame_id=" << result.frame.frame_id
            << " camera_id=" << result.frame.camera_id;
     if (!result.frame.source_id.empty()) {
-        stream << " source_id=" << sanitized_field_value(result.frame.source_id);
+        stream << " source_id=" << sanitize_log_field(result.frame.source_id);
     }
     stream << " status=" << frame_status_to_cstr(result.lifecycle.status);
     if (!reason.empty()) {

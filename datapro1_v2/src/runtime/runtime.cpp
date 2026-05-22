@@ -1,6 +1,7 @@
 #include "dp1v2/runtime/runtime.hpp"
 
 #include "dp1v2/config/config.hpp"
+#include "dp1v2/runtime/log_field_sanitizer.hpp"
 #include "dp1v2/runtime/pipeline.hpp"
 #include "dp1v2/runtime/profiling_log_formatter.hpp"
 #include "dp1v2/runtime/runtime_profiling_aggregator.hpp"
@@ -83,7 +84,7 @@ void emit_pipeline_stopped_log(const StartupContext &context, const RuntimeLoopR
             << " exit_code=" << process_exit_code(result)
             << " frames_completed=" << result.frames_completed
             << " frames_failed=" << result.frames_failed
-            << " reason=" << result.resource.last_reason);
+            << " reason=" << sanitize_log_field(result.resource.last_reason));
 }
 
 RuntimeProfilingRunSummary make_run_summary(
@@ -274,7 +275,8 @@ RuntimeLoopResult run_bounded_runtime_loop(const StartupContext &context, IFrame
                         LOG4CXX_ERROR(
                             runtime_logger(),
                             "event=source_failed camera_id=" << context.cli.cam_index
-                                << " status=failed reason=" << source_read_status_to_cstr(source_result.status));
+                                << " status=failed reason="
+                                << sanitize_log_field(source_read_status_to_cstr(source_result.status)));
                     }
                     return finish_loop();
             }

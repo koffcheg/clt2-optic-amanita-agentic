@@ -76,6 +76,17 @@ dp1v2::SingleFramePipelineResult makeTilesControlledFailureResult()
     return result;
 }
 
+dp1v2::SingleFramePipelineResult makeFailureResultWithReason(const std::string &reason)
+{
+    dp1v2::SingleFramePipelineResult result{};
+    result.lifecycle.status = dp1v2::FrameTerminalStatus::Failed;
+    result.lifecycle.reason = reason;
+    result.frame.frame_id = 7;
+    result.frame.camera_id = 2;
+    result.frame.profiling.cardinality.tile_count = 1;
+    return result;
+}
+
 } // namespace
 
 TEST(RuntimeProfilingAggregatorTest, AccumulatesRunAndWindowSummaries)
@@ -90,6 +101,7 @@ TEST(RuntimeProfilingAggregatorTest, AccumulatesRunAndWindowSummaries)
     EXPECT_EQ(summary.completed, 1U);
     EXPECT_EQ(summary.failed, 1U);
     EXPECT_EQ(summary.dropped, 1U);
+    EXPECT_EQ(summary.frame_duration_samples, 2U);
     EXPECT_EQ(summary.min_frame_duration_ns, 5000000);
     EXPECT_EQ(summary.max_frame_duration_ns, 7000000);
     EXPECT_EQ(summary.total_frame_duration_ns, 12000000);
@@ -125,6 +137,31 @@ TEST(RuntimeProfilingAggregatorTest, FormatsWindowSummaryWithoutPercentiles)
     EXPECT_EQ(message.find("median"), std::string::npos);
 }
 
+TEST(RuntimeProfilingAggregatorTest, AverageFrameDurationIgnoresDroppedFrames)
+{
+    dp1v2::RuntimeProfilingAggregator aggregator;
+    aggregator.record_frame(makeResult(dp1v2::FrameTerminalStatus::Completed, 5000000, 0));
+    aggregator.record_frame(makeResult(dp1v2::FrameTerminalStatus::Failed, 7000000, 0));
+    aggregator.record_dropped_frame();
+
+    const std::string message = dp1v2::format_profiling_window_summary_log(aggregator.run_summary());
+    EXPECT_NE(message.find("frames=3"), std::string::npos);
+    EXPECT_NE(message.find("avg_frame_duration_ms=6.000"), std::string::npos);
+}
+
+TEST(RuntimeProfilingAggregatorTest, OnlyDroppedFramesYieldZeroDurations)
+{
+    dp1v2::RuntimeProfilingAggregator aggregator;
+    aggregator.record_dropped_frame();
+    aggregator.record_dropped_frame();
+
+    const std::string message = dp1v2::format_profiling_window_summary_log(aggregator.run_summary());
+    EXPECT_NE(message.find("frames=2"), std::string::npos);
+    EXPECT_NE(message.find("avg_frame_duration_ms=0.000"), std::string::npos);
+    EXPECT_NE(message.find("min_frame_duration_ms=0.000"), std::string::npos);
+    EXPECT_NE(message.find("max_frame_duration_ms=0.000"), std::string::npos);
+}
+
 TEST(RuntimeProfilingAggregatorTest, FormatsRunSummaryWithSourceCounters)
 {
     dp1v2::RuntimeProfilingAggregator aggregator;
@@ -135,7 +172,7 @@ TEST(RuntimeProfilingAggregatorTest, FormatsRunSummaryWithSourceCounters)
         .source_read_attempts = 2,
         .source_empty_reads = 1,
         .last_status = dp1v2::ProcessTerminalStatus::SourceExhausted,
-        .last_reason = "source_exhausted",
+        .last_reason = "source exhausted=bad",
     };
 
     const std::string message = dp1v2::format_profiling_run_summary_log(summary);
@@ -144,7 +181,7 @@ TEST(RuntimeProfilingAggregatorTest, FormatsRunSummaryWithSourceCounters)
     EXPECT_NE(message.find("source_read_attempts=2"), std::string::npos);
     EXPECT_NE(message.find("source_empty_reads=1"), std::string::npos);
     EXPECT_NE(message.find("last_status=source_exhausted"), std::string::npos);
-    EXPECT_NE(message.find("last_reason=source_exhausted"), std::string::npos);
+    EXPECT_NE(message.find("last_reason=source_exhausted_bad"), std::string::npos);
 }
 
 TEST(RuntimeProfilingAggregatorTest, GatingPreventsFrameFormatterWhenFrameReportsDisabled)
@@ -231,4 +268,12 @@ TEST(RuntimeProfilingAggregatorTest, FormatsControlledTilesFailureSummary)
     EXPECT_NE(message.find("prep_variant=tiles"), std::string::npos);
     EXPECT_NE(message.find("tile_count=6"), std::string::npos);
     EXPECT_NE(message.find("radiometric_status=not_started"), std::string::npos);
+}
+
+TEST(RuntimeProfilingAggregatorTest, FormatsFailureSummaryWithSanitizedReason)
+{
+    const std::string message = dp1v2::format_frame_failed_log(
+        makeFailureResultWithReason("bad reason=oops"));
+
+    EXPECT_NE(message.find("reason=bad_reason_oops"), std::string::npos);
 }

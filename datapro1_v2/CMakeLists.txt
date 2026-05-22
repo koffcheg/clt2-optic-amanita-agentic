@@ -39,6 +39,7 @@ target_sources(
         src/result/result_sink.cpp
         src/runtime/runtime.cpp
         src/runtime/pipeline.cpp
+        src/runtime/log_field_sanitizer.cpp
         src/runtime/profiling_log_formatter.cpp
         src/runtime/runtime_profiling_aggregator.cpp
         src/runtime/cyclic_frame_buffer.cpp
@@ -135,6 +136,7 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 ../tests/unit/dp1/t_dp1v2_prep_stage.cpp
                 ../tests/unit/dp1/t_dp1v2_pipeline.cpp
                 ../tests/unit/dp1/t_dp1v2_profiling_log_formatter.cpp
+                ../tests/unit/dp1/t_dp1v2_log_field_sanitizer.cpp
                 ../tests/unit/dp1/t_dp1v2_runtime_profiling_aggregator.cpp
                 src/runtime/cyclic_frame_buffer.cpp
                 src/config/config.cpp
@@ -146,6 +148,7 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 src/stages/radiometric_stage.cpp
                 src/result/result_builder.cpp
                 src/runtime/pipeline.cpp
+                src/runtime/log_field_sanitizer.cpp
                 src/runtime/profiling_log_formatter.cpp
                 src/runtime/runtime_profiling_aggregator.cpp
                 src/stages/radiometric_stage.inverse_median.cpp

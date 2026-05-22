@@ -22,6 +22,7 @@ struct RuntimeProfilingSummary {
     std::uint64_t completed = 0;
     std::uint64_t failed = 0;
     std::uint64_t dropped = 0;
+    std::uint64_t frame_duration_samples = 0;
     std::int64_t total_frame_duration_ns = 0;
     std::int64_t min_frame_duration_ns = 0;
     std::int64_t max_frame_duration_ns = 0;

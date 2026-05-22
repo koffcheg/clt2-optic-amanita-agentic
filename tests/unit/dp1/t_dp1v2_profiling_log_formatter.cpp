@@ -143,6 +143,14 @@ dp1v2::SingleFramePipelineResult makeTilesControlledFailureResult()
     return result;
 }
 
+dp1v2::SingleFramePipelineResult makeFailureResultWithReason(const std::string &reason)
+{
+    dp1v2::SingleFramePipelineResult result = makeFullFrameResult();
+    result.lifecycle.status = dp1v2::FrameTerminalStatus::Failed;
+    result.lifecycle.reason = reason;
+    return result;
+}
+
 } // namespace
 
 TEST(ProfilingLogFormatterTest, FullFrameSummaryContainsFrameProfileAndStages)
@@ -187,4 +195,12 @@ TEST(ProfilingLogFormatterTest, EmptyStageTimingsDoNotCrash)
     EXPECT_TRUE(contains(message, "camera_id=3"));
     EXPECT_TRUE(contains(message, "stage_count=0"));
     EXPECT_TRUE(contains(message, "stages=\"\""));
+}
+
+TEST(ProfilingLogFormatterTest, FailureReasonIsSanitized)
+{
+    const std::string message = dp1v2::format_frame_profile_log(
+        makeFailureResultWithReason("bad reason=oops"));
+
+    EXPECT_TRUE(contains(message, "reason=bad_reason_oops"));
 }
