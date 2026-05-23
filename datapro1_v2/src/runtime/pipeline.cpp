@@ -138,7 +138,8 @@ SingleFramePipelineResult process_single_frame(
         frame_context,
         InputNormalizationConfig{
             .input_route = pipeline_config.input_route,
-            .stage = pipeline_config.stages.input_normalization,
+                        .stage = pipeline_config.stages.input_normalization,
+            .resolved = context.config.resolved_pipeline.input_normalization,
         });
     const auto input_normalization_end = std::chrono::steady_clock::now();
     if (input_normalization_result.status == StageExecutionStatus::Completed) {

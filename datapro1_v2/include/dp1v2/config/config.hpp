@@ -195,6 +195,11 @@ struct StageConfig {
     ParameterMap parameters;
 };
 
+struct InputNormalizationResolvedConfig {
+    std::string binning_mode = "disabled";
+    int bin_factor = 1;
+};
+
 struct PrepResolvedConfig {
     std::optional<PrepTilesParametersConfig> tiles;
 };
@@ -204,6 +209,7 @@ struct RadiometricResolvedConfig {
 };
 
 struct ResolvedPipelineConfig {
+    InputNormalizationResolvedConfig input_normalization;
     PrepResolvedConfig prep;
     RadiometricResolvedConfig radiometric;
 };
