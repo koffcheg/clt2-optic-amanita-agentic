@@ -9,75 +9,16 @@
     }
   },
   "logging": {
-    "enabled": false,
-    "config_file": "config/datapro1_v2-log.xml",
-    "default_level": "INFO",
-    "realtime_profile": "rt_safe",
-    "structured_messages": true,
-    "sanitize_external_strings": true,
-    "max_field_length": 256,
-    "max_messages_per_frame": 64,
-    "max_messages_per_tile": 16,
-    "mdc": {
-      "enabled": true,
-      "fields": [
-        "pipeline_run_id",
-        "camera_id",
-        "source_id",
-        "frame_id",
-        "stage"
-      ]
-    },
-    "sampling": {
-      "frame_summary_every_n": 100,
-      "rate_limit_per_event_per_sec": 1,
-      "duplicate_suppression": true
-    },
-    "async": {
-      "enabled": true,
-      "buffer_size": 1024,
-      "blocking": false,
-      "discard_policy": "drop_debug_and_summarize"
-    },
-    "logger_overrides": []
+    "enabled": true,
+    "config_file": "config/datapro1_v2-log.xml"
   },
   "profiling": {
-    "enabled": true,
-    "mode": "lightweight",
-    "levels": [
-      "P0",
-      "P1",
-      "P2",
-      "P4",
-      "P5"
-    ],
+    "emit_reports": true,
     "aggregation_window_frames": 300,
-    "raw_trace": {
-      "enabled": false,
-      "max_frames": 0,
-      "max_events_per_frame": 64
-    },
-    "operation_timing": {
-      "enabled": false,
-      "include_format_conversions": true,
-      "include_memory_copies": true,
-      "include_allocations": false
-    },
     "reports": {
       "emit_frame_reports": false,
       "emit_window_summary": true,
-      "emit_run_summary": true,
-      "format": "json",
-      "output_dir": ""
-    },
-    "logging_bridge": {
-      "emit_aggregated_summaries": true,
-      "summary_every_n_frames": 300,
-      "emit_budget_warnings": true
-    },
-    "external_trace": {
-      "enabled": false,
-      "backend": "none"
+      "emit_run_summary": true
     }
   },
   "visualization": {

@@ -147,6 +147,17 @@ const json_t *read_required_object(const json_t *object, const char *key, const 
     return value;
 }
 
+const json_t *read_optional_object(const json_t *object, const char *key, const std::string &context) {
+    const json_t *value = json_object_get(object, key);
+    if (!value) {
+        return nullptr;
+    }
+    if (!json_is_object(value)) {
+        throw std::logic_error("error on config file, " + context + "." + key + " must be object");
+    }
+    return value;
+}
+
 std::string read_required_string(const json_t *object, const char *key, const std::string &context) {
     const json_t *value = json_object_get(object, key);
     if (!json_is_string(value)) {
@@ -173,6 +184,20 @@ bool read_required_bool(const json_t *object, const char *key, const std::string
     const json_t *value = json_object_get(object, key);
     if (!json_is_boolean(value)) {
         throw std::logic_error("error on config file, " + context + "." + key + " is required bool");
+    }
+    return json_boolean_value(value) != 0;
+}
+
+bool read_optional_bool(const json_t *object,
+                        const char *key,
+                        const bool default_value,
+                        const std::string &context) {
+    const json_t *value = json_object_get(object, key);
+    if (!value) {
+        return default_value;
+    }
+    if (!json_is_boolean(value)) {
+        throw std::logic_error("error on config file, " + context + "." + key + " must be bool");
     }
     return json_boolean_value(value) != 0;
 }
@@ -556,13 +581,6 @@ bool is_allowed_variant(const std::string_view stage, const std::string_view var
     return false;
 }
 
-void validate_logging_level(const std::string &level, const std::string &field) {
-    static const std::vector<std::string_view> levels{"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
-    if (!contains(levels, level)) {
-        throw std::logic_error("error on config file, unsupported " + field + ": " + level);
-    }
-}
-
 void validate_profiling_level(const std::string &level) {
     static const std::vector<std::string_view> levels{"P0", "P1", "P2", "P3", "P4", "P5"};
     if (!contains(levels, level)) {
@@ -571,159 +589,36 @@ void validate_profiling_level(const std::string &level) {
 }
 
 dp1v2::LoggingConfig parse_logging_config(const json_t *logging_json) {
-    reject_unknown_keys(logging_json,
-                        {"enabled", "config_file", "default_level", "realtime_profile", "structured_messages",
-                         "sanitize_external_strings", "max_field_length", "max_messages_per_frame",
-                         "max_messages_per_tile", "mdc", "sampling", "async", "logger_overrides"},
-                        "application.logging");
+    reject_unknown_keys(logging_json, {"enabled", "config_file"}, "application.logging");
 
     dp1v2::LoggingConfig config{};
     config.enabled = read_required_bool(logging_json, "enabled", "application.logging");
     config.config_file = read_required_string(logging_json, "config_file", "application.logging");
-    config.default_level = read_required_string(logging_json, "default_level", "application.logging");
-    config.realtime_profile = read_required_string(logging_json, "realtime_profile", "application.logging");
-    config.structured_messages = read_required_bool(logging_json, "structured_messages", "application.logging");
-    config.sanitize_external_strings = read_required_bool(logging_json, "sanitize_external_strings", "application.logging");
-    config.max_field_length = read_required_int(logging_json, "max_field_length", "application.logging");
-    config.max_messages_per_frame = read_required_int(logging_json, "max_messages_per_frame", "application.logging");
-    config.max_messages_per_tile = read_required_int(logging_json, "max_messages_per_tile", "application.logging");
-
-    const json_t *mdc_json = read_required_object(logging_json, "mdc", "application.logging");
-    reject_unknown_keys(mdc_json, {"enabled", "fields"}, "application.logging.mdc");
-    config.mdc.enabled = read_required_bool(mdc_json, "enabled", "application.logging.mdc");
-    config.mdc.fields = read_required_string_array(mdc_json, "fields", "application.logging.mdc");
-
-    const json_t *sampling_json = read_required_object(logging_json, "sampling", "application.logging");
-    reject_unknown_keys(sampling_json,
-                        {"frame_summary_every_n", "rate_limit_per_event_per_sec", "duplicate_suppression"},
-                        "application.logging.sampling");
-    config.sampling.frame_summary_every_n = read_required_int(sampling_json, "frame_summary_every_n", "application.logging.sampling");
-    config.sampling.rate_limit_per_event_per_sec = read_required_int(sampling_json, "rate_limit_per_event_per_sec", "application.logging.sampling");
-    config.sampling.duplicate_suppression = read_required_bool(sampling_json, "duplicate_suppression", "application.logging.sampling");
-
-    const json_t *async_json = read_required_object(logging_json, "async", "application.logging");
-    reject_unknown_keys(async_json, {"enabled", "buffer_size", "blocking", "discard_policy"}, "application.logging.async");
-    config.async.enabled = read_required_bool(async_json, "enabled", "application.logging.async");
-    config.async.buffer_size = read_required_int(async_json, "buffer_size", "application.logging.async");
-    config.async.blocking = read_required_bool(async_json, "blocking", "application.logging.async");
-    config.async.discard_policy = read_required_string(async_json, "discard_policy", "application.logging.async");
-
-    if (const json_t *overrides_json = json_object_get(logging_json, "logger_overrides")) {
-        if (!json_is_array(overrides_json)) {
-            throw std::logic_error("error on config file, application.logging.logger_overrides must be array");
-        }
-        const auto size = json_array_size(overrides_json);
-        config.logger_overrides.reserve(size);
-        for (std::size_t i = 0; i < size; ++i) {
-            const json_t *override_json = json_array_get(overrides_json, i);
-            if (!json_is_object(override_json)) {
-                throw std::logic_error("error on config file, logger override must be object");
-            }
-            reject_unknown_keys(override_json, {"logger", "level"}, "application.logging.logger_overrides[]");
-            config.logger_overrides.push_back(dp1v2::LoggerLevelOverride{
-                .logger = read_required_string(override_json, "logger", "application.logging.logger_overrides[]"),
-                .level = read_required_string(override_json, "level", "application.logging.logger_overrides[]"),
-            });
-        }
-    }
 
     ensure_non_empty(config.config_file, "application.logging.config_file");
-    validate_logging_level(config.default_level, "application.logging.default_level");
-    if (config.realtime_profile != "rt_safe" && config.realtime_profile != "diagnostic") {
-        throw std::logic_error("error on config file, unsupported application.logging.realtime_profile: " + config.realtime_profile);
-    }
-    if (!config.structured_messages) {
-        throw std::logic_error("error on config file, application.logging.structured_messages=false is not canonical for this task");
-    }
-    if (!config.sanitize_external_strings) {
-        throw std::logic_error("error on config file, application.logging.sanitize_external_strings=false is not canonical");
-    }
-    if (config.max_field_length <= 0) {
-        throw std::logic_error("error on config file, application.logging.max_field_length must be > 0");
-    }
-    if (config.max_messages_per_frame < 0 || config.max_messages_per_tile < 0) {
-        throw std::logic_error("error on config file, logging message limits must be >= 0");
-    }
-    if (config.max_messages_per_frame > 0 && config.max_messages_per_tile > config.max_messages_per_frame) {
-        throw std::logic_error("error on config file, application.logging.max_messages_per_tile must be <= max_messages_per_frame");
-    }
-    ensure_no_duplicates(config.mdc.fields, "application.logging.mdc.fields");
-    if (config.sampling.frame_summary_every_n < 0 || config.sampling.rate_limit_per_event_per_sec < 0) {
-        throw std::logic_error("error on config file, logging sampling limits must be >= 0");
-    }
-    if (config.async.buffer_size <= 0) {
-        throw std::logic_error("error on config file, application.logging.async.buffer_size must be > 0");
-    }
-    if (config.realtime_profile == "rt_safe" && config.async.blocking) {
-        throw std::logic_error("error on config file, application.logging.async.blocking must be false for rt_safe");
-    }
-    static const std::vector<std::string_view> discard_policies{
-        "drop_debug_and_summarize", "block", "drop_new_debug"};
-    if (!contains(discard_policies, config.async.discard_policy)) {
-        throw std::logic_error("error on config file, unsupported application.logging.async.discard_policy: " + config.async.discard_policy);
-    }
-
-    std::vector<std::string> override_loggers;
-    override_loggers.reserve(config.logger_overrides.size());
-    for (const auto &override : config.logger_overrides) {
-        ensure_non_empty(override.logger, "application.logging.logger_overrides.logger");
-        validate_logging_level(override.level, "application.logging.logger_overrides.level");
-        override_loggers.push_back(override.logger);
-    }
-    ensure_no_duplicates(override_loggers, "application.logging.logger_overrides.logger");
 
     return config;
 }
 
 dp1v2::ProfilingConfig parse_profiling_config(const json_t *profiling_json) {
     reject_unknown_keys(profiling_json,
-                        {"enabled", "mode", "levels", "aggregation_window_frames", "raw_trace",
-                         "operation_timing", "reports", "logging_bridge", "external_trace"},
+                        {"emit_reports", "aggregation_window_frames", "reports"},
                         "application.profiling");
 
     dp1v2::ProfilingConfig config{};
-    config.enabled = read_required_bool(profiling_json, "enabled", "application.profiling");
-    config.mode = read_required_string(profiling_json, "mode", "application.profiling");
-    config.levels = read_required_string_array(profiling_json, "levels", "application.profiling");
+    config.emit_reports = read_required_bool(profiling_json, "emit_reports", "application.profiling");
     config.aggregation_window_frames = read_required_int(profiling_json, "aggregation_window_frames", "application.profiling");
-
-    const json_t *raw_trace_json = read_required_object(profiling_json, "raw_trace", "application.profiling");
-    reject_unknown_keys(raw_trace_json, {"enabled", "max_frames", "max_events_per_frame"}, "application.profiling.raw_trace");
-    config.raw_trace.enabled = read_required_bool(raw_trace_json, "enabled", "application.profiling.raw_trace");
-    config.raw_trace.max_frames = read_required_int(raw_trace_json, "max_frames", "application.profiling.raw_trace");
-    config.raw_trace.max_events_per_frame = read_required_int(raw_trace_json, "max_events_per_frame", "application.profiling.raw_trace");
-
-    const json_t *timing_json = read_required_object(profiling_json, "operation_timing", "application.profiling");
-    reject_unknown_keys(timing_json,
-                        {"enabled", "include_format_conversions", "include_memory_copies", "include_allocations"},
-                        "application.profiling.operation_timing");
-    config.operation_timing.enabled = read_required_bool(timing_json, "enabled", "application.profiling.operation_timing");
-    config.operation_timing.include_format_conversions = read_required_bool(timing_json, "include_format_conversions", "application.profiling.operation_timing");
-    config.operation_timing.include_memory_copies = read_required_bool(timing_json, "include_memory_copies", "application.profiling.operation_timing");
-    config.operation_timing.include_allocations = read_required_bool(timing_json, "include_allocations", "application.profiling.operation_timing");
 
     const json_t *reports_json = read_required_object(profiling_json, "reports", "application.profiling");
     reject_unknown_keys(reports_json,
-                        {"emit_frame_reports", "emit_window_summary", "emit_run_summary", "format", "output_dir"},
+                        {"emit_frame_reports", "emit_window_summary", "emit_run_summary"},
                         "application.profiling.reports");
-    config.reports.emit_frame_reports = read_required_bool(reports_json, "emit_frame_reports", "application.profiling.reports");
-    config.reports.emit_window_summary = read_required_bool(reports_json, "emit_window_summary", "application.profiling.reports");
-    config.reports.emit_run_summary = read_required_bool(reports_json, "emit_run_summary", "application.profiling.reports");
-    config.reports.format = read_required_string(reports_json, "format", "application.profiling.reports");
-    config.reports.output_dir = read_optional_string(reports_json, "output_dir", "", "application.profiling.reports");
-
-    const json_t *bridge_json = read_required_object(profiling_json, "logging_bridge", "application.profiling");
-    reject_unknown_keys(bridge_json,
-                        {"emit_aggregated_summaries", "summary_every_n_frames", "emit_budget_warnings"},
-                        "application.profiling.logging_bridge");
-    config.logging_bridge.emit_aggregated_summaries = read_required_bool(bridge_json, "emit_aggregated_summaries", "application.profiling.logging_bridge");
-    config.logging_bridge.summary_every_n_frames = read_required_int(bridge_json, "summary_every_n_frames", "application.profiling.logging_bridge");
-    config.logging_bridge.emit_budget_warnings = read_required_bool(bridge_json, "emit_budget_warnings", "application.profiling.logging_bridge");
-
-    const json_t *external_json = read_required_object(profiling_json, "external_trace", "application.profiling");
-    reject_unknown_keys(external_json, {"enabled", "backend"}, "application.profiling.external_trace");
-    config.external_trace.enabled = read_required_bool(external_json, "enabled", "application.profiling.external_trace");
-    config.external_trace.backend = read_required_string(external_json, "backend", "application.profiling.external_trace");
+    config.reports.emit_frame_reports = read_optional_bool(
+        reports_json, "emit_frame_reports", config.reports.emit_frame_reports, "application.profiling.reports");
+    config.reports.emit_window_summary = read_optional_bool(
+        reports_json, "emit_window_summary", config.reports.emit_window_summary, "application.profiling.reports");
+    config.reports.emit_run_summary = read_optional_bool(
+        reports_json, "emit_run_summary", config.reports.emit_run_summary, "application.profiling.reports");
 
     static const std::vector<std::string_view> modes{"disabled", "lightweight", "detailed", "external_trace"};
     if (!contains(modes, config.mode)) {
@@ -751,6 +646,9 @@ dp1v2::ProfilingConfig parse_profiling_config(const json_t *profiling_json) {
     static const std::vector<std::string_view> report_formats{"json", "csv", "none"};
     if (!contains(report_formats, config.reports.format)) {
         throw std::logic_error("error on config file, unsupported application.profiling.reports.format: " + config.reports.format);
+    }
+    if (config.logging_bridge.emit_budget_warnings) {
+        throw std::logic_error("error on config file, profiling budget warnings are outside current minimal implementation");
     }
     if (config.logging_bridge.summary_every_n_frames < 0) {
         throw std::logic_error("error on config file, profiling logging bridge interval must be >= 0");

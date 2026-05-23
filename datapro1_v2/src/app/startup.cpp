@@ -1,14 +1,22 @@
 #include "dp1v2/app/startup.hpp"
 
 #include <filesystem>
-#include <iostream>
 #include <stdexcept>
 
+#include <log4cxx/logger.h>
 #include <log4cxx/xml/domconfigurator.h>
 
 #include "dp1v2/runtime/runtime.hpp"
 
 namespace dp1v2 {
+namespace {
+
+log4cxx::LoggerPtr startup_logger() {
+    static log4cxx::LoggerPtr logger = log4cxx::Logger::getLogger("amanita.dp1.runtime");
+    return logger;
+}
+
+} // namespace
 
 CliOptions parse_cli_options(const int argc, char *argv[]) {
     if (argc < 2) {
@@ -89,9 +97,13 @@ StartupContext build_startup_context(const int argc, char *argv[]) {
 int run_startup(const int argc, char *argv[]) {
     const auto context = build_startup_context(argc, argv);
     const auto result = run_runtime_skeleton(context);
-    if (result.exit_code != 0) {
-        std::cerr << "datapro1_v2 failed: status=" << process_terminal_status_to_cstr(result.status)
-                  << " reason=" << result.reason << std::endl;
+    if (result.exit_code != 0 && context.config.application.logging.enabled) {
+        LOG4CXX_ERROR(
+            startup_logger(),
+            "event=pipeline_failed module=dp1"
+                << " status=" << process_terminal_status_to_cstr(result.status)
+                << " reason=" << result.reason
+                << " exit_code=" << result.exit_code);
     }
     return result.exit_code;
 }

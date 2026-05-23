@@ -41,7 +41,7 @@ Profiling configuration не має вибирати порядок етапів
 ```json
 {
   "profiling": {
-    "enabled": true,
+    "emit_reports": true,
     "mode": "lightweight",
     "levels": ["P0", "P1", "P2", "P4", "P5"],
     "aggregation_window_frames": 300,
@@ -114,7 +114,7 @@ struct ProfilingExternalTraceConfig {
 };
 
 struct ProfilingConfig {
-    bool enabled = true;
+    bool emit_reports = true;
     std::string mode = "lightweight";
     std::vector<std::string> levels;
     int aggregation_window_frames = 300;
@@ -135,18 +135,18 @@ fields:
     required: true
     default: "якщо секція відсутня, configuration invalid"
     purpose: "Містить canonical runtime profiling settings для measurement, bounded trace, aggregation, reports і optional external trace boundary."
-    affects: "Runtime profiling enablement, selected profiling mode, retained raw trace bounds, aggregation windows, report emission і logging bridge для summaries."
+    affects: "Selected profiling mode, retained raw trace bounds, aggregation windows, report emission і logging bridge для summaries."
     does_not_affect: "Не змінює порядок stages, stage variants, stage levels, algorithm parameters, processing route або DP1 output semantics."
     validation: "Має пройти validation усіх вкладених полів `ProfilingConfig`; invalid profiling config має бути rejected або explicitly reported."
 
-  - name: "`profiling.enabled`"
+  - name: "`profiling.emit_reports`"
     type: "`bool`"
     required: true
     default: "`true`"
-    purpose: "Вмикає canonical runtime profiling surface."
-    affects: "Чи runtime створює profiling context, summaries і дозволені profiling records."
-    does_not_affect: "Не вимикає stage status, diagnostics, error handling або algorithm execution."
-    validation: "Тільки boolean value; `false` не має silent-disable mandatory lightweight profiling, якщо runtime/product profile його вимагає."
+    purpose: "Вмикає або вимикає emission profiling reports у log/report output."
+    affects: "Чи runtime може emit `frame_profile`, `profiling_window_summary` і `profiling_run_summary` reports."
+    does_not_affect: "Не вимикає collection `frame_duration_ns`, `stage_timings`, `tile_count`, runtime aggregation, stage status, diagnostics, error handling або algorithm execution."
+    validation: "Тільки boolean value; `false` не має silent-disable mandatory lightweight profiling collection."
 
   - name: "`profiling.mode`"
     type: "`std::string`"
@@ -280,7 +280,7 @@ fields:
     default: "`true`"
     purpose: "Вмикає aggregation-window summaries."
     affects: "Чи runtime emits/reports P5 summaries every aggregation window."
-    does_not_affect: "Не змінює aggregation computation requirement when profiling is enabled."
+    does_not_affect: "Не змінює aggregation computation requirement і не вимикає collection metrics."
     validation: "Тільки boolean value."
 
   - name: "`profiling.reports.emit_run_summary`"
@@ -396,6 +396,8 @@ Output:
 - `profiling.external_trace` не має додавати dependency або profiler API без
   explicit approved task.
 - Profiling defaults мають бути bounded і safe для real-time operation.
+- `profiling.emit_reports=false` не має вимикати collection canonical runtime
+  metrics або aggregation.
 
 ## Interpretation
 
@@ -414,8 +416,8 @@ runtime config.
 
 - Додавати `profiling_enabled` у stage parameters.
 - Використовувати profiling config як спосіб змінити algorithm route.
-- Вважати `profiling.enabled=false` дозволом прибрати required lightweight
-  runtime summaries без product-level approval.
+- Вважати `profiling.emit_reports=false` дозволом прибрати required lightweight
+  runtime metric collection або aggregation.
 
 ## Open questions
 

@@ -14,6 +14,9 @@ target_sources(
         unit/dp1/t_dp1v2_frame_context.cpp
         unit/dp1/t_dp1v2_input_normalization_stage.cpp
         unit/dp1/t_dp1v2_prep_stage.cpp
+        unit/dp1/t_dp1v2_pipeline.cpp
+        unit/dp1/t_dp1v2_profiling_log_formatter.cpp
+        unit/dp1/t_dp1v2_runtime_profiling_aggregator.cpp
         ../datapro1_v2/src/runtime/cyclic_frame_buffer.cpp
         ../datapro1_v2/src/config/config.cpp
         ../datapro1_v2/src/frame/frame_packet_builder.cpp
@@ -21,6 +24,11 @@ target_sources(
         ../datapro1_v2/src/visualization/visualization_sink.cpp
         ../datapro1_v2/src/stages/input_normalization_stage.cpp
         ../datapro1_v2/src/stages/prep_stage.cpp
+        ../datapro1_v2/src/stages/radiometric_stage.cpp
+        ../datapro1_v2/src/result/result_builder.cpp
+        ../datapro1_v2/src/runtime/pipeline.cpp
+        ../datapro1_v2/src/runtime/profiling_log_formatter.cpp
+        ../datapro1_v2/src/runtime/runtime_profiling_aggregator.cpp
         ../datapro1_v2/src/stages/radiometric_stage.inverse_median.cpp
         ../datapro1_v2/src/source/uri_file_source.cpp
 )
@@ -30,6 +38,8 @@ target_include_directories(
         PRIVATE
         ../datapro1_v2/include
         ../common/model
+        ../datapro1/src
+        ../common/utils
 )
 
 target_link_libraries(
