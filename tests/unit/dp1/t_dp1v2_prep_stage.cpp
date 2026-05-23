@@ -320,3 +320,40 @@ TEST(PrepStageTest, TilesRejectsNonTilesVariant)
         EXPECT_EQ(outcome.status, dp1v2::StageExecutionStatus::Unsupported) << variant;
     }
 }
+
+TEST(PrepStageTest, FullFrameAcceptsBinnedCanonicalFrame)
+{
+    cv::Mat image(2, 2, CV_16UC1);
+    image.setTo(cv::Scalar(256));
+    dp1v2::CanonicalFrame frame = makeCanonicalFrame(image);
+    frame.image_ownership = dp1v2::CanonicalPayloadOwnership::OwnedBinned;
+    frame.normalization.binned = true;
+    frame.normalization.bin_factor_x = 2;
+    frame.normalization.bin_factor_y = 2;
+    frame.normalization.binning_mode = dp1v2::BinningMode::Average;
+
+    const auto outcome = processFrame(frame, fullFrameConfig());
+
+    ASSERT_EQ(outcome.status, dp1v2::StageExecutionStatus::Completed);
+    ASSERT_NE(outcome.output.frame, nullptr);
+    EXPECT_EQ(outcome.output.frame, &frame);
+}
+
+TEST(PrepStageTest, TilesBuildsLayoutFromBinnedCanonicalFrame)
+{
+    cv::Mat image(4, 4, CV_16UC1);
+    image.setTo(cv::Scalar(256));
+    dp1v2::CanonicalFrame frame = makeCanonicalFrame(image);
+    frame.image_ownership = dp1v2::CanonicalPayloadOwnership::OwnedBinned;
+    frame.normalization.binned = true;
+    frame.normalization.bin_factor_x = 2;
+    frame.normalization.bin_factor_y = 2;
+    frame.normalization.binning_mode = dp1v2::BinningMode::Average;
+
+    dp1v2::PrepStage stage(resolvedTilesConfig(2, 2, 0, 0));
+    const auto outcome = processTiles(frame, stage, tilesConfig());
+
+    ASSERT_EQ(outcome.status, dp1v2::StageExecutionStatus::Completed);
+    EXPECT_FALSE(outcome.output.tiles.empty());
+    EXPECT_EQ(outcome.output.tiles.size(), outcome.output.tile_views.size());
+}

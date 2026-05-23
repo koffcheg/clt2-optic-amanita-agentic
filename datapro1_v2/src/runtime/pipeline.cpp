@@ -91,6 +91,7 @@ SingleFramePipelineResult process_single_frame(
     const RawFrameEnvelope& envelope,
     const int cam_index,
     const PipelineConfig& pipeline_config,
+    const InputNormalizationResolvedConfig& input_normalization_resolved,
     const InputNormalizationStage& input_normalization_stage,
     PrepStage& prep_stage,
     RadiometricStage& radiometric_stage,
@@ -138,7 +139,8 @@ SingleFramePipelineResult process_single_frame(
         frame_context,
         InputNormalizationConfig{
             .input_route = pipeline_config.input_route,
-            .stage = pipeline_config.stages.input_normalization,
+                        .stage = pipeline_config.stages.input_normalization,
+            .resolved = input_normalization_resolved,
         });
     const auto input_normalization_end = std::chrono::steady_clock::now();
     if (input_normalization_result.status == StageExecutionStatus::Completed) {

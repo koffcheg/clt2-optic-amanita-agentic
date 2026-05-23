@@ -19,6 +19,7 @@ struct InputNormalizationOutput {
 struct InputNormalizationConfig {
     InputRouteConfig input_route;
     StageConfig stage;
+    InputNormalizationResolvedConfig resolved;
 };
 
 class InputNormalizationStage final {

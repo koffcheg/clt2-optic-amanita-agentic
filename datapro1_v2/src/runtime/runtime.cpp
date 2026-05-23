@@ -274,6 +274,7 @@ RuntimeLoopResult run_bounded_runtime_loop(const StartupContext &context, IFrame
             source_result.envelope,
             context.cli.cam_index,
             context.config.pipeline,
+            context.config.resolved_pipeline.input_normalization,
             input_normalization_stage,
             prep_stage,
             radiometric_stage,
