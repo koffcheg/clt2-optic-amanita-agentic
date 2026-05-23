@@ -68,7 +68,7 @@ JsonPtr makeApplicationConfig()
 )json");
 }
 
-JsonPtr makeFullApplicationConfig()
+JsonPtr makeDisabledApplicationConfig()
 {
     return parseJson(R"json(
 {
@@ -83,62 +83,15 @@ JsonPtr makeFullApplicationConfig()
   },
   "logging": {
     "enabled": false,
-    "config_file": "config/datapro1_v2-log.xml",
-    "default_level": "INFO",
-    "realtime_profile": "rt_safe",
-    "structured_messages": true,
-    "sanitize_external_strings": true,
-    "max_field_length": 256,
-    "max_messages_per_frame": 64,
-    "max_messages_per_tile": 16,
-    "mdc": {
-      "enabled": true,
-      "fields": ["pipeline_run_id", "camera_id", "source_id", "frame_id", "stage"]
-    },
-    "sampling": {
-      "frame_summary_every_n": 100,
-      "rate_limit_per_event_per_sec": 1,
-      "duplicate_suppression": true
-    },
-    "async": {
-      "enabled": true,
-      "buffer_size": 1024,
-      "blocking": false,
-      "discard_policy": "drop_debug_and_summarize"
-    },
-    "logger_overrides": []
+    "config_file": "config/datapro1_v2-log.xml"
   },
   "profiling": {
     "emit_reports": true,
-    "mode": "lightweight",
-    "levels": ["P0", "P1", "P2", "P4", "P5"],
     "aggregation_window_frames": 300,
-    "raw_trace": {
-      "enabled": false,
-      "max_frames": 0,
-      "max_events_per_frame": 64
-    },
-    "operation_timing": {
-      "enabled": false,
-      "include_format_conversions": true,
-      "include_memory_copies": true,
-      "include_allocations": false
-    },
     "reports": {
       "emit_frame_reports": false,
       "emit_window_summary": true,
-      "emit_run_summary": true,
-      "format": "json",
-      "output_dir": ""
-    },
-    "logging_bridge": {
-      "emit_aggregated_summaries": true,
-      "summary_every_n_frames": 300,
-            "emit_budget_warnings": false
-    },
-    "external_trace": {
-      "enabled": false,
-      "backend": "none"
+      "emit_run_summary": true
     }
   },
   "dp2": {
@@ -361,7 +314,7 @@ TEST_F(ConfigTest, LoadDp1Config_WhenCanonicalApplicationAndPipelineFilesAreVali
               dp1v2::InverseMedianOutputMode::RawSigned);
 }
 
-TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalLoggingProfilingConfigIsValid_AppliesAdvancedDefaults)
+TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalLoggingProfilingConfigIsValid_AppliesInternalDefaults)
 {
     JsonPtr application = makeApplicationConfig();
 
@@ -413,8 +366,17 @@ TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalClientLoggingProfilingSurfac
 {
     JsonPtr application = makeApplicationConfig();
 
+    EXPECT_EQ(json_object_get(objectAt(application.get(), {"logging"}), "default_level"), nullptr);
     EXPECT_EQ(json_object_get(objectAt(application.get(), {"logging"}), "realtime_profile"), nullptr);
     EXPECT_EQ(json_object_get(objectAt(application.get(), {"logging"}), "structured_messages"), nullptr);
+    EXPECT_EQ(json_object_get(objectAt(application.get(), {"logging"}), "sanitize_external_strings"), nullptr);
+    EXPECT_EQ(json_object_get(objectAt(application.get(), {"logging"}), "max_field_length"), nullptr);
+    EXPECT_EQ(json_object_get(objectAt(application.get(), {"logging"}), "max_messages_per_frame"), nullptr);
+    EXPECT_EQ(json_object_get(objectAt(application.get(), {"logging"}), "max_messages_per_tile"), nullptr);
+    EXPECT_EQ(json_object_get(objectAt(application.get(), {"logging"}), "mdc"), nullptr);
+    EXPECT_EQ(json_object_get(objectAt(application.get(), {"logging"}), "sampling"), nullptr);
+    EXPECT_EQ(json_object_get(objectAt(application.get(), {"logging"}), "async"), nullptr);
+    EXPECT_EQ(json_object_get(objectAt(application.get(), {"logging"}), "logger_overrides"), nullptr);
     EXPECT_EQ(json_object_get(objectAt(application.get(), {"profiling"}), "enabled"), nullptr);
     EXPECT_EQ(json_object_get(objectAt(application.get(), {"profiling"}), "mode"), nullptr);
     EXPECT_EQ(json_object_get(objectAt(application.get(), {"profiling"}), "levels"), nullptr);
@@ -422,6 +384,8 @@ TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalClientLoggingProfilingSurfac
 
     const dp1v2::ApplicationConfig config = loadApplication(application);
 
+    EXPECT_TRUE(config.logging.enabled);
+    EXPECT_EQ(config.logging.config_file, "config/datapro1_v2-log.xml");
     EXPECT_TRUE(config.profiling.emit_reports);
     EXPECT_EQ(config.profiling.aggregation_window_frames, 300);
     EXPECT_FALSE(config.profiling.reports.emit_frame_reports);
@@ -429,111 +393,183 @@ TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalClientLoggingProfilingSurfac
     EXPECT_TRUE(config.profiling.reports.emit_run_summary);
 }
 
-TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalLoggingMissingDefaultLevel_Parses)
+TEST_F(ConfigTest, LoadApplicationConfig_WhenDisabledMinimalLoggingConfigIsValid_ReturnsTypedConfig)
 {
-    JsonPtr application = makeFullApplicationConfig();
-    removeKey(application.get(), {"logging"}, "default_level");
-
-    EXPECT_NO_THROW(loadApplication(application));
-}
-
-TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalLoggingMissingSampling_Parses)
-{
-    JsonPtr application = makeFullApplicationConfig();
-    removeKey(application.get(), {"logging"}, "sampling");
-
-    EXPECT_NO_THROW(loadApplication(application));
-}
-
-TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalProfilingMissingSummaryEveryNFrames_Parses)
-{
-    JsonPtr application = makeFullApplicationConfig();
-    removeKey(application.get(), {"profiling", "logging_bridge"}, "summary_every_n_frames");
-
-    EXPECT_NO_THROW(loadApplication(application));
-}
-
-TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalProfilingMissingAdvancedSections_Parses)
-{
-    JsonPtr application = makeFullApplicationConfig();
-    removeKey(application.get(), {"profiling"}, "raw_trace");
-    removeKey(application.get(), {"profiling"}, "operation_timing");
-    removeKey(application.get(), {"profiling"}, "external_trace");
-
-    EXPECT_NO_THROW(loadApplication(application));
-}
-
-TEST_F(ConfigTest, LoadApplicationConfig_WhenFullLoggingProfilingConfigIsValid_ReturnsTypedConfig)
-{
-    JsonPtr application = makeFullApplicationConfig();
+    JsonPtr application = makeDisabledApplicationConfig();
 
     const dp1v2::ApplicationConfig config = loadApplication(application);
 
     EXPECT_FALSE(config.logging.enabled);
-    ASSERT_EQ(config.logging.mdc.fields.size(), 5U);
-    EXPECT_EQ(config.logging.mdc.fields[0], "pipeline_run_id");
-    EXPECT_TRUE(config.logging.async.enabled);
-    EXPECT_FALSE(config.logging.async.blocking);
+    EXPECT_EQ(config.logging.config_file, "config/datapro1_v2-log.xml");
     EXPECT_FALSE(config.profiling.logging_bridge.emit_budget_warnings);
     EXPECT_FALSE(config.profiling.external_trace.enabled);
 }
 
-TEST_F(ConfigTest, LoadApplicationConfig_WhenExplicitInvalidAdvancedLoggingFieldExists_ThrowsConfigError)
+TEST_F(ConfigTest, LoadApplicationConfig_WhenLoggingDefaultLevelExists_ThrowsConfigError)
 {
     JsonPtr application = makeApplicationConfig();
-    setBool(application.get(), {"logging"}, "sanitize_external_strings", false);
+    setString(application.get(), {"logging"}, "default_level", "INFO");
 
     EXPECT_THROW(loadApplication(application), std::logic_error);
 }
 
-TEST_F(ConfigTest, LoadApplicationConfig_WhenRealtimeProfileIsUnsupported_ThrowsConfigError)
+TEST_F(ConfigTest, LoadApplicationConfig_WhenLoggingRealtimeProfileExists_ThrowsConfigError)
 {
     JsonPtr application = makeApplicationConfig();
-    setString(application.get(), {"logging"}, "realtime_profile", "blocking");
+    setString(application.get(), {"logging"}, "realtime_profile", "rt_safe");
 
     EXPECT_THROW(loadApplication(application), std::logic_error);
 }
 
-TEST_F(ConfigTest, LoadApplicationConfig_WhenStructuredMessagesDisabled_ThrowsConfigError)
+TEST_F(ConfigTest, LoadApplicationConfig_WhenLoggingStructuredMessagesExists_ThrowsConfigError)
 {
     JsonPtr application = makeApplicationConfig();
-    setBool(application.get(), {"logging"}, "structured_messages", false);
+    setBool(application.get(), {"logging"}, "structured_messages", true);
 
     EXPECT_THROW(loadApplication(application), std::logic_error);
 }
 
-TEST_F(ConfigTest, LoadApplicationConfig_WhenExplicitInvalidOperationTimingFieldExists_ThrowsConfigError)
+TEST_F(ConfigTest, LoadApplicationConfig_WhenLoggingSanitizeExternalStringsExists_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    setBool(application.get(), {"logging"}, "sanitize_external_strings", true);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenLoggingMaxFieldLengthExists_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    setInteger(application.get(), {"logging"}, "max_field_length", 512);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenLoggingMaxMessagesPerFrameExists_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    setInteger(application.get(), {"logging"}, "max_messages_per_frame", 64);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenLoggingMaxMessagesPerTileExists_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    setInteger(application.get(), {"logging"}, "max_messages_per_tile", 16);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenLoggingMdcExists_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* mdc = json_object();
+    ASSERT_EQ(json_object_set_new(mdc, "enabled", json_boolean(true)), 0);
+    setObject(application.get(), {"logging"}, "mdc", mdc);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenLoggingSamplingExists_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* sampling = json_object();
+    ASSERT_EQ(json_object_set_new(sampling, "frame_summary_every_n", json_integer(100)), 0);
+    setObject(application.get(), {"logging"}, "sampling", sampling);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenLoggingAsyncExists_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* async = json_object();
+    ASSERT_EQ(json_object_set_new(async, "enabled", json_boolean(true)), 0);
+    setObject(application.get(), {"logging"}, "async", async);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenLoggingLoggerOverridesExists_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* overrides = json_array();
+    setObject(application.get(), {"logging"}, "logger_overrides", overrides);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenProfilingRawTraceExists_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* raw_trace = json_object();
+    ASSERT_EQ(json_object_set_new(raw_trace, "enabled", json_boolean(false)), 0);
+    setObject(application.get(), {"profiling"}, "raw_trace", raw_trace);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenProfilingOperationTimingExists_ThrowsConfigError)
 {
     JsonPtr application = makeApplicationConfig();
     json_t* operation_timing = json_object();
-    ASSERT_EQ(json_object_set_new(operation_timing, "include_memory_copies", json_boolean(false)), 0);
+    ASSERT_EQ(json_object_set_new(operation_timing, "enabled", json_boolean(false)), 0);
     setObject(application.get(), {"profiling"}, "operation_timing", operation_timing);
 
     EXPECT_THROW(loadApplication(application), std::logic_error);
 }
 
-TEST_F(ConfigTest, LoadApplicationConfig_WhenProfilingModeIsUnsupported_ThrowsConfigError)
+TEST_F(ConfigTest, LoadApplicationConfig_WhenProfilingModeExists_ThrowsConfigError)
 {
     JsonPtr application = makeApplicationConfig();
-    setString(application.get(), {"profiling"}, "mode", "verbose");
+    setString(application.get(), {"profiling"}, "mode", "lightweight");
 
     EXPECT_THROW(loadApplication(application), std::logic_error);
 }
 
-TEST_F(ConfigTest, LoadApplicationConfig_WhenExplicitProfilingLevelIsUnsupported_ThrowsConfigError)
+TEST_F(ConfigTest, LoadApplicationConfig_WhenProfilingLevelsExists_ThrowsConfigError)
 {
     JsonPtr application = makeApplicationConfig();
     json_t* levels = json_array();
-    ASSERT_EQ(json_array_append_new(levels, json_string("P9")), 0);
+    ASSERT_EQ(json_array_append_new(levels, json_string("P1")), 0);
     setObject(application.get(), {"profiling"}, "levels", levels);
 
     EXPECT_THROW(loadApplication(application), std::logic_error);
 }
 
-TEST_F(ConfigTest, LoadApplicationConfig_WhenEmitBudgetWarningsEnabled_ThrowsConfigError)
+TEST_F(ConfigTest, LoadApplicationConfig_WhenProfilingLoggingBridgeExists_ThrowsConfigError)
 {
-    JsonPtr application = makeFullApplicationConfig();
-    setBool(application.get(), {"profiling", "logging_bridge"}, "emit_budget_warnings", true);
+    JsonPtr application = makeApplicationConfig();
+    json_t* logging_bridge = json_object();
+    ASSERT_EQ(json_object_set_new(logging_bridge, "emit_aggregated_summaries", json_boolean(true)), 0);
+    setObject(application.get(), {"profiling"}, "logging_bridge", logging_bridge);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenProfilingExternalTraceExists_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    json_t* external_trace = json_object();
+    ASSERT_EQ(json_object_set_new(external_trace, "enabled", json_boolean(false)), 0);
+    setObject(application.get(), {"profiling"}, "external_trace", external_trace);
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenProfilingReportsFormatExists_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    setString(application.get(), {"profiling", "reports"}, "format", "json");
+
+    EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadApplicationConfig_WhenProfilingReportsOutputDirExists_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    setString(application.get(), {"profiling", "reports"}, "output_dir", "profile_reports");
 
     EXPECT_THROW(loadApplication(application), std::logic_error);
 }
@@ -651,11 +687,11 @@ TEST_F(ConfigTest, LoadDp1Config_WhenDp2PortIsZero_ThrowsConfigError)
     EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
 }
 
-TEST_F(ConfigTest, LoadDp1Config_WhenIntegerFieldExceedsIntRange_ThrowsConfigError)
+TEST_F(ConfigTest, LoadDp1Config_WhenDp2ReconnectIntervalExceedsIntRange_ThrowsConfigError)
 {
     JsonPtr application = makeApplicationConfig();
     JsonPtr pipeline = makePipelineConfig();
-    setInteger(application.get(), {"logging"}, "max_field_length", 2147483648LL);
+    setInteger(application.get(), {"dp2"}, "reconnect_interval_s", 2147483648LL);
 
     EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
 }
@@ -963,51 +999,6 @@ TEST_F(ConfigTest, LoadDp1Config_WhenLoggingConfigFileEmpty_ThrowsConfigError)
     JsonPtr application = makeApplicationConfig();
     JsonPtr pipeline = makePipelineConfig();
     setString(application.get(), {"logging"}, "config_file", "");
-
-    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
-}
-
-TEST_F(ConfigTest, LoadDp1Config_WhenProfilingLevelIsDuplicated_ThrowsConfigError)
-{
-    JsonPtr application = makeApplicationConfig();
-    JsonPtr pipeline = makePipelineConfig();
-    json_t* levels = json_array();
-    ASSERT_EQ(json_array_append_new(levels, json_string("P1")), 0);
-    ASSERT_EQ(json_array_append_new(levels, json_string("P1")), 0);
-    setObject(application.get(), {"profiling"}, "levels", levels);
-
-    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
-}
-
-TEST_F(ConfigTest, LoadDp1Config_WhenProfilingLevelIsUnsupported_ThrowsConfigError)
-{
-    JsonPtr application = makeApplicationConfig();
-    JsonPtr pipeline = makePipelineConfig();
-    json_t* levels = json_array();
-    ASSERT_EQ(json_array_append_new(levels, json_string("P9")), 0);
-    setObject(application.get(), {"profiling"}, "levels", levels);
-
-    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
-}
-
-TEST_F(ConfigTest, LoadDp1Config_WhenExternalTraceIsEnabled_ThrowsConfigError)
-{
-    JsonPtr application = makeApplicationConfig();
-    JsonPtr pipeline = makePipelineConfig();
-    json_t* external_trace = json_object();
-    ASSERT_EQ(json_object_set_new(external_trace, "enabled", json_boolean(true)), 0);
-    setObject(application.get(), {"profiling"}, "external_trace", external_trace);
-
-    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
-}
-
-TEST_F(ConfigTest, LoadDp1Config_WhenLoggingAsyncBlocksRtSafeProfile_ThrowsConfigError)
-{
-    JsonPtr application = makeApplicationConfig();
-    JsonPtr pipeline = makePipelineConfig();
-    json_t* async = json_object();
-    ASSERT_EQ(json_object_set_new(async, "blocking", json_boolean(true)), 0);
-    setObject(application.get(), {"logging"}, "async", async);
 
     EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
 }
