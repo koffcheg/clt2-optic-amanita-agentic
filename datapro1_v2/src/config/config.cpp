@@ -935,10 +935,14 @@ dp1v2::InputNormalizationResolvedConfig resolve_input_normalization_config(const
     if (it == stage.parameters.end()) {
         return resolved;
     }
-    if (!std::holds_alternative<dp1v2::ParameterObject>(it->second)) {
+    if (!std::holds_alternative<dp1v2::ParameterValue::MapPtr>(it->second.value)) {
         throw std::logic_error("error on config file, pipeline.pipeline.input_normalization.parameters.binning must be object");
     }
-    const auto *binning = &std::get<dp1v2::ParameterObject>(it->second);
+    const auto *binning_ptr = std::get_if<dp1v2::ParameterValue::MapPtr>(&it->second.value);
+    if (binning_ptr == nullptr || !(*binning_ptr)) {
+        throw std::logic_error("error on config file, pipeline.pipeline.input_normalization.parameters.binning must be object");
+    }
+    const auto *binning = binning_ptr->get();
     reject_unknown_parameter_keys(*binning, {"mode", "kbin"}, "pipeline.pipeline.input_normalization.parameters.binning");
     const std::string mode = read_optional_parameter_string(*binning, "mode", "disabled", "pipeline.pipeline.input_normalization.parameters.binning");
     if (mode != "disabled" && mode != "average") {
