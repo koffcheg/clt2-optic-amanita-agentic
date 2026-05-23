@@ -88,3 +88,4 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0066` - DP1 v2 bounded runtime profiling logging bridge - completed
 - `AMNT-0067` - DP1 v2 minimal logging/profiling cleanup fixes - draft
 - `AMNT-0068` - DP1 v2 minimal logging/profiling cleanup fixes (merge prep) - draft
+- `AMNT-0069` - DP1 v2 logging/profiling client surface cleanup - draft

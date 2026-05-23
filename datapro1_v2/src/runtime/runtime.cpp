@@ -46,17 +46,6 @@ int process_exit_code(const RuntimeLoopResult &result) {
     return is_successful_process_status(result) ? 0 : 1;
 }
 
-std::string profiling_levels_csv(const ProfilingConfig &profiling) {
-    std::string levels;
-    for (const std::string &level : profiling.levels) {
-        if (!levels.empty()) {
-            levels += ',';
-        }
-        levels += level;
-    }
-    return levels;
-}
-
 void emit_pipeline_started_log(const StartupContext &context) {
     if (!context.config.application.logging.enabled) {
         return;
@@ -67,9 +56,8 @@ void emit_pipeline_started_log(const StartupContext &context) {
         "event=pipeline_started module=dp1"
             << " camera_id=" << context.cli.cam_index
             << " logging_enabled=" << (context.config.application.logging.enabled ? "true" : "false")
-            << " profiling_enabled=" << (context.config.application.profiling.enabled ? "true" : "false")
-            << " profiling_mode=" << context.config.application.profiling.mode
-            << " profiling_levels=" << profiling_levels_csv(context.config.application.profiling));
+            << " profiling_emit_reports="
+            << (context.config.application.profiling.emit_reports ? "true" : "false"));
 }
 
 void emit_pipeline_stopped_log(const StartupContext &context, const RuntimeLoopResult &result) {

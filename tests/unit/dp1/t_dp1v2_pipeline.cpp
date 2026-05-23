@@ -9,6 +9,7 @@
 
 #include "dp1v2/frame/frame_context.hpp"
 #include "dp1v2/runtime/pipeline.hpp"
+#include "dp1v2/runtime/runtime_profiling_aggregator.hpp"
 
 namespace dp1v2 {
 
@@ -188,8 +189,9 @@ TEST(PipelineTest, TilesPrepRouteBuildsLayoutThenStopsBeforeRadiometric)
     EXPECT_EQ(prep_status->level, "L1");
     EXPECT_EQ(prep_status->route, "tiles");
 
-    EXPECT_GT(result.frame.profiling.cardinality.tile_count, 0U);
+    EXPECT_EQ(result.frame.profiling.cardinality.tile_count, 6U);
     EXPECT_GT(result.frame.profiling.frame_duration_ns, 0);
+    EXPECT_NE(findStageTiming(result.frame, "prep"), nullptr);
 
     const dp1v2::StageStatus *radiometric_status =
         findStageStatus(result.frame, "radiometric_correction");
@@ -202,10 +204,17 @@ TEST(PipelineTest, TilesPrepRouteBuildsLayoutThenStopsBeforeRadiometric)
     EXPECT_EQ(findStageTiming(result.frame, "radiometric_correction"), nullptr);
     EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
     EXPECT_TRUE(hasDiagnostic(result.frame, "prep.tiles.downstream_not_connected"));
+    EXPECT_TRUE(dp1v2::is_controlled_tiles_frame_failure(result));
 }
 
-TEST(PipelineTest, FullFrameRouteRecordsFrameDuration)
+TEST(PipelineTest, FullFrameRouteRecordsProfilingCollectionWhenReportsDisabled)
 {
+    dp1v2::LoggingConfig logging{};
+    dp1v2::ProfilingConfig profiling{};
+    logging.enabled = true;
+    profiling.emit_reports = false;
+    profiling.reports.emit_frame_reports = true;
+
     const dp1v2::PipelineConfig pipeline_config = makeFullFramePipelineConfig();
     const dp1v2::InputNormalizationStage input_normalization_stage;
     dp1v2::PrepStage prep_stage;
@@ -221,10 +230,17 @@ TEST(PipelineTest, FullFrameRouteRecordsFrameDuration)
         radiometric_stage,
         visualization_sink);
 
+    EXPECT_FALSE(dp1v2::should_emit_frame_profile_log(logging, profiling, true));
     EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
     EXPECT_GT(result.frame.profiling.frame_duration_ns, 0);
     EXPECT_NE(findStageTiming(result.frame, "input"), nullptr);
     EXPECT_NE(findStageTiming(result.frame, "input_normalization"), nullptr);
     EXPECT_NE(findStageTiming(result.frame, "prep"), nullptr);
     EXPECT_NE(findStageTiming(result.frame, "radiometric_correction"), nullptr);
+
+    dp1v2::RuntimeProfilingAggregator aggregator;
+    aggregator.record_frame(result);
+    EXPECT_EQ(aggregator.run_summary().frames_total, 1U);
+    EXPECT_EQ(aggregator.run_summary().frame_duration_samples, 1U);
+    EXPECT_EQ(aggregator.run_summary().stages.size(), 4U);
 }

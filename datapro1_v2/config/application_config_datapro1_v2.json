@@ -10,29 +10,15 @@
   },
   "logging": {
     "enabled": true,
-    "config_file": "config/datapro1_v2-log.xml",
-    "realtime_profile": "rt_safe",
-    "structured_messages": true
+    "config_file": "config/datapro1_v2-log.xml"
   },
   "profiling": {
-    "enabled": true,
-    "mode": "lightweight",
-    "levels": [
-      "P0",
-      "P1",
-      "P2",
-      "P4",
-      "P5"
-    ],
+    "emit_reports": true,
     "aggregation_window_frames": 300,
     "reports": {
       "emit_frame_reports": false,
       "emit_window_summary": true,
       "emit_run_summary": true
-    },
-    "logging_bridge": {
-      "emit_aggregated_summaries": true,
-      "emit_budget_warnings": false
     }
   },
   "visualization": {

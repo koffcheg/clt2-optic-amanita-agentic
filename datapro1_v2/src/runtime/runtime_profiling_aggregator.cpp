@@ -227,18 +227,17 @@ bool should_emit_frame_profile_log(
     const LoggingConfig &logging,
     const ProfilingConfig &profiling,
     const bool debug_enabled) {
-    return logging.enabled && profiling.enabled && profiling.reports.emit_frame_reports && debug_enabled;
+    return logging.enabled && profiling.emit_reports && profiling.reports.emit_frame_reports && debug_enabled;
 }
 
 bool should_emit_window_profile_log(const LoggingConfig &logging, const ProfilingConfig &profiling) {
     return logging.enabled
-           && profiling.enabled
-           && profiling.reports.emit_window_summary
-           && profiling.logging_bridge.emit_aggregated_summaries;
+           && profiling.emit_reports
+           && profiling.reports.emit_window_summary;
 }
 
 bool should_emit_run_profile_log(const LoggingConfig &logging, const ProfilingConfig &profiling) {
-    return logging.enabled && profiling.enabled && profiling.reports.emit_run_summary;
+    return logging.enabled && profiling.emit_reports && profiling.reports.emit_run_summary;
 }
 
 bool is_window_summary_due(const ProfilingConfig &profiling, const RuntimeProfilingSummary &summary) {

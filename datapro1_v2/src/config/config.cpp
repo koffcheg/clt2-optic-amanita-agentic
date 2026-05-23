@@ -607,8 +607,10 @@ dp1v2::LoggingConfig parse_logging_config(const json_t *logging_json) {
     config.config_file = read_required_string(logging_json, "config_file", "application.logging");
     config.default_level = read_optional_string(
         logging_json, "default_level", config.default_level, "application.logging");
-    config.realtime_profile = read_required_string(logging_json, "realtime_profile", "application.logging");
-    config.structured_messages = read_required_bool(logging_json, "structured_messages", "application.logging");
+    config.realtime_profile = read_optional_string(
+        logging_json, "realtime_profile", config.realtime_profile, "application.logging");
+    config.structured_messages = read_optional_bool(
+        logging_json, "structured_messages", config.structured_messages, "application.logging");
     config.sanitize_external_strings = read_optional_bool(
         logging_json, "sanitize_external_strings", config.sanitize_external_strings, "application.logging");
     config.max_field_length = read_optional_int(
@@ -722,14 +724,14 @@ dp1v2::LoggingConfig parse_logging_config(const json_t *logging_json) {
 
 dp1v2::ProfilingConfig parse_profiling_config(const json_t *profiling_json) {
     reject_unknown_keys(profiling_json,
-                        {"enabled", "mode", "levels", "aggregation_window_frames", "raw_trace",
+                        {"emit_reports", "mode", "levels", "aggregation_window_frames", "raw_trace",
                          "operation_timing", "reports", "logging_bridge", "external_trace"},
                         "application.profiling");
 
     dp1v2::ProfilingConfig config{};
-    config.enabled = read_required_bool(profiling_json, "enabled", "application.profiling");
-    config.mode = read_required_string(profiling_json, "mode", "application.profiling");
-    config.levels = read_required_string_array(profiling_json, "levels", "application.profiling");
+    config.emit_reports = read_required_bool(profiling_json, "emit_reports", "application.profiling");
+    config.mode = read_optional_string(profiling_json, "mode", config.mode, "application.profiling");
+    config.levels = read_optional_string_array(profiling_json, "levels", config.levels, "application.profiling");
     config.aggregation_window_frames = read_required_int(profiling_json, "aggregation_window_frames", "application.profiling");
 
     if (const json_t *raw_trace_json = read_optional_object(profiling_json, "raw_trace", "application.profiling")) {
@@ -783,25 +785,26 @@ dp1v2::ProfilingConfig parse_profiling_config(const json_t *profiling_json) {
     config.reports.output_dir = read_optional_string(
         reports_json, "output_dir", config.reports.output_dir, "application.profiling.reports");
 
-    const json_t *bridge_json = read_required_object(profiling_json, "logging_bridge", "application.profiling");
-    reject_unknown_keys(bridge_json,
-                        {"emit_aggregated_summaries", "summary_every_n_frames", "emit_budget_warnings"},
-                        "application.profiling.logging_bridge");
-    config.logging_bridge.emit_aggregated_summaries = read_optional_bool(
-        bridge_json,
-        "emit_aggregated_summaries",
-        config.logging_bridge.emit_aggregated_summaries,
-        "application.profiling.logging_bridge");
-    config.logging_bridge.summary_every_n_frames = read_optional_int(
-        bridge_json,
-        "summary_every_n_frames",
-        config.logging_bridge.summary_every_n_frames,
-        "application.profiling.logging_bridge");
-    config.logging_bridge.emit_budget_warnings = read_optional_bool(
-        bridge_json,
-        "emit_budget_warnings",
-        config.logging_bridge.emit_budget_warnings,
-        "application.profiling.logging_bridge");
+    if (const json_t *bridge_json = read_optional_object(profiling_json, "logging_bridge", "application.profiling")) {
+        reject_unknown_keys(bridge_json,
+                            {"emit_aggregated_summaries", "summary_every_n_frames", "emit_budget_warnings"},
+                            "application.profiling.logging_bridge");
+        config.logging_bridge.emit_aggregated_summaries = read_optional_bool(
+            bridge_json,
+            "emit_aggregated_summaries",
+            config.logging_bridge.emit_aggregated_summaries,
+            "application.profiling.logging_bridge");
+        config.logging_bridge.summary_every_n_frames = read_optional_int(
+            bridge_json,
+            "summary_every_n_frames",
+            config.logging_bridge.summary_every_n_frames,
+            "application.profiling.logging_bridge");
+        config.logging_bridge.emit_budget_warnings = read_optional_bool(
+            bridge_json,
+            "emit_budget_warnings",
+            config.logging_bridge.emit_budget_warnings,
+            "application.profiling.logging_bridge");
+    }
 
     if (const json_t *external_json = read_optional_object(profiling_json, "external_trace", "application.profiling")) {
         reject_unknown_keys(external_json, {"enabled", "backend"}, "application.profiling.external_trace");

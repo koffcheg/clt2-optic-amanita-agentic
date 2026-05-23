@@ -189,7 +189,7 @@ TEST(RuntimeProfilingAggregatorTest, GatingPreventsFrameFormatterWhenFrameReport
     dp1v2::LoggingConfig logging{};
     dp1v2::ProfilingConfig profiling{};
     logging.enabled = true;
-    profiling.enabled = true;
+    profiling.emit_reports = true;
     profiling.reports.emit_frame_reports = false;
 
     EXPECT_FALSE(dp1v2::should_emit_frame_profile_log(logging, profiling, true));
@@ -197,6 +197,9 @@ TEST(RuntimeProfilingAggregatorTest, GatingPreventsFrameFormatterWhenFrameReport
     profiling.reports.emit_frame_reports = true;
     EXPECT_FALSE(dp1v2::should_emit_frame_profile_log(logging, profiling, false));
     EXPECT_TRUE(dp1v2::should_emit_frame_profile_log(logging, profiling, true));
+
+    profiling.emit_reports = false;
+    EXPECT_FALSE(dp1v2::should_emit_frame_profile_log(logging, profiling, true));
 }
 
 TEST(RuntimeProfilingAggregatorTest, GatingControlsWindowSummaryLogging)
@@ -204,19 +207,75 @@ TEST(RuntimeProfilingAggregatorTest, GatingControlsWindowSummaryLogging)
     dp1v2::LoggingConfig logging{};
     dp1v2::ProfilingConfig profiling{};
     logging.enabled = true;
-    profiling.enabled = true;
+    profiling.emit_reports = true;
     profiling.reports.emit_window_summary = true;
     profiling.logging_bridge.emit_aggregated_summaries = true;
     profiling.logging_bridge.summary_every_n_frames = 0;
 
     EXPECT_TRUE(dp1v2::should_emit_window_profile_log(logging, profiling));
 
+    profiling.emit_reports = false;
+    EXPECT_FALSE(dp1v2::should_emit_window_profile_log(logging, profiling));
+
+    profiling.emit_reports = true;
     profiling.reports.emit_window_summary = false;
     EXPECT_FALSE(dp1v2::should_emit_window_profile_log(logging, profiling));
 
     profiling.reports.emit_window_summary = true;
     profiling.logging_bridge.emit_aggregated_summaries = false;
+    EXPECT_TRUE(dp1v2::should_emit_window_profile_log(logging, profiling));
+
+    logging.enabled = false;
     EXPECT_FALSE(dp1v2::should_emit_window_profile_log(logging, profiling));
+}
+
+TEST(RuntimeProfilingAggregatorTest, GatingControlsRunSummaryLogging)
+{
+    dp1v2::LoggingConfig logging{};
+    dp1v2::ProfilingConfig profiling{};
+    logging.enabled = true;
+    profiling.emit_reports = true;
+    profiling.reports.emit_run_summary = true;
+
+    EXPECT_TRUE(dp1v2::should_emit_run_profile_log(logging, profiling));
+
+    profiling.emit_reports = false;
+    EXPECT_FALSE(dp1v2::should_emit_run_profile_log(logging, profiling));
+
+    profiling.emit_reports = true;
+    profiling.reports.emit_run_summary = false;
+    EXPECT_FALSE(dp1v2::should_emit_run_profile_log(logging, profiling));
+
+    profiling.reports.emit_run_summary = true;
+    logging.enabled = false;
+    EXPECT_FALSE(dp1v2::should_emit_run_profile_log(logging, profiling));
+}
+
+TEST(RuntimeProfilingAggregatorTest, EmitReportsFalseGatesReportsButNotCollection)
+{
+    dp1v2::LoggingConfig logging{};
+    dp1v2::ProfilingConfig profiling{};
+    dp1v2::RuntimeProfilingAggregator aggregator;
+
+    logging.enabled = true;
+    profiling.emit_reports = false;
+    profiling.reports.emit_frame_reports = true;
+    profiling.reports.emit_window_summary = true;
+    profiling.reports.emit_run_summary = true;
+
+    EXPECT_FALSE(dp1v2::should_emit_frame_profile_log(logging, profiling, true));
+    EXPECT_FALSE(dp1v2::should_emit_window_profile_log(logging, profiling));
+    EXPECT_FALSE(dp1v2::should_emit_run_profile_log(logging, profiling));
+
+    aggregator.record_frame(makeResult(dp1v2::FrameTerminalStatus::Completed, 5000000, 6));
+
+    const dp1v2::RuntimeProfilingSummary &summary = aggregator.run_summary();
+    EXPECT_EQ(summary.frames_total, 1U);
+    EXPECT_EQ(summary.frame_duration_samples, 1U);
+    EXPECT_EQ(summary.total_frame_duration_ns, 5000000);
+    EXPECT_EQ(summary.tile_count_samples, 1U);
+    EXPECT_EQ(summary.total_tile_count, 6U);
+    ASSERT_EQ(summary.stages.size(), 3U);
 }
 
 TEST(RuntimeProfilingAggregatorTest, WindowSummaryDueUsesAggregationWindowFrames)

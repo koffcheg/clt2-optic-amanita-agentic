@@ -108,7 +108,7 @@ struct ProfilingReportsConfig {
 struct ProfilingLoggingBridgeConfig {
     bool emit_aggregated_summaries = true;
     int summary_every_n_frames = 300;
-    bool emit_budget_warnings = true;
+    bool emit_budget_warnings = false;
 };
 
 struct ProfilingExternalTraceConfig {
@@ -117,9 +117,9 @@ struct ProfilingExternalTraceConfig {
 };
 
 struct ProfilingConfig {
-    bool enabled = true;
+    bool emit_reports = true;
     std::string mode = "lightweight";
-    std::vector<std::string> levels;
+    std::vector<std::string> levels{"P0", "P1", "P2", "P4", "P5"};
     int aggregation_window_frames = 300;
     ProfilingRawTraceConfig raw_trace;
     ProfilingOperationTimingConfig operation_timing;
