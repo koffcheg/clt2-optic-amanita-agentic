@@ -122,6 +122,12 @@ JsonPtr makePipelineConfig()
     }
   },
   "pipeline": {
+    "input_normalization": {
+      "enabled": true,
+      "variant": "passthrough",
+      "level": "L0",
+      "parameters": {}
+    },
     "prep": {
       "enabled": true,
       "variant": "full_frame",
