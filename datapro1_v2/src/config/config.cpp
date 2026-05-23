@@ -924,6 +924,38 @@ dp1v2::PipelineConfig parse_pipeline_config(const json_t *pipeline_json) {
 }
 
 
+
+
+dp1v2::InputNormalizationResolvedConfig resolve_input_normalization_config(const dp1v2::StageConfig &stage) {
+    dp1v2::InputNormalizationResolvedConfig resolved{};
+    if (stage.variant != "passthrough") {
+        return resolved;
+    }
+    const auto it = stage.parameters.find("binning");
+    if (it == stage.parameters.end()) {
+        return resolved;
+    }
+    if (!std::holds_alternative<dp1v2::ParameterObject>(it->second)) {
+        throw std::logic_error("error on config file, pipeline.pipeline.input_normalization.parameters.binning must be object");
+    }
+    const auto *binning = &std::get<dp1v2::ParameterObject>(it->second);
+    reject_unknown_parameter_keys(*binning, {"mode", "kbin"}, "pipeline.pipeline.input_normalization.parameters.binning");
+    const std::string mode = read_optional_parameter_string(*binning, "mode", "disabled", "pipeline.pipeline.input_normalization.parameters.binning");
+    if (mode != "disabled" && mode != "average") {
+        throw std::logic_error("error on config file, input_normalization.binning.mode must be disabled or average");
+    }
+    const int kbin = read_optional_parameter_int(*binning, "kbin", 1, "pipeline.pipeline.input_normalization.parameters.binning");
+    if (kbin != 1 && kbin != 2 && kbin != 4) {
+        throw std::logic_error("error on config file, input_normalization.binning.kbin must be 1, 2, or 4");
+    }
+    if (mode == "disabled" && kbin != 1) {
+        throw std::logic_error("error on config file, input_normalization disabled binning requires kbin=1");
+    }
+    resolved.binning_mode = mode;
+    resolved.bin_factor = kbin;
+    return resolved;
+}
+
 dp1v2::PrepResolvedConfig resolve_prep_config(const dp1v2::StageConfig &stage) {
     dp1v2::PrepResolvedConfig resolved{};
 
@@ -961,6 +993,7 @@ dp1v2::RadiometricResolvedConfig resolve_radiometric_config(const dp1v2::StageCo
 
 dp1v2::ResolvedPipelineConfig resolve_pipeline_config(const dp1v2::PipelineConfig &pipeline) {
     dp1v2::ResolvedPipelineConfig resolved{};
+    resolved.input_normalization = resolve_input_normalization_config(pipeline.stages.input_normalization);
     resolved.prep = resolve_prep_config(pipeline.stages.prep);
     resolved.radiometric = resolve_radiometric_config(pipeline.stages.radiometric);
     return resolved;

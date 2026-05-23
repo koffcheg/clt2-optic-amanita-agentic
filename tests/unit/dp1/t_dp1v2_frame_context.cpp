@@ -25,6 +25,23 @@ dp1v2::FramePacket makeFramePacket()
     return packet;
 }
 
+dp1v2::CanonicalFrame makeCanonicalFrameFromPacket(const dp1v2::FramePacket& packet)
+{
+    dp1v2::CanonicalFrame frame{};
+    frame.frame_id = packet.frame_id;
+    frame.camera_id = packet.camera_id;
+    frame.source_id = packet.source_id;
+    frame.image = packet.image;
+    frame.image_ownership = dp1v2::CanonicalPayloadOwnership::BorrowedReadOnly;
+    frame.pixel_format = packet.pixel_format;
+    frame.bit_depth = packet.bit_depth;
+    frame.geometry = packet.geometry;
+    frame.parent_artifact_id = "raw_frame";
+    frame.normalization.source = dp1v2::NormalizationSource::Stage0;
+    frame.normalization.binned = false;
+    return frame;
+}
+
 dp1v2::ProcessingFrame makeRadiometricFrame()
 {
     cv::Mat image(3, 4, CV_16SC1);
@@ -96,6 +113,46 @@ TEST(FrameContextTest, RegisterRadiometricArtifactIsStageOutputScopeMetadata)
         dp1v2::find_frame_artifact_by_stage(context, "radiometric_correction");
     ASSERT_NE(by_stage, nullptr);
     EXPECT_EQ(by_stage->status, dp1v2::FrameArtifactStatus::MetadataOnly);
+}
+
+TEST(FrameContextTest, RegisterCanonicalFrameArtifactPassThroughKeepsBorrowedInputBoundaryAvailable)
+{
+    const dp1v2::FramePacket packet = makeFramePacket();
+    dp1v2::FrameContext context = dp1v2::build_frame_context(packet, 99);
+
+    const dp1v2::CanonicalFrame frame = makeCanonicalFrameFromPacket(packet);
+    const dp1v2::FrameArtifactRef artifact =
+        dp1v2::register_canonical_frame_artifact(context, frame);
+
+    EXPECT_EQ(artifact.id, "canonical_frame");
+    EXPECT_EQ(artifact.ownership, dp1v2::FrameArtifactOwnership::BorrowedReadOnly);
+    EXPECT_EQ(artifact.lifetime, dp1v2::FrameArtifactLifetime::InputBoundary);
+    EXPECT_EQ(artifact.status, dp1v2::FrameArtifactStatus::Available);
+}
+
+TEST(FrameContextTest, RegisterCanonicalFrameArtifactBinnedUsesStageOutputMetadataOnly)
+{
+    const dp1v2::FramePacket packet = makeFramePacket();
+    dp1v2::FrameContext context = dp1v2::build_frame_context(packet, 99);
+
+    dp1v2::CanonicalFrame frame = makeCanonicalFrameFromPacket(packet);
+    frame.image = cv::Mat(2, 2, CV_16UC1);
+    frame.image_ownership = dp1v2::CanonicalPayloadOwnership::OwnedBinned;
+    frame.geometry = dp1v2::FrameGeometry{.width = 2, .height = 2};
+    frame.normalization.binned = true;
+    frame.normalization.bin_factor_x = 2;
+    frame.normalization.bin_factor_y = 2;
+    frame.normalization.binning_mode = dp1v2::BinningMode::Average;
+
+    const dp1v2::FrameArtifactRef artifact =
+        dp1v2::register_canonical_frame_artifact(context, frame);
+
+    EXPECT_EQ(artifact.ownership, dp1v2::FrameArtifactOwnership::OwnedByStageOutput);
+    EXPECT_EQ(artifact.lifetime, dp1v2::FrameArtifactLifetime::StageOutputScope);
+    EXPECT_EQ(artifact.status, dp1v2::FrameArtifactStatus::MetadataOnly);
+    EXPECT_EQ(artifact.parent_artifact_id, "raw_frame");
+    EXPECT_EQ(artifact.geometry.width, 2);
+    EXPECT_EQ(artifact.geometry.height, 2);
 }
 
 TEST(FrameContextTest, RecordStageTimingStoresMinimalP2Timing)
