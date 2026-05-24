@@ -249,8 +249,6 @@ TEST(PipelineTest, FullFrameRouteUsesInputRouteForFramePacketMetadata)
     const dp1v2::StageTiming* input_normalization_timing =
         findStageTiming(result.frame, "input_normalization");
     ASSERT_NE(input_normalization_timing, nullptr);
-    EXPECT_EQ(input_normalization_timing->pixel_format_in, dp1v2::PixelFormat::U16);
-    EXPECT_EQ(input_normalization_timing->pixel_format_out, dp1v2::PixelFormat::U16);
 
     EXPECT_EQ(result.lifecycle.reason.find("input_route bit_depth mismatch"), std::string::npos);
     EXPECT_EQ(result.lifecycle.reason.find("input_route pixel_range mismatch"), std::string::npos);

@@ -184,6 +184,7 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 ../tests/visual-unit/dp1/t_dp1v2_inverse_median.cpp
                 ../tests/visual-unit/dp1/t_dp1v2_average_binning.cpp
                 src/runtime/cyclic_frame_buffer.cpp
+                src/frame/frame_context.cpp
                 src/stages/input_normalization_stage.cpp
                 src/stages/radiometric_stage.inverse_median.cpp
         )
