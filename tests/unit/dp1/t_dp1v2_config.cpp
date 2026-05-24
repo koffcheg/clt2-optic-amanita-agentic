@@ -248,6 +248,34 @@ json_t* makePrepTilesParameters(
     return parameters;
 }
 
+json_t* makeTileExecutionParameters(
+    const json_int_t num_threads,
+    const json_int_t opencv_num_threads,
+    const char* on_tile_error,
+    const char* frame_status_policy)
+{
+    json_t* execution = json_object();
+    EXPECT_EQ(json_object_set_new(execution, "num_threads", json_integer(num_threads)), 0);
+    EXPECT_EQ(json_object_set_new(execution, "opencv_num_threads", json_integer(opencv_num_threads)), 0);
+    EXPECT_EQ(json_object_set_new(execution, "on_tile_error", json_string(on_tile_error)), 0);
+    EXPECT_EQ(json_object_set_new(execution, "frame_status_policy", json_string(frame_status_policy)), 0);
+    return execution;
+}
+
+json_t* makeTileAggregationParameters(
+    const char* mode,
+    const bool merge_enabled,
+    const bool deduplicate_overlap,
+    const char* output_coordinate_space)
+{
+    json_t* aggregation = json_object();
+    EXPECT_EQ(json_object_set_new(aggregation, "mode", json_string(mode)), 0);
+    EXPECT_EQ(json_object_set_new(aggregation, "merge_enabled", json_boolean(merge_enabled)), 0);
+    EXPECT_EQ(json_object_set_new(aggregation, "deduplicate_overlap", json_boolean(deduplicate_overlap)), 0);
+    EXPECT_EQ(json_object_set_new(aggregation, "output_coordinate_space", json_string(output_coordinate_space)), 0);
+    return aggregation;
+}
+
 class ConfigTest : public ::testing::Test {
 protected:
     void SetUp() override
@@ -826,6 +854,52 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesParametersAreValid_ReturnsTypedPre
     EXPECT_EQ(config.resolved_pipeline.prep.tiles->tile_height, 256);
     EXPECT_EQ(config.resolved_pipeline.prep.tiles->overlap_x, 16);
     EXPECT_EQ(config.resolved_pipeline.prep.tiles->overlap_y, 16);
+    EXPECT_EQ(config.resolved_pipeline.prep.tiles->execution.num_threads, 0);
+    EXPECT_EQ(config.resolved_pipeline.prep.tiles->execution.opencv_num_threads, 0);
+    EXPECT_EQ(config.resolved_pipeline.prep.tiles->execution.on_tile_error,
+              dp1v2::TileErrorPolicy::Continue);
+    EXPECT_EQ(config.resolved_pipeline.prep.tiles->execution.frame_status_policy,
+              dp1v2::TileFrameStatusPolicy::FailedIfAnyRequiredTileFailed);
+    EXPECT_EQ(config.resolved_pipeline.prep.tiles->aggregation.mode,
+              dp1v2::TileAggregationMode::MeasurementsOnly);
+    EXPECT_FALSE(config.resolved_pipeline.prep.tiles->aggregation.merge_enabled);
+    EXPECT_FALSE(config.resolved_pipeline.prep.tiles->aggregation.deduplicate_overlap);
+    EXPECT_EQ(config.resolved_pipeline.prep.tiles->aggregation.output_coordinate_space,
+              dp1v2::TileOutputCoordinateSpace::FrameGlobal);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionAndAggregationAreValid_ReturnsTypedConfig)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setString(pipeline.get(), {"pipeline", "prep"}, "level", "L1");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 16, 16));
+    setObject(pipeline.get(),
+              {"pipeline", "prep", "parameters", "tiles"},
+              "execution",
+              makeTileExecutionParameters(
+                  4, 1, "stop_frame", "partial_if_some_tiles_failed"));
+    setObject(pipeline.get(),
+              {"pipeline", "prep", "parameters", "tiles"},
+              "aggregation",
+              makeTileAggregationParameters(
+                  "measurements_and_debug_merge", true, true, "source_frame_global"));
+
+    const dp1v2::Dp1Config config = loadDp1(application, pipeline);
+
+    ASSERT_TRUE(config.resolved_pipeline.prep.tiles.has_value());
+    const dp1v2::PrepTilesParametersConfig& tiles = *config.resolved_pipeline.prep.tiles;
+    EXPECT_EQ(tiles.execution.num_threads, 4);
+    EXPECT_EQ(tiles.execution.opencv_num_threads, 1);
+    EXPECT_EQ(tiles.execution.on_tile_error, dp1v2::TileErrorPolicy::StopFrame);
+    EXPECT_EQ(tiles.execution.frame_status_policy,
+              dp1v2::TileFrameStatusPolicy::PartialIfSomeTilesFailed);
+    EXPECT_EQ(tiles.aggregation.mode, dp1v2::TileAggregationMode::MeasurementsAndDebugMerge);
+    EXPECT_TRUE(tiles.aggregation.merge_enabled);
+    EXPECT_TRUE(tiles.aggregation.deduplicate_overlap);
+    EXPECT_EQ(tiles.aggregation.output_coordinate_space,
+              dp1v2::TileOutputCoordinateSpace::SourceFrameGlobal);
 }
 
 TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesObjectIsMissing_ThrowsConfigError)
@@ -905,6 +979,83 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesHasUnknownKey_ThrowsConfigError)
     setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
     setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 16, 16));
     setInteger(pipeline.get(), {"pipeline", "prep", "parameters", "tiles"}, "border", 8);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionNumThreadsIsNegative_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 16, 16));
+    setObject(pipeline.get(),
+              {"pipeline", "prep", "parameters", "tiles"},
+              "execution",
+              makeTileExecutionParameters(
+                  -1, 1, "continue", "failed_if_any_required_tile_failed"));
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionOpenCvNumThreadsIsNegative_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 16, 16));
+    setObject(pipeline.get(),
+              {"pipeline", "prep", "parameters", "tiles"},
+              "execution",
+              makeTileExecutionParameters(
+                  4, -1, "continue", "failed_if_any_required_tile_failed"));
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionHasBackendKey_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 16, 16));
+    setObject(pipeline.get(),
+              {"pipeline", "prep", "parameters", "tiles"},
+              "execution",
+              makeTileExecutionParameters(
+                  4, 1, "continue", "failed_if_any_required_tile_failed"));
+    setString(pipeline.get(), {"pipeline", "prep", "parameters", "tiles", "execution"}, "backend", "one_tbb");
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionHasUnknownKey_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 16, 16));
+    setObject(pipeline.get(),
+              {"pipeline", "prep", "parameters", "tiles"},
+              "execution",
+              makeTileExecutionParameters(
+                  4, 1, "continue", "failed_if_any_required_tile_failed"));
+    setBool(pipeline.get(), {"pipeline", "prep", "parameters", "tiles", "execution"}, "debug_timing", true);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesAggregationHasUnknownKey_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 16, 16));
+    setObject(pipeline.get(),
+              {"pipeline", "prep", "parameters", "tiles"},
+              "aggregation",
+              makeTileAggregationParameters("measurements_only", false, false, "frame_global"));
+    setBool(pipeline.get(), {"pipeline", "prep", "parameters", "tiles", "aggregation"}, "tile_profiling", true);
 
     EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
 }

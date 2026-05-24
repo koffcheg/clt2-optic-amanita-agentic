@@ -182,11 +182,49 @@ struct InverseMedianParametersConfig {
     InverseMedianOutputMode output_dynamic_range_mode = InverseMedianOutputMode::RawSigned;
 };
 
+enum class TileErrorPolicy {
+    Continue,
+    StopFrame,
+};
+
+enum class TileFrameStatusPolicy {
+    FailedIfAnyRequiredTileFailed,
+    PartialIfSomeTilesFailed,
+};
+
+struct TileExecutionConfig {
+    int num_threads = 0;
+    int opencv_num_threads = 0;
+    TileErrorPolicy on_tile_error = TileErrorPolicy::Continue;
+    TileFrameStatusPolicy frame_status_policy =
+        TileFrameStatusPolicy::FailedIfAnyRequiredTileFailed;
+};
+
+enum class TileAggregationMode {
+    MeasurementsOnly,
+    MeasurementsAndDebugMerge,
+};
+
+enum class TileOutputCoordinateSpace {
+    FrameGlobal,
+    SourceFrameGlobal,
+};
+
+struct TileAggregationConfig {
+    TileAggregationMode mode = TileAggregationMode::MeasurementsOnly;
+    bool merge_enabled = false;
+    bool deduplicate_overlap = false;
+    TileOutputCoordinateSpace output_coordinate_space =
+        TileOutputCoordinateSpace::FrameGlobal;
+};
+
 struct PrepTilesParametersConfig {
     int tile_width = 0;
     int tile_height = 0;
     int overlap_x = 0;
     int overlap_y = 0;
+    TileExecutionConfig execution;
+    TileAggregationConfig aggregation;
 };
 
 struct StageConfig {
