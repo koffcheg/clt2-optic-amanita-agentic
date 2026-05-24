@@ -1273,7 +1273,7 @@ TEST_F(ConfigTest, LoadDp1Config_WhenInputNormalizationBinningAverageKbin1_Parse
 
     const dp1v2::Dp1Config config = loadDp1(application, pipeline);
 
-    EXPECT_EQ(config.resolved_pipeline.input_normalization.binning_mode, "average");
+    EXPECT_EQ(config.resolved_pipeline.input_normalization.binning_mode, dp1v2::BinningMode::Average);
     EXPECT_EQ(config.resolved_pipeline.input_normalization.bin_factor, 1);
 }
 
@@ -1292,7 +1292,7 @@ TEST_F(ConfigTest, LoadDp1Config_WhenInputNormalizationBinningAverageKbin2Or4_Pa
 
         const dp1v2::Dp1Config config = loadDp1(application, pipeline);
 
-        EXPECT_EQ(config.resolved_pipeline.input_normalization.binning_mode, "average");
+        EXPECT_EQ(config.resolved_pipeline.input_normalization.binning_mode, dp1v2::BinningMode::Average);
         EXPECT_EQ(config.resolved_pipeline.input_normalization.bin_factor, kbin);
     }
 }
@@ -1311,7 +1311,7 @@ TEST_F(ConfigTest, LoadDp1Config_WhenInputNormalizationBinningDisabled_Parses)
 
     const dp1v2::Dp1Config config = loadDp1(application, pipeline);
 
-    EXPECT_EQ(config.resolved_pipeline.input_normalization.binning_mode, "disabled");
+    EXPECT_EQ(config.resolved_pipeline.input_normalization.binning_mode, dp1v2::BinningMode::None);
     EXPECT_EQ(config.resolved_pipeline.input_normalization.bin_factor, 1);
 }
 

@@ -535,7 +535,7 @@ bool is_valid_level(const std::string &value) {
 }
 
 bool is_allowed_variant(const std::string_view stage, const std::string_view variant) {
-    static const std::vector<std::string_view> input_normalization{"passthrough"};
+    static const std::vector<std::string_view> input_normalization{"passthrough", "average_binning"};
     static const std::vector<std::string_view> prep{"full_frame", "roi", "tiles", "adaptive_roi"};
     static const std::vector<std::string_view> radiometric{
         "mean_subtraction", "gaussian_subtraction", "median", "inverse_median",
@@ -928,35 +928,48 @@ dp1v2::PipelineConfig parse_pipeline_config(const json_t *pipeline_json) {
 
 dp1v2::InputNormalizationResolvedConfig resolve_input_normalization_config(const dp1v2::StageConfig &stage) {
     dp1v2::InputNormalizationResolvedConfig resolved{};
-    if (stage.variant != "passthrough") {
-        return resolved;
-    }
     const auto it = stage.parameters.find("binning");
-    if (it == stage.parameters.end()) {
-        return resolved;
+    std::string mode = "disabled";
+    int kbin = 1;
+    if (it != stage.parameters.end()) {
+        if (!std::holds_alternative<dp1v2::ParameterValue::MapPtr>(it->second.value)) {
+            throw std::logic_error("error on config file, pipeline.pipeline.input_normalization.parameters.binning must be object");
+        }
+        const auto *binning_ptr = std::get_if<dp1v2::ParameterValue::MapPtr>(&it->second.value);
+        if (binning_ptr == nullptr || !(*binning_ptr)) {
+            throw std::logic_error("error on config file, pipeline.pipeline.input_normalization.parameters.binning must be object");
+        }
+        const auto *binning = binning_ptr->get();
+        reject_unknown_parameter_keys(*binning, {"mode", "kbin"}, "pipeline.pipeline.input_normalization.parameters.binning");
+        mode = read_optional_parameter_string(*binning, "mode", "disabled", "pipeline.pipeline.input_normalization.parameters.binning");
+        kbin = read_optional_parameter_int(*binning, "kbin", 1, "pipeline.pipeline.input_normalization.parameters.binning");
     }
-    if (!std::holds_alternative<dp1v2::ParameterValue::MapPtr>(it->second.value)) {
-        throw std::logic_error("error on config file, pipeline.pipeline.input_normalization.parameters.binning must be object");
-    }
-    const auto *binning_ptr = std::get_if<dp1v2::ParameterValue::MapPtr>(&it->second.value);
-    if (binning_ptr == nullptr || !(*binning_ptr)) {
-        throw std::logic_error("error on config file, pipeline.pipeline.input_normalization.parameters.binning must be object");
-    }
-    const auto *binning = binning_ptr->get();
-    reject_unknown_parameter_keys(*binning, {"mode", "kbin"}, "pipeline.pipeline.input_normalization.parameters.binning");
-    const std::string mode = read_optional_parameter_string(*binning, "mode", "disabled", "pipeline.pipeline.input_normalization.parameters.binning");
     if (mode != "disabled" && mode != "average") {
         throw std::logic_error("error on config file, input_normalization.binning.mode must be disabled or average");
     }
-    const int kbin = read_optional_parameter_int(*binning, "kbin", 1, "pipeline.pipeline.input_normalization.parameters.binning");
     if (kbin != 1 && kbin != 2 && kbin != 4) {
         throw std::logic_error("error on config file, input_normalization.binning.kbin must be 1, 2, or 4");
     }
-    if (mode == "disabled" && kbin != 1) {
-        throw std::logic_error("error on config file, input_normalization disabled binning requires kbin=1");
+    if (stage.variant == "passthrough") {
+        if (mode != "disabled" || kbin != 1) {
+            throw std::logic_error("error on config file, passthrough input_normalization requires disabled binning and kbin=1");
+        }
+        resolved.binning_mode = dp1v2::BinningMode::None;
+        resolved.bin_factor = 1;
+        return resolved;
     }
-    resolved.binning_mode = mode;
-    resolved.bin_factor = kbin;
+    if (stage.variant == "average_binning") {
+        if (mode != "average") {
+            throw std::logic_error("error on config file, average_binning variant requires average mode");
+        }
+        if (kbin != 2 && kbin != 4) {
+            throw std::logic_error("error on config file, average_binning variant requires kbin=2 or kbin=4");
+        }
+        resolved.binning_mode = dp1v2::BinningMode::Average;
+        resolved.bin_factor = kbin;
+        return resolved;
+    }
+    throw std::logic_error("error on config file, unsupported input_normalization.variant: " + stage.variant);
     return resolved;
 }
 

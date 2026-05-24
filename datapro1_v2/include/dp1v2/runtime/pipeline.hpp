@@ -36,7 +36,6 @@ SingleFramePipelineResult process_single_frame(
     const RawFrameEnvelope &envelope,
     int cam_index,
     const PipelineConfig &pipeline_config,
-    const InputNormalizationResolvedConfig &input_normalization_resolved,
     const InputNormalizationStage &input_normalization_stage,
     PrepStage &prep_stage,
     RadiometricStage &radiometric_stage,
