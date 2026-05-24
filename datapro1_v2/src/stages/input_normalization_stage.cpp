@@ -7,6 +7,7 @@ namespace dp1v2 {
 namespace {
 
 constexpr const char *kPassthroughVariant = "passthrough";
+constexpr const char *kAverageBinningVariant = "average_binning";
 constexpr const char *kRawFrameArtifactId = "raw_frame";
 
 int expectedCvDepth(const PixelFormat pixel_format) {
@@ -21,17 +22,43 @@ bool samePixelRange(const PixelRange &left, const PixelRange &right) {
 }
 
 template <typename T, typename SumT>
-cv::Mat averageBinningImpl(const cv::Mat &src, const int kbin, const int rounding) {
-    cv::Mat dst(src.rows / kbin, src.cols / kbin, src.type());
+cv::Mat averageBinning2x2(const cv::Mat &src) {
+    cv::Mat dst(src.rows / 2, src.cols / 2, src.type());
     for (int y = 0; y < dst.rows; ++y) {
+        const T *row0 = src.ptr<T>(2 * y);
+        const T *row1 = src.ptr<T>(2 * y + 1);
         T *dst_row = dst.ptr<T>(y);
         for (int x = 0; x < dst.cols; ++x) {
-            SumT sum = 0;
-            for (int ky = 0; ky < kbin; ++ky) {
-                const T *src_row = src.ptr<T>(y * kbin + ky);
-                for (int kx = 0; kx < kbin; ++kx) sum += static_cast<SumT>(src_row[x * kbin + kx]);
-            }
-            dst_row[x] = static_cast<T>((sum + rounding) >> (kbin == 2 ? 2 : 4));
+            const int x2 = 2 * x;
+            const SumT sum = static_cast<SumT>(row0[x2]) + static_cast<SumT>(row0[x2 + 1]) +
+                             static_cast<SumT>(row1[x2]) + static_cast<SumT>(row1[x2 + 1]);
+            dst_row[x] = static_cast<T>((sum + 2) >> 2);
+        }
+    }
+    return dst;
+}
+
+template <typename T, typename SumT>
+cv::Mat averageBinning4x4(const cv::Mat &src) {
+    cv::Mat dst(src.rows / 4, src.cols / 4, src.type());
+    for (int y = 0; y < dst.rows; ++y) {
+        const T *row0 = src.ptr<T>(4 * y);
+        const T *row1 = src.ptr<T>(4 * y + 1);
+        const T *row2 = src.ptr<T>(4 * y + 2);
+        const T *row3 = src.ptr<T>(4 * y + 3);
+        T *dst_row = dst.ptr<T>(y);
+        for (int x = 0; x < dst.cols; ++x) {
+            const int x4 = 4 * x;
+            const SumT sum =
+                static_cast<SumT>(row0[x4]) + static_cast<SumT>(row0[x4 + 1]) +
+                static_cast<SumT>(row0[x4 + 2]) + static_cast<SumT>(row0[x4 + 3]) +
+                static_cast<SumT>(row1[x4]) + static_cast<SumT>(row1[x4 + 1]) +
+                static_cast<SumT>(row1[x4 + 2]) + static_cast<SumT>(row1[x4 + 3]) +
+                static_cast<SumT>(row2[x4]) + static_cast<SumT>(row2[x4 + 1]) +
+                static_cast<SumT>(row2[x4 + 2]) + static_cast<SumT>(row2[x4 + 3]) +
+                static_cast<SumT>(row3[x4]) + static_cast<SumT>(row3[x4 + 1]) +
+                static_cast<SumT>(row3[x4 + 2]) + static_cast<SumT>(row3[x4 + 3]);
+            dst_row[x] = static_cast<T>((sum + 8) >> 4);
         }
     }
     return dst;
@@ -65,12 +92,17 @@ CanonicalFrame makeCanonicalFrame(const FramePacket &packet) {
 
 } // namespace
 
+InputNormalizationStage::InputNormalizationStage(InputNormalizationResolvedConfig resolved)
+    : resolved_(resolved) {}
+
 StageOutcome<InputNormalizationOutput> InputNormalizationStage::process(
     const InputNormalizationInput &input, FrameContext &context, const InputNormalizationConfig &config) const {
     (void)context;
     if (!config.stage.enabled) return failure(StageExecutionStatus::Disabled, "input_normalization stage is disabled");
-    if (config.stage.variant != kPassthroughVariant)
+    if (config.stage.variant != kPassthroughVariant &&
+        config.stage.variant != kAverageBinningVariant) {
         return failure(StageExecutionStatus::Unsupported, "unsupported input_normalization variant: " + config.stage.variant);
+    }
 
     const FramePacket &packet = input.frame;
     if (packet.image.empty()) return failure(StageExecutionStatus::Failed, "input frame is empty");
@@ -84,12 +116,27 @@ StageOutcome<InputNormalizationOutput> InputNormalizationStage::process(
     if (packet.image.depth() != expectedCvDepth(config.input_route.pixel_format)) return failure(StageExecutionStatus::Unsupported, "input_route carrier depth mismatch");
 
     CanonicalFrame frame = makeCanonicalFrame(packet);
-    const int kbin = config.resolved.bin_factor;
-    if (config.resolved.binning_mode == "average" && kbin > 1) {
+    const int kbin = resolved_.bin_factor;
+    if (resolved_.binning_mode == BinningMode::None && kbin != 1) {
+        return failure(StageExecutionStatus::Unsupported, "input_normalization disabled binning requires kbin=1");
+    }
+    if (resolved_.binning_mode == BinningMode::Average && (kbin != 2 && kbin != 4)) {
+        return failure(StageExecutionStatus::Unsupported, "average binning requires kbin=2 or kbin=4");
+    }
+    if (resolved_.binning_mode == BinningMode::Average) {
         if ((packet.geometry.width % kbin) != 0 || (packet.geometry.height % kbin) != 0)
             return failure(StageExecutionStatus::Unsupported, "average binning requires frame geometry divisible by kbin");
-        if (packet.pixel_format == PixelFormat::U8) frame.image = averageBinningImpl<std::uint8_t, std::uint32_t>(packet.image, kbin, kbin == 2 ? 2 : 8);
-        else frame.image = averageBinningImpl<std::uint16_t, std::uint32_t>(packet.image, kbin, kbin == 2 ? 2 : 8);
+        if (packet.pixel_format == PixelFormat::U8) {
+            frame.image = (kbin == 2)
+                ? averageBinning2x2<std::uint8_t, std::uint32_t>(packet.image)
+                : averageBinning4x4<std::uint8_t, std::uint32_t>(packet.image);
+        } else if (packet.pixel_format == PixelFormat::U16) {
+            frame.image = (kbin == 2)
+                ? averageBinning2x2<std::uint16_t, std::uint32_t>(packet.image)
+                : averageBinning4x4<std::uint16_t, std::uint32_t>(packet.image);
+        } else {
+            return failure(StageExecutionStatus::Unsupported, "average binning supports U8/U16 only");
+        }
         frame.image_ownership = CanonicalPayloadOwnership::OwnedBinned;
         frame.geometry = FrameGeometry{.width = frame.image.cols, .height = frame.image.rows};
         frame.normalization.binned = true;

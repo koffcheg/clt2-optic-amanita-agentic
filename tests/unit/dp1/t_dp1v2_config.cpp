@@ -393,6 +393,37 @@ TEST_F(ConfigTest, LoadApplicationConfig_WhenMinimalClientLoggingProfilingSurfac
     EXPECT_TRUE(config.profiling.reports.emit_run_summary);
 }
 
+TEST_F(ConfigTest, LoadDp1Config_InputNormalizationPassthroughRejectsAverageBinningMode)
+{
+    JsonPtr app = makeApplicationConfig();
+    JsonPtr pipe = makePipelineConfig();
+    json_t* binning = json_object();
+    json_object_set_new(binning, "mode", json_string("average"));
+    json_object_set_new(binning, "kbin", json_integer(2));
+    json_t* params = json_object();
+    json_object_set_new(params, "binning", binning);
+    setObject(pipe.get(), {"pipeline", "input_normalization"}, "parameters", params);
+    EXPECT_THROW(loadDp1(app, pipe), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_InputNormalizationAverageBinningAcceptsKbin2And4)
+{
+    for (int kbin : {2, 4}) {
+        JsonPtr app = makeApplicationConfig();
+        JsonPtr pipe = makePipelineConfig();
+        setString(pipe.get(), {"pipeline", "input_normalization"}, "variant", "average_binning");
+        json_t* binning = json_object();
+        json_object_set_new(binning, "mode", json_string("average"));
+        json_object_set_new(binning, "kbin", json_integer(kbin));
+        json_t* params = json_object();
+        json_object_set_new(params, "binning", binning);
+        setObject(pipe.get(), {"pipeline", "input_normalization"}, "parameters", params);
+        const auto config = loadDp1(app, pipe);
+        EXPECT_EQ(config.resolved_pipeline.input_normalization.binning_mode, dp1v2::BinningMode::Average);
+        EXPECT_EQ(config.resolved_pipeline.input_normalization.bin_factor, kbin);
+    }
+}
+
 TEST_F(ConfigTest, LoadApplicationConfig_WhenDisabledMinimalLoggingConfigIsValid_ReturnsTypedConfig)
 {
     JsonPtr application = makeDisabledApplicationConfig();

@@ -199,7 +199,8 @@ RuntimeLoopResult run_bounded_runtime_loop(const StartupContext &context, IFrame
 
     RuntimeLoopResult loop_result{};
     std::size_t empty_reads = 0;
-    const InputNormalizationStage input_normalization_stage;
+    const InputNormalizationStage input_normalization_stage(
+        context.config.resolved_pipeline.input_normalization);
     PrepStage prep_stage(context.config.resolved_pipeline.prep);
     RadiometricStage radiometric_stage(context.config.resolved_pipeline.radiometric);
     VisualizationSink visualization_sink(context.config.application.visualization);

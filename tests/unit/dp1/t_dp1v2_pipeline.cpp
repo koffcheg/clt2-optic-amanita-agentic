@@ -75,6 +75,21 @@ dp1v2::PipelineConfig makeFullFramePipelineConfig()
     return config;
 }
 
+dp1v2::PipelineConfig makeAverageBinningPipelineConfig(const int kbin)
+{
+    dp1v2::PipelineConfig config = makeFullFramePipelineConfig();
+    config.stages.input_normalization.variant = "average_binning";
+    config.stages.input_normalization.parameters = {
+        {"binning", dp1v2::ParameterMap{
+            {"mode", std::string("average")},
+            {"kbin", static_cast<std::int64_t>(kbin)},
+        }},
+    };
+    config.input_route.bit_depth = dp1v2::InputBitDepth::Bit12;
+    config.input_route.pixel_range.saturation_level = 4095.0;
+    return config;
+}
+
 dp1v2::RadiometricResolvedConfig makeRadiometricResolvedConfig()
 {
     dp1v2::RadiometricResolvedConfig config{};
@@ -243,4 +258,36 @@ TEST(PipelineTest, FullFrameRouteRecordsProfilingCollectionWhenReportsDisabled)
     EXPECT_EQ(aggregator.run_summary().frames_total, 1U);
     EXPECT_EQ(aggregator.run_summary().frame_duration_samples, 1U);
     EXPECT_EQ(aggregator.run_summary().stages.size(), 4U);
+}
+
+TEST(PipelineTest, RuntimeBoundaryUsesPipelineInputRouteAndAverageBinningReducesGeometry)
+{
+    dp1v2::PipelineConfig pipeline_config = makeAverageBinningPipelineConfig(2);
+    dp1v2::InputNormalizationStage input_normalization_stage(
+        dp1v2::InputNormalizationResolvedConfig{
+            .binning_mode = dp1v2::BinningMode::Average,
+            .bin_factor = 2,
+        });
+    dp1v2::PrepStage prep_stage;
+    dp1v2::RadiometricStage radiometric_stage(makeRadiometricResolvedConfig());
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    dp1v2::RawFrameEnvelope envelope = makeEnvelope();
+    envelope.header_hint.bit_depth = 12;
+
+    const dp1v2::SingleFramePipelineResult result = dp1v2::process_single_frame(
+        envelope, 7, pipeline_config, input_normalization_stage, prep_stage, radiometric_stage, visualization_sink);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+    const dp1v2::FrameArtifactRef* canonical = nullptr;
+    for (const auto& artifact : result.frame.artifacts.records) {
+        if (artifact.id == "canonical_frame") {
+            canonical = &artifact;
+            break;
+        }
+    }
+    ASSERT_NE(canonical, nullptr);
+    EXPECT_EQ(canonical->bit_depth, dp1v2::InputBitDepth::Bit12);
+    EXPECT_EQ(canonical->geometry.width, 2);
+    EXPECT_EQ(canonical->geometry.height, 2);
 }

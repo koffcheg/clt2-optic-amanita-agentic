@@ -68,7 +68,7 @@ dp1v2::StageOutcome<dp1v2::InputNormalizationOutput> processPacket(
     return stage.process(
         dp1v2::InputNormalizationInput{.frame = packet},
         context,
-        dp1v2::InputNormalizationConfig{.input_route = input_route, .stage = enabledPassthroughStage(), .resolved = dp1v2::InputNormalizationResolvedConfig{}});
+        dp1v2::InputNormalizationConfig{.input_route = input_route, .stage = enabledPassthroughStage()});
 }
 
 } // namespace
@@ -202,8 +202,9 @@ TEST(InputNormalizationStageTest, Process_AverageKbin2_U8ValuesAndMetadata)
     cv::Mat image = (cv::Mat_<std::uint8_t>(2, 2) << 1, 2, 3, 4);
     auto packet = makePacket(image, dp1v2::PixelFormat::U8, dp1v2::InputBitDepth::Bit8, rangeU8());
     dp1v2::FrameContext context = dp1v2::build_frame_context(packet, packet.camera_id);
-    const dp1v2::InputNormalizationStage stage;
-    auto out = stage.process({.frame=packet}, context, {.input_route=route(dp1v2::PixelFormat::U8, dp1v2::InputBitDepth::Bit8, rangeU8()), .stage=enabledPassthroughStage(), .resolved={.binning_mode="average", .bin_factor=2}});
+    const dp1v2::InputNormalizationStage stage(
+        dp1v2::InputNormalizationResolvedConfig{.binning_mode = dp1v2::BinningMode::Average, .bin_factor = 2});
+    auto out = stage.process({.frame=packet}, context, {.input_route=route(dp1v2::PixelFormat::U8, dp1v2::InputBitDepth::Bit8, rangeU8()), .stage=enabledPassthroughStage()});
     ASSERT_EQ(out.status, dp1v2::StageExecutionStatus::Completed);
     EXPECT_EQ(out.output.frame.image.at<std::uint8_t>(0,0), 3);
     EXPECT_TRUE(out.output.frame.normalization.binned);
@@ -215,8 +216,9 @@ TEST(InputNormalizationStageTest, Process_AverageKbin4_U16ValuesAndGeometry)
     cv::Mat image(4,4,CV_16UC1); image.setTo(cv::Scalar(16));
     auto packet = makePacket(image, dp1v2::PixelFormat::U16, dp1v2::InputBitDepth::Bit16, rangeU16());
     dp1v2::FrameContext context = dp1v2::build_frame_context(packet, packet.camera_id);
-    const dp1v2::InputNormalizationStage stage;
-    auto out = stage.process({.frame=packet}, context, {.input_route=route(dp1v2::PixelFormat::U16, dp1v2::InputBitDepth::Bit16, rangeU16()), .stage=enabledPassthroughStage(), .resolved={.binning_mode="average", .bin_factor=4}});
+    const dp1v2::InputNormalizationStage stage(
+        dp1v2::InputNormalizationResolvedConfig{.binning_mode = dp1v2::BinningMode::Average, .bin_factor = 4});
+    auto out = stage.process({.frame=packet}, context, {.input_route=route(dp1v2::PixelFormat::U16, dp1v2::InputBitDepth::Bit16, rangeU16()), .stage=enabledPassthroughStage()});
     ASSERT_EQ(out.status, dp1v2::StageExecutionStatus::Completed);
     EXPECT_EQ(out.output.frame.geometry.width, 1);
     EXPECT_EQ(out.output.frame.geometry.height, 1);
@@ -228,7 +230,26 @@ TEST(InputNormalizationStageTest, Process_AverageBinningRejectsNonDivisibleGeome
     cv::Mat image(3,3,CV_8UC1); image.setTo(cv::Scalar(1));
     auto packet = makePacket(image, dp1v2::PixelFormat::U8, dp1v2::InputBitDepth::Bit8, rangeU8());
     dp1v2::FrameContext context = dp1v2::build_frame_context(packet, packet.camera_id);
-    const dp1v2::InputNormalizationStage stage;
-    auto out = stage.process({.frame=packet}, context, {.input_route=route(dp1v2::PixelFormat::U8, dp1v2::InputBitDepth::Bit8, rangeU8()), .stage=enabledPassthroughStage(), .resolved={.binning_mode="average", .bin_factor=2}});
+    const dp1v2::InputNormalizationStage stage(
+        dp1v2::InputNormalizationResolvedConfig{.binning_mode = dp1v2::BinningMode::Average, .bin_factor = 2});
+    auto out = stage.process({.frame=packet}, context, {.input_route=route(dp1v2::PixelFormat::U8, dp1v2::InputBitDepth::Bit8, rangeU8()), .stage=enabledPassthroughStage()});
+    EXPECT_EQ(out.status, dp1v2::StageExecutionStatus::Unsupported);
+}
+
+TEST(InputNormalizationStageTest, Process_InvalidResolvedConfigRejected)
+{
+    cv::Mat image(2, 2, CV_16UC1);
+    auto packet = makePacket(image, dp1v2::PixelFormat::U16, dp1v2::InputBitDepth::Bit16, rangeU16());
+    dp1v2::FrameContext context = dp1v2::build_frame_context(packet, packet.camera_id);
+    const dp1v2::InputNormalizationStage stage(
+        dp1v2::InputNormalizationResolvedConfig{
+            .binning_mode = dp1v2::BinningMode::Average,
+            .bin_factor = 1,
+        });
+    auto out = stage.process(
+        {.frame = packet},
+        context,
+        {.input_route = route(dp1v2::PixelFormat::U16, dp1v2::InputBitDepth::Bit16, rangeU16()),
+         .stage = enabledPassthroughStage()});
     EXPECT_EQ(out.status, dp1v2::StageExecutionStatus::Unsupported);
 }

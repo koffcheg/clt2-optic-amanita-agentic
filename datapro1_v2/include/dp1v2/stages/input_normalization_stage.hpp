@@ -19,15 +19,19 @@ struct InputNormalizationOutput {
 struct InputNormalizationConfig {
     InputRouteConfig input_route;
     StageConfig stage;
-    InputNormalizationResolvedConfig resolved;
 };
 
 class InputNormalizationStage final {
 public:
+    explicit InputNormalizationStage(InputNormalizationResolvedConfig resolved = {});
+
     StageOutcome<InputNormalizationOutput> process(
         const InputNormalizationInput &input,
         FrameContext &context,
         const InputNormalizationConfig &config) const;
+
+private:
+    InputNormalizationResolvedConfig resolved_;
 };
 
 } // namespace dp1v2
