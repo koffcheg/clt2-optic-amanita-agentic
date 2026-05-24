@@ -97,3 +97,4 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0075` - DP1 v2 FullFramePipeline extraction - completed
 - `AMNT-0076` - DP1 v2 tile result status runtime model - completed
 - `AMNT-0077` - DP1 v2 TileTask and TileProcessor implementation - completed
+- `AMNT-0078` - DP1 v2 TileExecutor oneTBB implementation - completed
