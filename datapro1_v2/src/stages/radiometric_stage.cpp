@@ -212,12 +212,10 @@ StageOutcome<RadiometricFullFrameOutput> RadiometricStage::process(
 StageOutcome<RadiometricTileOutput> RadiometricStage::process(
     const RadiometricTileInput& input,
     TileContext& tile_context,
-    FrameContext& frame_context,
     const StageConfig& config)
 {
     (void)input;
     (void)tile_context;
-    (void)frame_context;
 
     if (!config.enabled) {
         return StageOutcome<RadiometricTileOutput>{

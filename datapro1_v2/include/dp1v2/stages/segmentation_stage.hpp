@@ -57,7 +57,6 @@ public:
     virtual StageOutcome<SegmentationTileOutput> process(
         const SegmentationTileInput &input,
         TileContext &tile_context,
-        FrameContext &frame_context,
         const StageConfig &config) = 0;
 };
 

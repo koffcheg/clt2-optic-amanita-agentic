@@ -53,7 +53,6 @@ public:
     virtual StageOutcome<EnhancementTileOutput> process(
         const EnhancementTileInput &input,
         TileContext &tile_context,
-        FrameContext &frame_context,
         const StageConfig &config) = 0;
 };
 

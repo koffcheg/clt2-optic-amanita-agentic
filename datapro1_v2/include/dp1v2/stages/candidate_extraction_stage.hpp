@@ -59,7 +59,6 @@ public:
     virtual StageOutcome<CandidateExtractionTileOutput> process(
         const CandidateExtractionTileInput &input,
         TileContext &tile_context,
-        FrameContext &frame_context,
         const StageConfig &config) = 0;
 };
 

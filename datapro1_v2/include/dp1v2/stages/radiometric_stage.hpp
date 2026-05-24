@@ -59,7 +59,6 @@ public:
     virtual StageOutcome<RadiometricTileOutput> process(
         const RadiometricTileInput &input,
         TileContext &tile_context,
-        FrameContext &frame_context,
         const StageConfig &config) = 0;
 };
 
@@ -80,7 +79,6 @@ public:
     StageOutcome<RadiometricTileOutput> process(
         const RadiometricTileInput &input,
         TileContext &tile_context,
-        FrameContext &frame_context,
         const StageConfig &config) override;
 
 private:
