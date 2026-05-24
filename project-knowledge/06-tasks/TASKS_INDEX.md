@@ -89,3 +89,6 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0067` - DP1 v2 minimal logging/profiling cleanup fixes - draft
 - `AMNT-0068` - DP1 v2 minimal logging/profiling cleanup fixes (merge prep) - draft
 - `AMNT-0069` - DP1 v2 logging/profiling client surface cleanup - draft
+
+- `AMNT-0071` - DP1 v2 Stage0 runtime average binning slice - draft
+- `AMNT-0072` - Stage0 average binning regression-safety cleanup - draft

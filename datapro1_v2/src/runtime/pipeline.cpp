@@ -100,6 +100,7 @@ SingleFramePipelineResult process_single_frame(
     const auto packet_result = make_frame_packet(
         envelope.frame,
         envelope.header_hint,
+        pipeline_config.input_route,
         envelope.received_steady_ts);
     if (!packet_result.ok()) {
         return SingleFramePipelineResult{

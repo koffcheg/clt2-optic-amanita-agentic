@@ -122,6 +122,12 @@ JsonPtr makePipelineConfig()
     }
   },
   "pipeline": {
+    "input_normalization": {
+      "enabled": true,
+      "variant": "passthrough",
+      "level": "L0",
+      "parameters": {}
+    },
     "prep": {
       "enabled": true,
       "variant": "full_frame",
@@ -1251,4 +1257,154 @@ TEST_F(ConfigTest, LoadApplicationConfig_WhenVisualizationStageIsUnsupported_Thr
     setObject(application.get(), {}, "visualization", visualization);
 
     EXPECT_THROW(loadApplication(application), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenInputNormalizationPassthroughDisabledKbin1_Parses)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+
+    json_t* binning = json_object();
+    ASSERT_EQ(json_object_set_new(binning, "mode", json_string("disabled")), 0);
+    ASSERT_EQ(json_object_set_new(binning, "kbin", json_integer(1)), 0);
+    json_t* parameters = json_object();
+    ASSERT_EQ(json_object_set_new(parameters, "binning", binning), 0);
+    setObject(pipeline.get(), {"pipeline", "input_normalization"}, "parameters", parameters);
+
+    const dp1v2::Dp1Config config = loadDp1(application, pipeline);
+
+    EXPECT_EQ(config.pipeline.stages.input_normalization.variant, "passthrough");
+    EXPECT_EQ(config.resolved_pipeline.input_normalization.binning_mode, dp1v2::BinningMode::None);
+    EXPECT_EQ(config.resolved_pipeline.input_normalization.bin_factor, 1);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenInputNormalizationPassthroughAverage_Throws)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+
+    json_t* binning = json_object();
+    ASSERT_EQ(json_object_set_new(binning, "mode", json_string("average")), 0);
+    ASSERT_EQ(json_object_set_new(binning, "kbin", json_integer(2)), 0);
+    json_t* parameters = json_object();
+    ASSERT_EQ(json_object_set_new(parameters, "binning", binning), 0);
+    setObject(pipeline.get(), {"pipeline", "input_normalization"}, "parameters", parameters);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenInputNormalizationPassthroughDisabledKbinNotOne_Throws)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+
+    json_t* binning = json_object();
+    ASSERT_EQ(json_object_set_new(binning, "mode", json_string("disabled")), 0);
+    ASSERT_EQ(json_object_set_new(binning, "kbin", json_integer(2)), 0);
+    json_t* parameters = json_object();
+    ASSERT_EQ(json_object_set_new(parameters, "binning", binning), 0);
+    setObject(pipeline.get(), {"pipeline", "input_normalization"}, "parameters", parameters);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenInputNormalizationAverageBinningAverageKbin2Or4_Parses)
+{
+    for (const int kbin : {2, 4}) {
+        JsonPtr application = makeApplicationConfig();
+        JsonPtr pipeline = makePipelineConfig();
+        setString(pipeline.get(), {"pipeline", "input_normalization"}, "variant", "average_binning");
+
+        json_t* binning = json_object();
+        ASSERT_EQ(json_object_set_new(binning, "mode", json_string("average")), 0);
+        ASSERT_EQ(json_object_set_new(binning, "kbin", json_integer(kbin)), 0);
+        json_t* parameters = json_object();
+        ASSERT_EQ(json_object_set_new(parameters, "binning", binning), 0);
+        setObject(pipeline.get(), {"pipeline", "input_normalization"}, "parameters", parameters);
+
+        const dp1v2::Dp1Config config = loadDp1(application, pipeline);
+
+        EXPECT_EQ(config.pipeline.stages.input_normalization.variant, "average_binning");
+        EXPECT_EQ(config.resolved_pipeline.input_normalization.binning_mode, dp1v2::BinningMode::Average);
+        EXPECT_EQ(config.resolved_pipeline.input_normalization.bin_factor, kbin);
+    }
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenInputNormalizationBinningModeUnsupported_Throws)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+
+    json_t* binning = json_object();
+    ASSERT_EQ(json_object_set_new(binning, "mode", json_string("sum")), 0);
+    json_t* parameters = json_object();
+    ASSERT_EQ(json_object_set_new(parameters, "binning", binning), 0);
+    setObject(pipeline.get(), {"pipeline", "input_normalization"}, "parameters", parameters);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenInputNormalizationAverageBinningDisabled_Throws)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "input_normalization"}, "variant", "average_binning");
+
+    json_t* binning = json_object();
+    ASSERT_EQ(json_object_set_new(binning, "mode", json_string("disabled")), 0);
+    ASSERT_EQ(json_object_set_new(binning, "kbin", json_integer(1)), 0);
+    json_t* parameters = json_object();
+    ASSERT_EQ(json_object_set_new(parameters, "binning", binning), 0);
+    setObject(pipeline.get(), {"pipeline", "input_normalization"}, "parameters", parameters);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenInputNormalizationAverageBinningAverageKbin1_Throws)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "input_normalization"}, "variant", "average_binning");
+
+    json_t* binning = json_object();
+    ASSERT_EQ(json_object_set_new(binning, "mode", json_string("average")), 0);
+    ASSERT_EQ(json_object_set_new(binning, "kbin", json_integer(1)), 0);
+    json_t* parameters = json_object();
+    ASSERT_EQ(json_object_set_new(parameters, "binning", binning), 0);
+    setObject(pipeline.get(), {"pipeline", "input_normalization"}, "parameters", parameters);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenInputNormalizationAverageBinningKbinUnsupported_Throws)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "input_normalization"}, "variant", "average_binning");
+
+    json_t* binning = json_object();
+    ASSERT_EQ(json_object_set_new(binning, "mode", json_string("average")), 0);
+    ASSERT_EQ(json_object_set_new(binning, "kbin", json_integer(3)), 0);
+    json_t* parameters = json_object();
+    ASSERT_EQ(json_object_set_new(parameters, "binning", binning), 0);
+    setObject(pipeline.get(), {"pipeline", "input_normalization"}, "parameters", parameters);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenInputNormalizationBinningHasUnknownKey_Throws)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "input_normalization"}, "variant", "average_binning");
+
+    json_t* binning = json_object();
+    ASSERT_EQ(json_object_set_new(binning, "mode", json_string("average")), 0);
+    ASSERT_EQ(json_object_set_new(binning, "kbin", json_integer(2)), 0);
+    ASSERT_EQ(json_object_set_new(binning, "extra", json_integer(1)), 0);
+    json_t* parameters = json_object();
+    ASSERT_EQ(json_object_set_new(parameters, "binning", binning), 0);
+    setObject(pipeline.get(), {"pipeline", "input_normalization"}, "parameters", parameters);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
 }

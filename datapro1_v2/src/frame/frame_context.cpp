@@ -138,9 +138,15 @@ FrameArtifactRef register_canonical_frame_artifact(FrameContext &context, const 
     artifact.id = kCanonicalFrameArtifactId;
     artifact.kind = FrameArtifactKind::CanonicalFrame;
     artifact.domain = FrameArtifactDomain::Raw;
-    artifact.ownership = FrameArtifactOwnership::BorrowedReadOnly;
-    artifact.lifetime = FrameArtifactLifetime::InputBoundary;
-    artifact.status = FrameArtifactStatus::Available;
+    if (frame.image_ownership == CanonicalPayloadOwnership::BorrowedReadOnly && !frame.normalization.binned) {
+        artifact.ownership = FrameArtifactOwnership::BorrowedReadOnly;
+        artifact.lifetime = FrameArtifactLifetime::InputBoundary;
+        artifact.status = FrameArtifactStatus::Available;
+    } else {
+        artifact.ownership = FrameArtifactOwnership::OwnedByStageOutput;
+        artifact.lifetime = FrameArtifactLifetime::StageOutputScope;
+        artifact.status = FrameArtifactStatus::MetadataOnly;
+    }
     artifact.semantic_name = kCanonicalFrameArtifactId;
     artifact.producer_stage = kInputNormalizationProducerStage;
     artifact.parent_artifact_id = frame.parent_artifact_id.empty() ? kRawFrameArtifactId : frame.parent_artifact_id;

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "dp1v2/config/defaults.hpp"
+#include "dp1v2/domain/canonical_frame.hpp"
 #include "dp1v2/domain/pixel.hpp"
 
 namespace dp1v2 {
@@ -195,6 +196,11 @@ struct StageConfig {
     ParameterMap parameters;
 };
 
+struct InputNormalizationResolvedConfig {
+    BinningMode binning_mode = BinningMode::None;
+    int bin_factor = 1;
+};
+
 struct PrepResolvedConfig {
     std::optional<PrepTilesParametersConfig> tiles;
 };
@@ -204,6 +210,7 @@ struct RadiometricResolvedConfig {
 };
 
 struct ResolvedPipelineConfig {
+    InputNormalizationResolvedConfig input_normalization;
     PrepResolvedConfig prep;
     RadiometricResolvedConfig radiometric;
 };
