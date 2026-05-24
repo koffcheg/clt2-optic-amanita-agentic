@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "dp1v2/domain/frame_context.hpp"
 #include "dp1v2/domain/status.hpp"
 
 namespace dp1v2 {
@@ -12,6 +13,7 @@ struct TileContext {
     int tile_id = -1;
     std::vector<StageStatus> stage_statuses;
     std::vector<DiagnosticMessage> diagnostics;
+    std::vector<StageTiming> stage_timings;
 };
 
 } // namespace dp1v2
