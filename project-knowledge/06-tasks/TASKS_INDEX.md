@@ -94,3 +94,4 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0072` - Stage0 average binning regression-safety cleanup - completed
 - `AMNT-0073` - DP1 v2 required TBB build dependency - completed
 - `AMNT-0074` - DP1 v2 tile execution and aggregation config schema - completed
+- `AMNT-0075` - DP1 v2 FullFramePipeline extraction - completed

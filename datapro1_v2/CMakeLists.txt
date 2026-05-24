@@ -40,6 +40,7 @@ target_sources(
         src/result/result_builder.cpp
         src/result/result_sink.cpp
         src/runtime/runtime.cpp
+        src/runtime/full_frame_pipeline.cpp
         src/runtime/pipeline.cpp
         src/runtime/log_field_sanitizer.cpp
         src/runtime/profiling_log_formatter.cpp
@@ -150,6 +151,7 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 src/stages/prep_stage.cpp
                 src/stages/radiometric_stage.cpp
                 src/result/result_builder.cpp
+                src/runtime/full_frame_pipeline.cpp
                 src/runtime/pipeline.cpp
                 src/runtime/log_field_sanitizer.cpp
                 src/runtime/profiling_log_formatter.cpp
