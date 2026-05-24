@@ -3,6 +3,8 @@ project(datapro1_v2)
 
 include(FindPkgConfig)
 
+find_package(TBB REQUIRED)
+
 if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -91,6 +93,7 @@ target_link_libraries(
         PRIVATE
         Boost::headers
         Threads::Threads
+        TBB::tbb
         log4cxx
         model
         camera_frame
@@ -174,6 +177,7 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 gtest
                 gtest_main
                 PkgConfig::jansson
+                TBB::tbb
         )
         gtest_discover_tests(dp1v2_unit_tests)
 
