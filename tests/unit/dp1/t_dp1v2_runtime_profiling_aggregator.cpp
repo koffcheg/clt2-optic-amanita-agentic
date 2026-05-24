@@ -48,7 +48,7 @@ dp1v2::SingleFramePipelineResult makeResult(
     return result;
 }
 
-dp1v2::SingleFramePipelineResult makeTilesControlledFailureResult()
+dp1v2::SingleFramePipelineResult makeLegacyTilesDownstreamFailureResult()
 {
     dp1v2::SingleFramePipelineResult result{};
     result.lifecycle.status = dp1v2::FrameTerminalStatus::Failed;
@@ -313,17 +313,16 @@ TEST(RuntimeProfilingAggregatorTest, WindowSummaryDueIgnoresSummaryEveryNFrames)
     EXPECT_TRUE(dp1v2::is_window_summary_due(profiling, summary));
 }
 
-TEST(RuntimeProfilingAggregatorTest, FormatsControlledTilesFailureSummary)
+TEST(RuntimeProfilingAggregatorTest, FormatsLegacyTilesDownstreamFailureAsRegularFailure)
 {
-    const dp1v2::SingleFramePipelineResult result = makeTilesControlledFailureResult();
+    const dp1v2::SingleFramePipelineResult result = makeLegacyTilesDownstreamFailureResult();
 
-    EXPECT_TRUE(dp1v2::is_controlled_tiles_frame_failure(result));
     const std::string message = dp1v2::format_frame_failed_log(result);
     EXPECT_NE(message.find("event=frame_failed"), std::string::npos);
     EXPECT_NE(message.find("frame_id=42"), std::string::npos);
     EXPECT_NE(message.find("camera_id=7"), std::string::npos);
-    EXPECT_NE(message.find("controlled=true"), std::string::npos);
-    EXPECT_NE(message.find("reason=prep_tiles_downstream_not_connected"), std::string::npos);
+    EXPECT_NE(message.find("controlled=false"), std::string::npos);
+    EXPECT_EQ(message.find("reason=prep_tiles_downstream_not_connected"), std::string::npos);
     EXPECT_NE(message.find("prep_variant=tiles"), std::string::npos);
     EXPECT_NE(message.find("tile_count=6"), std::string::npos);
     EXPECT_NE(message.find("radiometric_status=not_started"), std::string::npos);

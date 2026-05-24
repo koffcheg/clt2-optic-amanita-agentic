@@ -55,8 +55,14 @@ std::string makeTileSummaryReason(
     std::string reason = "tile_pipeline_summary";
     reason += ": total_tiles=" + std::to_string(aggregation.total_tiles);
     reason += " completed_tiles=" + std::to_string(aggregation.completed_tile_count);
+    reason += " skipped_tiles=" + std::to_string(aggregation.skipped_tile_count);
+    reason += " disabled_tiles=" + std::to_string(aggregation.disabled_tile_count);
     reason += " failed_tiles=" + std::to_string(aggregation.failed_tile_count);
     reason += " unsupported_tiles=" + std::to_string(aggregation.unsupported_tile_count);
+    reason += " candidates=" + std::to_string(aggregation.candidate_count);
+    reason += " segments=" + std::to_string(aggregation.segment_count);
+    reason += " validated_objects=" + std::to_string(aggregation.validated_object_count);
+    reason += " measurements=" + std::to_string(aggregation.measurement_count);
     reason += " executor_duration_ns=" + std::to_string(execution.duration_ns);
     return reason;
 }

@@ -5,6 +5,7 @@
 #include "dp1v2/runtime/pipeline.hpp"
 #include "dp1v2/runtime/profiling_log_formatter.hpp"
 #include "dp1v2/runtime/runtime_profiling_aggregator.hpp"
+#include "dp1v2/runtime/runtime_threading.hpp"
 #include "dp1v2/app/process_control.hpp"
 #include "dp1v2/result/result_sink.hpp"
 #include "dp1v2/source/source.hpp"
@@ -218,6 +219,8 @@ RuntimeLoopResult run_bounded_runtime_loop(const StartupContext &context, IFrame
         visualization_sink);
     RuntimeProfilingAggregator profiling_aggregator;
 
+    apply_tile_route_opencv_thread_limit(context.config.resolved_pipeline);
+
     emit_pipeline_started_log(context);
 
     auto finish_loop = [&]() {
@@ -302,11 +305,6 @@ RuntimeLoopResult run_bounded_runtime_loop(const StartupContext &context, IFrame
                 profiling_logger()->isDebugEnabled())) {
             LOG4CXX_DEBUG(profiling_logger(), format_frame_profile_log(frame_result));
         }
-        if (is_controlled_tiles_frame_failure(frame_result)) {
-            if (context.config.application.logging.enabled) {
-                LOG4CXX_WARN(runtime_logger(), format_frame_failed_log(frame_result));
-            }
-        }
         maybe_emit_window_summary_log(context, profiling_aggregator);
 
         if (frame_result.lifecycle.status == FrameTerminalStatus::Completed) {
@@ -325,7 +323,7 @@ RuntimeLoopResult run_bounded_runtime_loop(const StartupContext &context, IFrame
             ++loop_result.frames_failed;
             ++loop_result.resource.frames_failed;
             loop_result.status = ProcessTerminalStatus::Failed;
-            if (!is_controlled_tiles_frame_failure(frame_result) && context.config.application.logging.enabled) {
+            if (context.config.application.logging.enabled) {
                 LOG4CXX_ERROR(runtime_logger(), format_frame_failed_log(frame_result));
             }
             return finish_loop();

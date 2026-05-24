@@ -902,6 +902,25 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionAndAggregationAreValid_Re
               dp1v2::TileOutputCoordinateSpace::SourceFrameGlobal);
 }
 
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionBackendFieldIsPresent_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setString(pipeline.get(), {"pipeline", "prep"}, "level", "L1");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 16, 16));
+
+    json_t* execution = makeTileExecutionParameters(
+        1, 1, "continue", "failed_if_any_required_tile_failed");
+    ASSERT_EQ(json_object_set_new(execution, "backend", json_string("serial")), 0);
+    setObject(pipeline.get(),
+              {"pipeline", "prep", "parameters", "tiles"},
+              "execution",
+              execution);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
 TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesObjectIsMissing_ThrowsConfigError)
 {
     JsonPtr application = makeApplicationConfig();

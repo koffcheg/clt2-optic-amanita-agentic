@@ -10,6 +10,7 @@
 #include "dp1v2/frame/frame_context.hpp"
 #include "dp1v2/runtime/pipeline.hpp"
 #include "dp1v2/runtime/runtime_profiling_aggregator.hpp"
+#include "dp1v2/runtime/runtime_threading.hpp"
 
 namespace dp1v2 {
 
@@ -237,13 +238,43 @@ TEST(PipelineTest, TilesPrepRouteRunsRadiometricWarmUpThroughTilePipeline)
     EXPECT_EQ(radiometric_status->variant, "inverse_median");
     EXPECT_EQ(radiometric_status->route, "tiles");
     EXPECT_NE(radiometric_status->reason.find("total_tiles=6"), std::string::npos);
+    EXPECT_NE(radiometric_status->reason.find("skipped_tiles=6"), std::string::npos);
     EXPECT_NE(radiometric_status->reason.find("unsupported_tiles=0"), std::string::npos);
+    EXPECT_NE(radiometric_status->reason.find("measurements=0"), std::string::npos);
 
     EXPECT_NE(findStageTiming(result.frame, "radiometric_correction"), nullptr);
     EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
     EXPECT_FALSE(hasDiagnostic(result.frame, "prep.tiles.downstream_not_connected"));
     EXPECT_TRUE(hasDiagnostic(result.frame, "tile_pipeline.summary"));
-    EXPECT_FALSE(dp1v2::is_controlled_tiles_frame_failure(result));
+}
+
+TEST(PipelineTest, TileRouteAppliesOpenCvThreadLimitAtRuntimeBoundary)
+{
+    const int previous_threads = cv::getNumThreads();
+
+    dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    ASSERT_TRUE(resolved_pipeline_config.prep.tiles.has_value());
+    resolved_pipeline_config.prep.tiles->execution.opencv_num_threads = 1;
+
+    dp1v2::apply_tile_route_opencv_thread_limit(resolved_pipeline_config);
+    EXPECT_EQ(cv::getNumThreads(), 1);
+
+    cv::setNumThreads(previous_threads);
+}
+
+TEST(PipelineTest, TileRouteOpenCvThreadLimitZeroLeavesCurrentSetting)
+{
+    const int previous_threads = cv::getNumThreads();
+    cv::setNumThreads(2);
+
+    dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    ASSERT_TRUE(resolved_pipeline_config.prep.tiles.has_value());
+    resolved_pipeline_config.prep.tiles->execution.opencv_num_threads = 0;
+
+    dp1v2::apply_tile_route_opencv_thread_limit(resolved_pipeline_config);
+    EXPECT_EQ(cv::getNumThreads(), 2);
+
+    cv::setNumThreads(previous_threads);
 }
 
 

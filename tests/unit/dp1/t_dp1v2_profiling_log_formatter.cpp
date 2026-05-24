@@ -89,11 +89,12 @@ dp1v2::SingleFramePipelineResult makeFullFrameResult()
     return result;
 }
 
-dp1v2::SingleFramePipelineResult makeTilesControlledFailureResult()
+dp1v2::SingleFramePipelineResult makeTilesRouteFailureResult()
 {
     dp1v2::SingleFramePipelineResult result{};
     result.lifecycle.status = dp1v2::FrameTerminalStatus::Failed;
-    result.lifecycle.reason = "prep tiles layout is built, but downstream tile pipeline is not connected yet";
+    result.lifecycle.reason =
+        "tile_frame_aggregation_failed: total_tiles=6 completed_tiles=5 failed_tiles=1 unsupported_tiles=0";
     result.frame.frame_id = 42;
     result.frame.camera_id = 7;
     result.frame.profiling.frame_duration_ns = 381000;
@@ -120,6 +121,13 @@ dp1v2::SingleFramePipelineResult makeTilesControlledFailureResult()
                     "L1",
                     dp1v2::PixelFormat::U16,
                     dp1v2::PixelFormat::U16),
+        stageTiming("radiometric_correction",
+                    dp1v2::StageStatusCode::Failed,
+                    200000,
+                    "inverse_median",
+                    "L0",
+                    dp1v2::PixelFormat::U16,
+                    dp1v2::PixelFormat::U16),
     };
     result.frame.stage_statuses = {
         stageStatus("prep",
@@ -128,17 +136,11 @@ dp1v2::SingleFramePipelineResult makeTilesControlledFailureResult()
                     "L1",
                     "tiles"),
         stageStatus("radiometric_correction",
-                    dp1v2::StageStatusCode::NotStarted,
+                    dp1v2::StageStatusCode::Failed,
                     "inverse_median",
                     "L0",
                     "tiles",
                     result.lifecycle.reason),
-    };
-    result.frame.diagnostics = {
-        dp1v2::DiagnosticMessage{
-            .code = "prep.tiles.downstream_not_connected",
-            .message = result.lifecycle.reason,
-        },
     };
     return result;
 }
@@ -167,17 +169,17 @@ TEST(ProfilingLogFormatterTest, FullFrameSummaryContainsFrameProfileAndStages)
     EXPECT_TRUE(contains(message, "radiometric_correction"));
 }
 
-TEST(ProfilingLogFormatterTest, TilesSummaryContainsControlledFailureAndRoute)
+TEST(ProfilingLogFormatterTest, TilesSummaryContainsRouteFailureWithoutControlledMarker)
 {
-    const std::string message = dp1v2::format_frame_profile_log(makeTilesControlledFailureResult());
+    const std::string message = dp1v2::format_frame_profile_log(makeTilesRouteFailureResult());
 
     EXPECT_TRUE(contains(message, "event=frame_profile"));
     EXPECT_TRUE(contains(message, "status=failed"));
-    EXPECT_TRUE(contains(message, "reason=prep_tiles_downstream_not_connected"));
-    EXPECT_TRUE(contains(message, "controlled=true"));
+    EXPECT_TRUE(contains(message, "reason=tile_frame_aggregation_failed"));
+    EXPECT_FALSE(contains(message, "controlled=true"));
     EXPECT_TRUE(contains(message, "tile_count=6"));
-    EXPECT_TRUE(contains(message, "stage_count=3"));
-    EXPECT_TRUE(contains(message, "radiometric_correction:not_started:tiles"));
+    EXPECT_TRUE(contains(message, "stage_count=4"));
+    EXPECT_TRUE(contains(message, "radiometric_correction:failed:tiles"));
 }
 
 TEST(ProfilingLogFormatterTest, EmptyStageTimingsDoNotCrash)

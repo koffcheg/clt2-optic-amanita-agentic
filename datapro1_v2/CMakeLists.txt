@@ -49,6 +49,7 @@ target_sources(
         src/runtime/log_field_sanitizer.cpp
         src/runtime/profiling_log_formatter.cpp
         src/runtime/runtime_profiling_aggregator.cpp
+        src/runtime/runtime_threading.cpp
         src/runtime/cyclic_frame_buffer.cpp
         src/source/source.cpp
         src/source/uri_file_source.cpp
@@ -170,6 +171,7 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 src/runtime/log_field_sanitizer.cpp
                 src/runtime/profiling_log_formatter.cpp
                 src/runtime/runtime_profiling_aggregator.cpp
+                src/runtime/runtime_threading.cpp
                 src/stages/radiometric_stage.inverse_median.cpp
                 src/source/uri_file_source.cpp
         )
