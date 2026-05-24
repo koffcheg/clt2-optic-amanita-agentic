@@ -58,7 +58,9 @@ target_sources(
         dp1v2_visual_unit_tests
         PRIVATE
         visual-unit/dp1/t_dp1v2_inverse_median.cpp
+        visual-unit/dp1/t_dp1v2_average_binning.cpp
         ../datapro1_v2/src/runtime/cyclic_frame_buffer.cpp
+        ../datapro1_v2/src/stages/input_normalization_stage.cpp
         ../datapro1_v2/src/stages/radiometric_stage.inverse_median.cpp
 )
 

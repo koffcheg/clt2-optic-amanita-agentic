@@ -208,7 +208,6 @@ TEST(PipelineTest, TilesPrepRouteBuildsLayoutThenStopsBeforeRadiometric)
 }
 
 
-
 TEST(PipelineTest, FullFrameRouteUsesInputRouteForFramePacketMetadata)
 {
     auto pipeline_config = makeFullFramePipelineConfig();
@@ -256,6 +255,7 @@ TEST(PipelineTest, FullFrameRouteUsesInputRouteForFramePacketMetadata)
     EXPECT_EQ(result.lifecycle.reason.find("input_route bit_depth mismatch"), std::string::npos);
     EXPECT_EQ(result.lifecycle.reason.find("input_route pixel_range mismatch"), std::string::npos);
 }
+
 TEST(PipelineTest, FullFrameRouteRecordsProfilingCollectionWhenReportsDisabled)
 {
     dp1v2::LoggingConfig logging{};
