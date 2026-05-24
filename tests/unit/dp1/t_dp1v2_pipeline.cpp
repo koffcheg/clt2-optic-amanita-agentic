@@ -163,7 +163,7 @@ bool hasDiagnostic(
 TEST(PipelineTest, TilesPrepRouteBuildsLayoutThenStopsBeforeRadiometric)
 {
     const dp1v2::PipelineConfig pipeline_config = makeTilesPipelineConfig();
-    const dp1v2::InputNormalizationStage input_normalization_stage;
+    const dp1v2::InputNormalizationStage input_normalization_stage({.binning_mode = dp1v2::BinningMode::None, .bin_factor = 1});
     dp1v2::PrepStage prep_stage(makePrepResolvedConfig());
     dp1v2::RadiometricStage radiometric_stage;
     dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
@@ -207,6 +207,55 @@ TEST(PipelineTest, TilesPrepRouteBuildsLayoutThenStopsBeforeRadiometric)
     EXPECT_TRUE(dp1v2::is_controlled_tiles_frame_failure(result));
 }
 
+
+
+TEST(PipelineTest, FullFrameRouteUsesInputRouteForFramePacketMetadata)
+{
+    auto pipeline_config = makeFullFramePipelineConfig();
+    pipeline_config.input_route = dp1v2::InputRouteConfig{
+        .pixel_format = dp1v2::PixelFormat::U16,
+        .bit_depth = dp1v2::InputBitDepth::Bit12,
+        .pixel_range = dp1v2::PixelRange{
+            .min_value = 0.0,
+            .max_value = 4095.0,
+            .black_level = 0.0,
+            .saturation_level = 4095.0,
+        },
+    };
+    pipeline_config.stages.input_normalization = stageConfig(true, "passthrough", "L0");
+    pipeline_config.stages.prep = stageConfig(true, "full_frame", "L0");
+    pipeline_config.stages.radiometric = stageConfig(true, "inverse_median", "L0");
+
+    const dp1v2::InputNormalizationStage input_normalization_stage({.binning_mode = dp1v2::BinningMode::None, .bin_factor = 1});
+    dp1v2::PrepStage prep_stage;
+    dp1v2::RadiometricStage radiometric_stage(makeRadiometricResolvedConfig());
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    const auto result = dp1v2::process_single_frame(
+        makeEnvelope(),
+        7,
+        pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        radiometric_stage,
+        visualization_sink);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+
+    const dp1v2::StageStatus* input_normalization_status =
+        findStageStatus(result.frame, "input_normalization");
+    ASSERT_NE(input_normalization_status, nullptr);
+    EXPECT_EQ(input_normalization_status->status, dp1v2::StageStatusCode::Completed);
+
+    const dp1v2::StageTiming* input_normalization_timing =
+        findStageTiming(result.frame, "input_normalization");
+    ASSERT_NE(input_normalization_timing, nullptr);
+    EXPECT_EQ(input_normalization_timing->pixel_format_in, dp1v2::PixelFormat::U16);
+    EXPECT_EQ(input_normalization_timing->pixel_format_out, dp1v2::PixelFormat::U16);
+
+    EXPECT_EQ(result.lifecycle.reason.find("input_route bit_depth mismatch"), std::string::npos);
+    EXPECT_EQ(result.lifecycle.reason.find("input_route pixel_range mismatch"), std::string::npos);
+}
 TEST(PipelineTest, FullFrameRouteRecordsProfilingCollectionWhenReportsDisabled)
 {
     dp1v2::LoggingConfig logging{};
@@ -216,7 +265,7 @@ TEST(PipelineTest, FullFrameRouteRecordsProfilingCollectionWhenReportsDisabled)
     profiling.reports.emit_frame_reports = true;
 
     const dp1v2::PipelineConfig pipeline_config = makeFullFramePipelineConfig();
-    const dp1v2::InputNormalizationStage input_normalization_stage;
+    const dp1v2::InputNormalizationStage input_normalization_stage({.binning_mode = dp1v2::BinningMode::None, .bin_factor = 1});
     dp1v2::PrepStage prep_stage;
     dp1v2::RadiometricStage radiometric_stage(makeRadiometricResolvedConfig());
     dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});

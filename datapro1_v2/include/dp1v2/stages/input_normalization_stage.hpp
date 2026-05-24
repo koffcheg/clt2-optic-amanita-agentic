@@ -23,7 +23,6 @@ struct InputNormalizationConfig {
 
 class InputNormalizationStage final {
 public:
-    InputNormalizationStage() = default;
     explicit InputNormalizationStage(InputNormalizationResolvedConfig resolved_config);
 
     StageOutcome<InputNormalizationOutput> process(
