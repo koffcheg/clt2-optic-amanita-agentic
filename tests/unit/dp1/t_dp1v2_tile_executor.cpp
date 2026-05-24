@@ -28,7 +28,7 @@ dp1v2::StageConfig radiometricConfig()
 {
     return dp1v2::StageConfig{
         .enabled = true,
-        .variant = "inverse_median",
+        .variant = "unsupported_tile_test_variant",
         .level = "L0",
         .parameters = {},
     };

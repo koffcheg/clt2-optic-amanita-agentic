@@ -58,6 +58,7 @@ target_sources(
         src/stages/input_normalization_stage.cpp
         src/stages/prep_stage.cpp
         src/stages/radiometric_stage.inverse_median.cpp
+        src/stages/tile_radiometric_state_store.cpp
         src/stages/radiometric_stage.cpp
         src/visualization/visualization_sink.cpp
         ../datapro1/src/dp1_tr_res2dp2.cpp
@@ -146,6 +147,7 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 ../tests/unit/dp1/t_dp1v2_tile_frame_aggregator.cpp
                 ../tests/unit/dp1/t_dp1v2_tile_executor.cpp
                 ../tests/unit/dp1/t_dp1v2_tile_pipeline.cpp
+                ../tests/unit/dp1/t_dp1v2_tile_radiometric_state_store.cpp
                 ../tests/unit/dp1/t_dp1v2_profiling_log_formatter.cpp
                 ../tests/unit/dp1/t_dp1v2_log_field_sanitizer.cpp
                 ../tests/unit/dp1/t_dp1v2_runtime_profiling_aggregator.cpp
@@ -157,6 +159,7 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 src/stages/input_normalization_stage.cpp
                 src/stages/prep_stage.cpp
                 src/stages/radiometric_stage.cpp
+                src/stages/tile_radiometric_state_store.cpp
                 src/result/result_builder.cpp
                 src/runtime/full_frame_pipeline.cpp
                 src/runtime/pipeline.cpp

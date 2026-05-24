@@ -15,6 +15,7 @@ target_sources(
         unit/dp1/t_dp1v2_input_normalization_stage.cpp
         unit/dp1/t_dp1v2_prep_stage.cpp
         unit/dp1/t_dp1v2_pipeline.cpp
+        unit/dp1/t_dp1v2_tile_radiometric_state_store.cpp
         unit/dp1/t_dp1v2_profiling_log_formatter.cpp
         unit/dp1/t_dp1v2_runtime_profiling_aggregator.cpp
         ../datapro1_v2/src/runtime/cyclic_frame_buffer.cpp
@@ -25,6 +26,7 @@ target_sources(
         ../datapro1_v2/src/stages/input_normalization_stage.cpp
         ../datapro1_v2/src/stages/prep_stage.cpp
         ../datapro1_v2/src/stages/radiometric_stage.cpp
+        ../datapro1_v2/src/stages/tile_radiometric_state_store.cpp
         ../datapro1_v2/src/result/result_builder.cpp
         ../datapro1_v2/src/runtime/pipeline.cpp
         ../datapro1_v2/src/runtime/profiling_log_formatter.cpp

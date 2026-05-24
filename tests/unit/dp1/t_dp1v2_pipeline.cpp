@@ -26,9 +26,6 @@ ResultSinkOutcome publish_result_to_sinks(const TDataRes &)
 
 namespace {
 
-constexpr std::string_view kTileUnsupportedReason =
-    "tile_frame_aggregation_unsupported: total_tiles=6 completed_tiles=0 failed_tiles=0 unsupported_tiles=6";
-
 dp1v2::PixelRange rangeU16()
 {
     return dp1v2::PixelRange{
@@ -201,7 +198,7 @@ bool hasDiagnostic(
 
 } // namespace
 
-TEST(PipelineTest, TilesPrepRouteBuildsLayoutThenStopsBeforeRadiometric)
+TEST(PipelineTest, TilesPrepRouteRunsRadiometricWarmUpThroughTilePipeline)
 {
     const dp1v2::PipelineConfig pipeline_config = makeTilesPipelineConfig();
     const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
@@ -219,10 +216,8 @@ TEST(PipelineTest, TilesPrepRouteBuildsLayoutThenStopsBeforeRadiometric)
         radiometric_stage,
         visualization_sink);
 
-    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Failed);
-    EXPECT_EQ(result.lifecycle.reason, kTileUnsupportedReason);
-    EXPECT_NE(result.sink.send_status, dp1v2::ResultSinkStatus::Accepted);
-    EXPECT_NE(result.sink.artifact_status, dp1v2::ResultSinkStatus::Accepted);
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+    EXPECT_EQ(result.lifecycle.reason, "test_result_sink_stub");
 
     const dp1v2::StageStatus *prep_status = findStageStatus(result.frame, "prep");
     ASSERT_NE(prep_status, nullptr);
@@ -238,16 +233,17 @@ TEST(PipelineTest, TilesPrepRouteBuildsLayoutThenStopsBeforeRadiometric)
     const dp1v2::StageStatus *radiometric_status =
         findStageStatus(result.frame, "radiometric_correction");
     ASSERT_NE(radiometric_status, nullptr);
-    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Unsupported);
+    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Skipped);
     EXPECT_EQ(radiometric_status->variant, "inverse_median");
     EXPECT_EQ(radiometric_status->route, "tiles");
-    EXPECT_EQ(radiometric_status->reason, kTileUnsupportedReason);
+    EXPECT_NE(radiometric_status->reason.find("total_tiles=6"), std::string::npos);
+    EXPECT_NE(radiometric_status->reason.find("unsupported_tiles=0"), std::string::npos);
 
     EXPECT_NE(findStageTiming(result.frame, "radiometric_correction"), nullptr);
     EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
     EXPECT_FALSE(hasDiagnostic(result.frame, "prep.tiles.downstream_not_connected"));
     EXPECT_TRUE(hasDiagnostic(result.frame, "tile_pipeline.summary"));
-    EXPECT_TRUE(dp1v2::is_controlled_tiles_frame_failure(result));
+    EXPECT_FALSE(dp1v2::is_controlled_tiles_frame_failure(result));
 }
 
 

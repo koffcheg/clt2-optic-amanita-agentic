@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -160,6 +161,17 @@ std::vector<TileTask> buildTileTasks(const TilePipelineArgs& args)
     return tasks;
 }
 
+cv::Size inferFrameSizeAfterStage0(const PrepTilesOutput& output)
+{
+    int width = 0;
+    int height = 0;
+    for (const TileRawView& view : output.tile_views) {
+        width = std::max(width, view.origin_in_frame.x + view.image.cols);
+        height = std::max(height, view.origin_in_frame.y + view.image.rows);
+    }
+    return cv::Size(width, height);
+}
+
 void recordTileSummary(
     FrameContext& context,
     const StageConfig& radiometric_config,
@@ -214,7 +226,6 @@ TilePipeline::TilePipeline(
 
 TilePipelineResult TilePipeline::process(const TilePipelineArgs& args)
 {
-    (void)args.resolved_pipeline_config;
     (void)visualization_sink_;
 
     const std::size_t tile_count = args.prep_output.tiles.size();
@@ -227,6 +238,19 @@ TilePipelineResult TilePipeline::process(const TilePipelineArgs& args)
             args.frame_context,
             radiometric_config,
             validation_error,
+            tile_count);
+    }
+
+    const std::optional<std::string> preparation_error = radiometric_stage_.prepareTileStates(
+        args.prep_output,
+        radiometric_config,
+        inferFrameSizeAfterStage0(args.prep_output),
+        args.resolved_pipeline_config.input_normalization.bin_factor);
+    if (preparation_error.has_value()) {
+        return makeFailureResult(
+            args.frame_context,
+            radiometric_config,
+            *preparation_error,
             tile_count);
     }
 

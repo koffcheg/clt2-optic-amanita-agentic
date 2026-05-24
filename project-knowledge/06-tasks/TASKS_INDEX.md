@@ -98,3 +98,4 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0076` - DP1 v2 tile result status runtime model - completed
 - `AMNT-0077` - DP1 v2 TileTask and TileProcessor implementation - completed
 - `AMNT-0078` - DP1 v2 TileExecutor oneTBB implementation - completed
+- `AMNT-0081` - DP1 v2 per-tile radiometric inverse median state ownership - completed
