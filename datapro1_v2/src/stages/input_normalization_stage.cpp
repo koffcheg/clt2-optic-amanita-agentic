@@ -7,6 +7,7 @@ namespace dp1v2 {
 namespace {
 
 constexpr const char *kPassthroughVariant = "passthrough";
+constexpr const char *kAverageBinningVariant = "average_binning";
 constexpr const char *kRawFrameArtifactId = "raw_frame";
 
 int expectedCvDepth(const PixelFormat pixel_format)
@@ -122,7 +123,8 @@ StageOutcome<InputNormalizationOutput> InputNormalizationStage::process(
     if (!config.stage.enabled) {
         return failure(StageExecutionStatus::Disabled, "input_normalization stage is disabled");
     }
-    if (config.stage.variant != kPassthroughVariant) {
+    if (config.stage.variant != kPassthroughVariant &&
+        config.stage.variant != kAverageBinningVariant) {
         return failure(
             StageExecutionStatus::Unsupported,
             "unsupported input_normalization variant: " + config.stage.variant);
@@ -158,6 +160,18 @@ StageOutcome<InputNormalizationOutput> InputNormalizationStage::process(
 
     CanonicalFrame frame = makeCanonicalFrame(packet);
     const int kbin = resolved_config_.bin_factor;
+    if (config.stage.variant == kPassthroughVariant &&
+        (resolved_config_.binning_mode != BinningMode::None || kbin != 1)) {
+        return failure(
+            StageExecutionStatus::Unsupported,
+            "passthrough variant requires binning_mode none and kbin=1");
+    }
+    if (config.stage.variant == kAverageBinningVariant &&
+        (resolved_config_.binning_mode != BinningMode::Average || (kbin != 2 && kbin != 4))) {
+        return failure(
+            StageExecutionStatus::Unsupported,
+            "average_binning variant requires average mode and kbin=2 or kbin=4");
+    }
     if (resolved_config_.binning_mode == BinningMode::None && kbin != 1) {
         return failure(StageExecutionStatus::Unsupported, "binning_mode none requires kbin=1");
     }
