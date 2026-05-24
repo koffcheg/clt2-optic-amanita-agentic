@@ -11,6 +11,7 @@ namespace {
 
 constexpr std::string_view kPrepTilesDownstreamNotConnectedCode =
     "prep.tiles.downstream_not_connected";
+constexpr std::string_view kTilePipelineSummaryCode = "tile_pipeline.summary";
 
 const char *stage_status_to_cstr(const StageStatusCode status) {
     switch (status) {
@@ -255,6 +256,13 @@ bool is_controlled_tiles_frame_failure(const SingleFramePipelineResult &result) 
     if (has_diagnostic_code(result.frame, kPrepTilesDownstreamNotConnectedCode)) {
         return true;
     }
+    if (has_diagnostic_code(result.frame, kTilePipelineSummaryCode)) {
+        const StageStatus *radiometric = find_stage_status(result.frame, "radiometric_correction");
+        return radiometric != nullptr
+               && radiometric->route == "tiles"
+               && (radiometric->status == StageStatusCode::Unsupported
+                   || radiometric->status == StageStatusCode::Failed);
+    }
     const StageStatus *radiometric = find_stage_status(result.frame, "radiometric_correction");
     return radiometric != nullptr
            && radiometric->status == StageStatusCode::NotStarted
@@ -273,7 +281,13 @@ std::string format_frame_failed_log(const SingleFramePipelineResult &result) {
            << " status=" << frame_status_to_cstr(result.lifecycle.status)
            << " controlled=" << (controlled ? "true" : "false");
     if (controlled) {
-        stream << " reason=prep_tiles_downstream_not_connected";
+        if (!result.lifecycle.reason.empty()) {
+            stream << " reason=" << sanitize_log_field(result.lifecycle.reason);
+        } else if (has_diagnostic_code(result.frame, kPrepTilesDownstreamNotConnectedCode)) {
+            stream << " reason=prep_tiles_downstream_not_connected";
+        } else {
+            stream << " reason=tile_route_controlled_failure";
+        }
     } else if (!result.lifecycle.reason.empty()) {
         stream << " reason=" << sanitize_log_field(result.lifecycle.reason);
     }

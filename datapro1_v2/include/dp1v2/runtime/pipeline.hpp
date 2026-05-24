@@ -7,12 +7,12 @@
 #include "dp1v2/config/config.hpp"
 #include "dp1v2/domain/frame_context.hpp"
 #include "dp1v2/result/result_sink.hpp"
+#include "dp1v2/runtime/full_frame_pipeline.hpp"
 #include "dp1v2/runtime/runtime.hpp"
+#include "dp1v2/runtime/tile_pipeline.hpp"
 #include "dp1v2/source/source.hpp"
 #include "dp1v2/stages/input_normalization_stage.hpp"
 #include "dp1v2/stages/prep_stage.hpp"
-#include "dp1v2/stages/radiometric_stage.hpp"
-#include "dp1v2/visualization/visualization_sink.hpp"
 
 namespace dp1v2 {
 
@@ -36,9 +36,10 @@ SingleFramePipelineResult process_single_frame(
     const RawFrameEnvelope &envelope,
     int cam_index,
     const PipelineConfig &pipeline_config,
+    const ResolvedPipelineConfig &resolved_pipeline_config,
     const InputNormalizationStage &input_normalization_stage,
     PrepStage &prep_stage,
-    RadiometricStage &radiometric_stage,
-    VisualizationSink &visualization_sink);
+    FullFramePipeline &full_frame_pipeline,
+    TilePipeline &tile_pipeline);
 
 } // namespace dp1v2

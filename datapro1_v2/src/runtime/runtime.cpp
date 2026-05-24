@@ -13,6 +13,10 @@
 #include "dp1v2/stages/input_normalization_stage.hpp"
 #include "dp1v2/stages/prep_stage.hpp"
 #include "dp1v2/stages/radiometric_stage.hpp"
+#include "dp1v2/runtime/full_frame_pipeline.hpp"
+#include "dp1v2/runtime/tile_executor.hpp"
+#include "dp1v2/runtime/tile_frame_aggregator.hpp"
+#include "dp1v2/runtime/tile_pipeline.hpp"
 #include "dp1v2/visualization/visualization_sink.hpp"
 
 #include <log4cxx/logger.h>
@@ -204,6 +208,14 @@ RuntimeLoopResult run_bounded_runtime_loop(const StartupContext &context, IFrame
     PrepStage prep_stage(context.config.resolved_pipeline.prep);
     RadiometricStage radiometric_stage(context.config.resolved_pipeline.radiometric);
     VisualizationSink visualization_sink(context.config.application.visualization);
+    FullFramePipeline full_frame_pipeline(radiometric_stage, visualization_sink);
+    TileExecutor tile_executor;
+    TileFrameAggregator tile_aggregator;
+    TilePipeline tile_pipeline(
+        radiometric_stage,
+        tile_executor,
+        tile_aggregator,
+        visualization_sink);
     RuntimeProfilingAggregator profiling_aggregator;
 
     emit_pipeline_started_log(context);
@@ -275,10 +287,11 @@ RuntimeLoopResult run_bounded_runtime_loop(const StartupContext &context, IFrame
             source_result.envelope,
             context.cli.cam_index,
             context.config.pipeline,
+            context.config.resolved_pipeline,
             input_normalization_stage,
             prep_stage,
-            radiometric_stage,
-            visualization_sink);
+            full_frame_pipeline,
+            tile_pipeline);
         loop_result.last_frame = frame_result.lifecycle;
         loop_result.resource.last_reason = frame_result.lifecycle.reason;
         profiling_aggregator.record_frame(frame_result);

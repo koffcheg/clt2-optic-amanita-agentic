@@ -6,10 +6,8 @@
 #include <string_view>
 
 #include "dp1v2/frame/frame_context.hpp"
-#include "dp1v2/runtime/full_frame_pipeline.hpp"
 #include "dp1v2/stages/input_normalization_stage.hpp"
 #include "dp1v2/stages/prep_stage.hpp"
-#include "dp1v2/stages/radiometric_stage.hpp"
 
 namespace dp1v2 {
 namespace {
@@ -20,8 +18,8 @@ constexpr std::string_view kPrepStageName = "prep";
 constexpr std::string_view kRadiometricCanonicalStageName = "radiometric_correction";
 constexpr std::string_view kPrepFullFrameVariant = "full_frame";
 constexpr std::string_view kPrepTilesVariant = "tiles";
-constexpr std::string_view kPrepTilesDownstreamNotConnectedReason =
-    "prep tiles layout is built, but downstream tile pipeline is not connected yet";
+constexpr std::string_view kResolvedPrepTilesConfigMissingReason =
+    "resolved prep tiles config is missing";
 
 StageStatusCode toStageStatusCode(const StageExecutionStatus status) {
     switch (status) {
@@ -90,10 +88,11 @@ SingleFramePipelineResult process_single_frame(
     const RawFrameEnvelope& envelope,
     const int cam_index,
     const PipelineConfig& pipeline_config,
+    const ResolvedPipelineConfig& resolved_pipeline_config,
     const InputNormalizationStage& input_normalization_stage,
     PrepStage& prep_stage,
-    RadiometricStage& radiometric_stage,
-    VisualizationSink& visualization_sink) {
+    FullFramePipeline& full_frame_pipeline,
+    TilePipeline& tile_pipeline) {
     const auto frame_start = std::chrono::steady_clock::now();
     const auto input_start = frame_start;
     const auto packet_result = make_frame_packet(
@@ -255,27 +254,44 @@ SingleFramePipelineResult process_single_frame(
                     .reason = "prep_stage_failed: " + prep_result.reason,
                 });
         }
-        set_frame_tile_count(
-            frame_context,
-            static_cast<std::uint32_t>(prep_result.output.tiles.size()));
-        record_pipeline_stage_status(
-            frame_context,
-            kRadiometricCanonicalStageName,
-            pipeline_config.stages.radiometric,
-            StageStatusCode::NotStarted,
-            prep_variant,
-            kPrepTilesDownstreamNotConnectedReason);
-        record_diagnostic(
-            frame_context,
-            "prep.tiles.downstream_not_connected",
-            kPrepTilesDownstreamNotConnectedReason);
+        if (!resolved_pipeline_config.prep.tiles.has_value()) {
+            set_frame_tile_count(
+                frame_context,
+                static_cast<std::uint32_t>(prep_result.output.tiles.size()));
+            record_pipeline_stage_status(
+                frame_context,
+                kRadiometricCanonicalStageName,
+                pipeline_config.stages.radiometric,
+                StageStatusCode::Failed,
+                prep_variant,
+                kResolvedPrepTilesConfigMissingReason);
+            record_diagnostic(
+                frame_context,
+                "prep.tiles.resolved_config_missing",
+                kResolvedPrepTilesConfigMissingReason);
+            return make_pipeline_result(
+                frame_context,
+                frame_start,
+                FrameLifecycleResult{
+                    .status = FrameTerminalStatus::Failed,
+                    .reason = std::string(kResolvedPrepTilesConfigMissingReason),
+                });
+        }
+        const TilePipelineResult tile_result = tile_pipeline.process(
+            TilePipelineArgs{
+                .prep_output = prep_result.output,
+                .frame_context = frame_context,
+                .pipeline_config = pipeline_config,
+                .resolved_pipeline_config = resolved_pipeline_config,
+                .tiles_config = *resolved_pipeline_config.prep.tiles,
+                .frame_id = frame_context.frame_id,
+                .camera_id = frame_context.camera_id,
+            });
         return make_pipeline_result(
             frame_context,
             frame_start,
-            FrameLifecycleResult{
-                .status = FrameTerminalStatus::Failed,
-                .reason = std::string(kPrepTilesDownstreamNotConnectedReason),
-            });
+            tile_result.lifecycle,
+            tile_result.sink);
     } else {
         const auto prep_start = std::chrono::steady_clock::now();
         const std::string prep_reason =
@@ -308,7 +324,6 @@ SingleFramePipelineResult process_single_frame(
     }
 
     const CanonicalFrame &prepared_frame_ref = *prepared_frame;
-    FullFramePipeline full_frame_pipeline(radiometric_stage, visualization_sink);
     const FullFramePipelineResult full_frame_result = full_frame_pipeline.process(
         FullFramePipelineArgs{
             .frame = prepared_frame_ref,
