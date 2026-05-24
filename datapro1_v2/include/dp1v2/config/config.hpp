@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "dp1v2/config/defaults.hpp"
+#include "dp1v2/domain/canonical_frame.hpp"
 #include "dp1v2/domain/pixel.hpp"
 
 namespace dp1v2 {
@@ -196,7 +197,7 @@ struct StageConfig {
 };
 
 struct InputNormalizationResolvedConfig {
-    std::string binning_mode = "disabled";
+    BinningMode binning_mode = BinningMode::None;
     int bin_factor = 1;
 };
 
