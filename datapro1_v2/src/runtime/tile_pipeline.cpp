@@ -178,11 +178,27 @@ cv::Size inferFrameSizeAfterStage0(const PrepTilesOutput& output)
     return cv::Size(width, height);
 }
 
+std::optional<PixelFormat> findCompletedTileOutputFormat(
+    const std::vector<TileResult>& results)
+{
+    for (const TileResult& result : results) {
+        for (const StageTiming& timing : result.stage_timings) {
+            if (timing.stage_key == kRadiometricStageKey
+                && timing.status == StageStatusCode::Completed) {
+                return timing.output_format;
+            }
+        }
+    }
+
+    return std::nullopt;
+}
+
 void recordTileSummary(
     FrameContext& context,
     const StageConfig& radiometric_config,
     const TileExecutionSummary& execution,
     const TileFrameAggregationSummary& aggregation,
+    const std::vector<TileResult>& results,
     const std::chrono::steady_clock::time_point start_time,
     const std::chrono::steady_clock::time_point end_time)
 {
@@ -192,6 +208,8 @@ void recordTileSummary(
     const StageStatusCode status = aggregateStageStatus(aggregation);
     const std::string reason = makeTileSummaryReason(execution, aggregation);
 
+    const PixelFormat output_format = findCompletedTileOutputFormat(results).value_or(context.input_format);
+
     record_stage_timing(
         context,
         kRadiometricStageKey,
@@ -199,7 +217,7 @@ void recordTileSummary(
         radiometric_config.variant,
         radiometric_config.level,
         context.input_format,
-        context.input_format,
+        output_format,
         start_time,
         end_time,
         reason);
@@ -283,6 +301,7 @@ TilePipelineResult TilePipeline::process(const TilePipelineArgs& args)
         radiometric_config,
         execution_summary,
         aggregation_summary,
+        results,
         execution_start,
         execution_end);
 

@@ -288,6 +288,13 @@ TEST(PipelineTest, TilesPrepRouteReachesRadiometricCompletedAfterWarmUp)
     EXPECT_EQ(radiometric_status->variant, "inverse_median");
     EXPECT_EQ(radiometric_status->route, "tiles");
 
+    const dp1v2::StageTiming *radiometric_timing =
+        findStageTiming(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_timing, nullptr);
+    EXPECT_EQ(radiometric_timing->status, dp1v2::StageStatusCode::Completed);
+    EXPECT_EQ(radiometric_timing->input_format, dp1v2::PixelFormat::U16);
+    EXPECT_EQ(radiometric_timing->output_format, dp1v2::PixelFormat::F32);
+
     EXPECT_EQ(result.frame.profiling.cardinality.tile_count, 6U);
     EXPECT_NE(radiometric_status->reason.find("total_tiles=6"), std::string::npos);
     EXPECT_EQ(radiometric_status->reason.find("tile_route_controlled_failure"), std::string::npos);
