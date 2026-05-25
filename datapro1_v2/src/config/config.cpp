@@ -543,16 +543,6 @@ dp1v2::InverseMedianOutputMode parse_inverse_median_output_mode(const std::strin
     throw std::logic_error("error on config file, unsupported inverse_median.output_dynamic_range_mode: " + value);
 }
 
-dp1v2::TileErrorPolicy parse_tile_error_policy(const std::string &value, const std::string &field) {
-    if (value == "continue") {
-        return dp1v2::TileErrorPolicy::Continue;
-    }
-    if (value == "stop_frame") {
-        return dp1v2::TileErrorPolicy::StopFrame;
-    }
-    throw std::logic_error("error on config file, unsupported " + field + ": " + value);
-}
-
 dp1v2::TileFrameStatusPolicy parse_tile_frame_status_policy(
     const std::string &value,
     const std::string &field) {
@@ -911,7 +901,7 @@ dp1v2::PrepTilesParametersConfig resolve_prep_tiles_parameters(const dp1v2::Para
     if (execution_parameters != nullptr) {
         reject_unknown_parameter_keys(
             *execution_parameters,
-            {"num_threads", "opencv_num_threads", "on_tile_error", "frame_status_policy"},
+            {"num_threads", "opencv_num_threads", "frame_status_policy"},
             "pipeline.pipeline.prep.parameters.tiles.execution");
         config.execution.num_threads = read_optional_parameter_int(
             *execution_parameters,
@@ -923,13 +913,6 @@ dp1v2::PrepTilesParametersConfig resolve_prep_tiles_parameters(const dp1v2::Para
             "opencv_num_threads",
             config.execution.opencv_num_threads,
             "pipeline.pipeline.prep.parameters.tiles.execution");
-        config.execution.on_tile_error = parse_tile_error_policy(
-            read_optional_parameter_string(
-                *execution_parameters,
-                "on_tile_error",
-                "continue",
-                "pipeline.pipeline.prep.parameters.tiles.execution"),
-            "prep.tiles.execution.on_tile_error");
         config.execution.frame_status_policy = parse_tile_frame_status_policy(
             read_optional_parameter_string(
                 *execution_parameters,

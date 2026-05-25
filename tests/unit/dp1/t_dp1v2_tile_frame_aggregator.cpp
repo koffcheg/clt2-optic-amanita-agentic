@@ -18,7 +18,6 @@ dp1v2::TileExecutionConfig executionConfig(
     const dp1v2::TileFrameStatusPolicy frame_status_policy)
 {
     dp1v2::TileExecutionConfig config{};
-    config.on_tile_error = dp1v2::TileErrorPolicy::Continue;
     config.frame_status_policy = frame_status_policy;
     return config;
 }
