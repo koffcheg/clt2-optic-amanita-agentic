@@ -101,3 +101,4 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0081` - DP1 v2 per-tile radiometric inverse median state ownership - completed
 - `AMNT-0082` - DP1 v2 tile route runtime integration - completed
 - `AMNT-0083` - DP1 v2 file source camera id propagation - completed
+- `AMNT-0084` - DP1 v2 PrepStage tile_count tile layout - completed

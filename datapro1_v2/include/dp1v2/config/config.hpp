@@ -219,6 +219,7 @@ struct TileAggregationConfig {
 };
 
 struct PrepTilesParametersConfig {
+    std::optional<int> tile_count;
     int tile_width = 0;
     int tile_height = 0;
     int overlap_x = 0;

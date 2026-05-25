@@ -248,6 +248,21 @@ json_t* makePrepTilesParameters(
     return parameters;
 }
 
+json_t* makePrepTileCountParameters(
+    const json_int_t tile_count,
+    const json_int_t overlap_x,
+    const json_int_t overlap_y)
+{
+    json_t* tiles = json_object();
+    EXPECT_EQ(json_object_set_new(tiles, "tile_count", json_integer(tile_count)), 0);
+    EXPECT_EQ(json_object_set_new(tiles, "overlap_x", json_integer(overlap_x)), 0);
+    EXPECT_EQ(json_object_set_new(tiles, "overlap_y", json_integer(overlap_y)), 0);
+
+    json_t* parameters = json_object();
+    EXPECT_EQ(json_object_set_new(parameters, "tiles", tiles), 0);
+    return parameters;
+}
+
 json_t* makeTileExecutionParameters(
     const json_int_t num_threads,
     const json_int_t opencv_num_threads,
@@ -850,6 +865,7 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesParametersAreValid_ReturnsTypedPre
     const dp1v2::Dp1Config config = loadDp1(application, pipeline);
 
     ASSERT_TRUE(config.resolved_pipeline.prep.tiles.has_value());
+    EXPECT_FALSE(config.resolved_pipeline.prep.tiles->tile_count.has_value());
     EXPECT_EQ(config.resolved_pipeline.prep.tiles->tile_width, 256);
     EXPECT_EQ(config.resolved_pipeline.prep.tiles->tile_height, 256);
     EXPECT_EQ(config.resolved_pipeline.prep.tiles->overlap_x, 16);
@@ -866,6 +882,25 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesParametersAreValid_ReturnsTypedPre
     EXPECT_FALSE(config.resolved_pipeline.prep.tiles->aggregation.deduplicate_overlap);
     EXPECT_EQ(config.resolved_pipeline.prep.tiles->aggregation.output_coordinate_space,
               dp1v2::TileOutputCoordinateSpace::FrameGlobal);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTileCountParametersAreValid_ReturnsTypedPrepTilesConfig)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setString(pipeline.get(), {"pipeline", "prep"}, "level", "L1");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTileCountParameters(16, 16, 16));
+
+    const dp1v2::Dp1Config config = loadDp1(application, pipeline);
+
+    ASSERT_TRUE(config.resolved_pipeline.prep.tiles.has_value());
+    ASSERT_TRUE(config.resolved_pipeline.prep.tiles->tile_count.has_value());
+    EXPECT_EQ(*config.resolved_pipeline.prep.tiles->tile_count, 16);
+    EXPECT_EQ(config.resolved_pipeline.prep.tiles->tile_width, 0);
+    EXPECT_EQ(config.resolved_pipeline.prep.tiles->tile_height, 0);
+    EXPECT_EQ(config.resolved_pipeline.prep.tiles->overlap_x, 16);
+    EXPECT_EQ(config.resolved_pipeline.prep.tiles->overlap_y, 16);
 }
 
 TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionAndAggregationAreValid_ReturnsTypedConfig)
@@ -927,6 +962,73 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesObjectIsMissing_ThrowsConfigError)
     JsonPtr pipeline = makePipelineConfig();
     setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
     setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", json_object());
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTileCountAndTileWidthAreCombined_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTileCountParameters(16, 16, 16));
+    setInteger(pipeline.get(), {"pipeline", "prep", "parameters", "tiles"}, "tile_width", 256);
+
+    try {
+        (void)loadDp1(application, pipeline);
+        FAIL() << "expected config error";
+    } catch (const std::logic_error& error) {
+        const std::string message = error.what();
+        EXPECT_NE(
+            message.find("prep.tiles must use either tile_count or tile_width/tile_height, not both"),
+            std::string::npos);
+    }
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTileCountAndTileHeightAreCombined_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTileCountParameters(16, 16, 16));
+    setInteger(pipeline.get(), {"pipeline", "prep", "parameters", "tiles"}, "tile_height", 256);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTileCountIsZero_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTileCountParameters(0, 0, 0));
+
+    try {
+        (void)loadDp1(application, pipeline);
+        FAIL() << "expected config error";
+    } catch (const std::logic_error& error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("prep.tiles.tile_count must be positive"), std::string::npos);
+    }
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTileCountIsNotInteger_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTileCountParameters(16, 0, 0));
+    setReal(pipeline.get(), {"pipeline", "prep", "parameters", "tiles"}, "tile_count", 16.5);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTileCountIsNegative_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTileCountParameters(-1, 0, 0));
 
     EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
 }

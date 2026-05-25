@@ -43,6 +43,20 @@ dp1v2::PrepResolvedConfig resolvedTilesConfig(
     return config;
 }
 
+dp1v2::PrepResolvedConfig resolvedTileCountConfig(
+    const int tile_count,
+    const int overlap_x = 0,
+    const int overlap_y = 0)
+{
+    dp1v2::PrepResolvedConfig config{};
+    config.tiles = dp1v2::PrepTilesParametersConfig{
+        .tile_count = tile_count,
+        .overlap_x = overlap_x,
+        .overlap_y = overlap_y,
+    };
+    return config;
+}
+
 dp1v2::PixelRange rangeU16()
 {
     return dp1v2::PixelRange{
@@ -93,6 +107,31 @@ void expectRect(const cv::Rect &actual, const cv::Rect &expected)
     EXPECT_EQ(actual.y, expected.y);
     EXPECT_EQ(actual.width, expected.width);
     EXPECT_EQ(actual.height, expected.height);
+}
+
+void expectTileGrid(
+    const dp1v2::PrepTilesOutput &output,
+    const int columns,
+    const int rows,
+    const int core_width,
+    const int core_height)
+{
+    ASSERT_EQ(output.tiles.size(), static_cast<std::size_t>(columns * rows));
+    ASSERT_EQ(output.tile_views.size(), output.tiles.size());
+
+    for (int row = 0; row < rows; ++row) {
+        for (int col = 0; col < columns; ++col) {
+            const std::size_t index = static_cast<std::size_t>(row * columns + col);
+            const dp1v2::TileDesc &desc = output.tiles[index];
+
+            EXPECT_EQ(desc.tile_id, static_cast<int>(index));
+            expectRect(
+                desc.roi_with_border,
+                cv::Rect(col * core_width, row * core_height, core_width, core_height));
+            expectRect(desc.valid_area, cv::Rect(0, 0, core_width, core_height));
+            EXPECT_EQ(output.tile_views[index].tile_id, desc.tile_id);
+        }
+    }
 }
 
 } // namespace
@@ -230,6 +269,105 @@ TEST(PrepStageTest, TilesBuildsGridWithOverlapAndClipping)
     }
 }
 
+TEST(PrepStageTest, TileCountBuildsFourByFourForSquareCanonicalFrame)
+{
+    cv::Mat image(1024, 1024, CV_16UC1);
+    image.setTo(cv::Scalar(1024));
+    const dp1v2::CanonicalFrame frame = makeCanonicalFrame(image);
+    dp1v2::PrepStage stage(resolvedTileCountConfig(16, 0, 0));
+
+    const auto outcome = processTiles(frame, stage, tilesConfig());
+
+    ASSERT_EQ(outcome.status, dp1v2::StageExecutionStatus::Completed);
+    expectTileGrid(outcome.output, 4, 4, 256, 256);
+}
+
+TEST(PrepStageTest, TileCountBuildsThreeByTwoForWideCanonicalFrame)
+{
+    cv::Mat image(720, 1280, CV_16UC1);
+    image.setTo(cv::Scalar(1024));
+    const dp1v2::CanonicalFrame frame = makeCanonicalFrame(image);
+    dp1v2::PrepStage stage(resolvedTileCountConfig(6, 0, 0));
+
+    const auto outcome = processTiles(frame, stage, tilesConfig());
+
+    ASSERT_EQ(outcome.status, dp1v2::StageExecutionStatus::Completed);
+    ASSERT_EQ(outcome.output.tiles.size(), 6U);
+    ASSERT_EQ(outcome.output.tile_views.size(), outcome.output.tiles.size());
+
+    expectRect(outcome.output.tiles[0].roi_with_border, cv::Rect(0, 0, 426, 360));
+    expectRect(outcome.output.tiles[1].roi_with_border, cv::Rect(426, 0, 427, 360));
+    expectRect(outcome.output.tiles[2].roi_with_border, cv::Rect(853, 0, 427, 360));
+    expectRect(outcome.output.tiles[3].roi_with_border, cv::Rect(0, 360, 426, 360));
+
+    for (std::size_t index = 0; index < outcome.output.tiles.size(); ++index) {
+        EXPECT_EQ(outcome.output.tiles[index].tile_id, static_cast<int>(index));
+        expectRect(outcome.output.tiles[index].valid_area, cv::Rect(0,
+                                                                    0,
+                                                                    outcome.output.tiles[index].roi_with_border.width,
+                                                                    outcome.output.tiles[index].roi_with_border.height));
+    }
+}
+
+TEST(PrepStageTest, TileCountBuildsTwoByThreeForTallCanonicalFrame)
+{
+    cv::Mat image(1280, 720, CV_16UC1);
+    image.setTo(cv::Scalar(1024));
+    const dp1v2::CanonicalFrame frame = makeCanonicalFrame(image);
+    dp1v2::PrepStage stage(resolvedTileCountConfig(6, 0, 0));
+
+    const auto outcome = processTiles(frame, stage, tilesConfig());
+
+    ASSERT_EQ(outcome.status, dp1v2::StageExecutionStatus::Completed);
+    ASSERT_EQ(outcome.output.tiles.size(), 6U);
+    ASSERT_EQ(outcome.output.tile_views.size(), outcome.output.tiles.size());
+
+    expectRect(outcome.output.tiles[0].roi_with_border, cv::Rect(0, 0, 360, 426));
+    expectRect(outcome.output.tiles[1].roi_with_border, cv::Rect(360, 0, 360, 426));
+    expectRect(outcome.output.tiles[2].roi_with_border, cv::Rect(0, 426, 360, 427));
+    expectRect(outcome.output.tiles[4].roi_with_border, cv::Rect(0, 853, 360, 427));
+
+    for (std::size_t index = 0; index < outcome.output.tiles.size(); ++index) {
+        EXPECT_EQ(outcome.output.tiles[index].tile_id, static_cast<int>(index));
+    }
+}
+
+TEST(PrepStageTest, TileCountAppliesOverlapAndClipsToFrameBounds)
+{
+    cv::Mat image(1024, 1024, CV_16UC1);
+    image.setTo(cv::Scalar(1024));
+    const dp1v2::CanonicalFrame frame = makeCanonicalFrame(image);
+    dp1v2::PrepStage stage(resolvedTileCountConfig(4, 16, 16));
+
+    const auto outcome = processTiles(frame, stage, tilesConfig());
+
+    ASSERT_EQ(outcome.status, dp1v2::StageExecutionStatus::Completed);
+    ASSERT_EQ(outcome.output.tiles.size(), 4U);
+    ASSERT_EQ(outcome.output.tile_views.size(), outcome.output.tiles.size());
+
+    expectRect(outcome.output.tiles[0].roi_with_border, cv::Rect(0, 0, 528, 528));
+    expectRect(outcome.output.tiles[0].valid_area, cv::Rect(0, 0, 512, 512));
+    expectRect(outcome.output.tiles[1].roi_with_border, cv::Rect(496, 0, 528, 528));
+    expectRect(outcome.output.tiles[1].valid_area, cv::Rect(16, 0, 512, 512));
+    expectRect(outcome.output.tiles[2].roi_with_border, cv::Rect(0, 496, 528, 528));
+    expectRect(outcome.output.tiles[2].valid_area, cv::Rect(0, 16, 512, 512));
+    expectRect(outcome.output.tiles[3].roi_with_border, cv::Rect(496, 496, 528, 528));
+    expectRect(outcome.output.tiles[3].valid_area, cv::Rect(16, 16, 512, 512));
+}
+
+TEST(PrepStageTest, TileCountRejectsOverlapThatReachesResolvedCoreWidth)
+{
+    cv::Mat image(32, 32, CV_16UC1);
+    image.setTo(cv::Scalar(1024));
+    const dp1v2::CanonicalFrame frame = makeCanonicalFrame(image);
+    dp1v2::PrepStage stage(resolvedTileCountConfig(16, 16, 0));
+
+    const auto outcome = processTiles(frame, stage, tilesConfig());
+
+    EXPECT_EQ(outcome.status, dp1v2::StageExecutionStatus::Failed);
+    EXPECT_EQ(outcome.reason, "prep tiles overlap_x must be smaller than resolved tile core width");
+}
+
 TEST(PrepStageTest, TileViewsAreNonOwningRoiViews)
 {
     cv::Mat image(4, 5, CV_16UC1);
@@ -273,6 +411,38 @@ TEST(PrepStageTest, TileViewsAreNonOwningRoiViews)
         EXPECT_EQ(view.image.datastart, frame.image.datastart);
         EXPECT_EQ(view.image.dataend, frame.image.dataend);
         EXPECT_EQ(view.image.data, frame.image.ptr(desc.roi_with_border.y, desc.roi_with_border.x));
+    }
+}
+
+TEST(PrepStageTest, TileCountOutputKeepsDownstreamTileContract)
+{
+    cv::Mat image(1024, 1024, CV_16UC1);
+    image.setTo(cv::Scalar(1024));
+    const dp1v2::CanonicalFrame frame = makeCanonicalFrame(image);
+    dp1v2::PrepStage stage(resolvedTileCountConfig(4, 16, 16));
+
+    const auto outcome = processTiles(frame, stage, tilesConfig());
+
+    ASSERT_EQ(outcome.status, dp1v2::StageExecutionStatus::Completed);
+    ASSERT_EQ(outcome.output.tiles.size(), 4U);
+    ASSERT_EQ(outcome.output.tile_views.size(), outcome.output.tiles.size());
+
+    for (std::size_t index = 0; index < outcome.output.tiles.size(); ++index) {
+        const dp1v2::TileDesc &desc = outcome.output.tiles[index];
+        const dp1v2::TileRawView &view = outcome.output.tile_views[index];
+
+        EXPECT_EQ(view.tile_id, desc.tile_id);
+        EXPECT_EQ(view.image.rows, desc.roi_with_border.height);
+        EXPECT_EQ(view.image.cols, desc.roi_with_border.width);
+        EXPECT_EQ(view.image.datastart, frame.image.datastart);
+        EXPECT_EQ(view.image.dataend, frame.image.dataend);
+        EXPECT_EQ(view.image.data, frame.image.ptr(desc.roi_with_border.y, desc.roi_with_border.x));
+        EXPECT_EQ(desc.origin_in_frame, desc.roi_with_border.tl());
+        expectRect(view.valid_area, desc.valid_area);
+        EXPECT_GE(desc.valid_area.x, 0);
+        EXPECT_GE(desc.valid_area.y, 0);
+        EXPECT_LE(desc.valid_area.x + desc.valid_area.width, view.image.cols);
+        EXPECT_LE(desc.valid_area.y + desc.valid_area.height, view.image.rows);
     }
 }
 
@@ -375,4 +545,22 @@ TEST(PrepStageTest, TilesBuildsLayoutFromBinnedCanonicalFrame)
     ASSERT_EQ(outcome.status, dp1v2::StageExecutionStatus::Completed);
     EXPECT_FALSE(outcome.output.tiles.empty());
     EXPECT_EQ(outcome.output.tiles.size(), outcome.output.tile_views.size());
+}
+
+TEST(PrepStageTest, TileCountBuildsLayoutFromBinnedCanonicalFrameGeometry)
+{
+    cv::Mat image(1024, 1024, CV_16UC1);
+    image.setTo(cv::Scalar(256));
+    dp1v2::CanonicalFrame frame = makeCanonicalFrame(image);
+    frame.image_ownership = dp1v2::CanonicalPayloadOwnership::OwnedBinned;
+    frame.normalization.binned = true;
+    frame.normalization.bin_factor_x = 2;
+    frame.normalization.bin_factor_y = 2;
+    frame.normalization.binning_mode = dp1v2::BinningMode::Average;
+
+    dp1v2::PrepStage stage(resolvedTileCountConfig(16, 0, 0));
+    const auto outcome = processTiles(frame, stage, tilesConfig());
+
+    ASSERT_EQ(outcome.status, dp1v2::StageExecutionStatus::Completed);
+    expectTileGrid(outcome.output, 4, 4, 256, 256);
 }

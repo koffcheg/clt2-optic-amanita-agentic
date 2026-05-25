@@ -854,40 +854,55 @@ dp1v2::InputRouteConfig parse_input_route(const json_t *route_json) {
 }
 
 dp1v2::PrepTilesParametersConfig resolve_prep_tiles_parameters(const dp1v2::ParameterMap &parameters) {
+    constexpr const char *kTilesContext = "pipeline.pipeline.prep.parameters.tiles";
     const auto *tiles_parameters = require_parameter_object(
         parameters, "tiles", "pipeline.pipeline.prep.parameters");
 
     reject_unknown_parameter_keys(
         *tiles_parameters,
-        {"tile_width", "tile_height", "overlap_x", "overlap_y", "execution", "aggregation"},
-        "pipeline.pipeline.prep.parameters.tiles");
+        {"tile_count", "tile_width", "tile_height", "overlap_x", "overlap_y", "execution", "aggregation"},
+        kTilesContext);
 
     dp1v2::PrepTilesParametersConfig config{};
-    config.tile_width = read_required_parameter_int(
-        *tiles_parameters, "tile_width", "pipeline.pipeline.prep.parameters.tiles");
-    config.tile_height = read_required_parameter_int(
-        *tiles_parameters, "tile_height", "pipeline.pipeline.prep.parameters.tiles");
-    config.overlap_x = read_required_parameter_int(
-        *tiles_parameters, "overlap_x", "pipeline.pipeline.prep.parameters.tiles");
-    config.overlap_y = read_required_parameter_int(
-        *tiles_parameters, "overlap_y", "pipeline.pipeline.prep.parameters.tiles");
+    const bool has_tile_count = tiles_parameters->contains("tile_count");
+    const bool has_tile_width = tiles_parameters->contains("tile_width");
+    const bool has_tile_height = tiles_parameters->contains("tile_height");
 
-    if (config.tile_width <= 0) {
-        throw std::logic_error("error on config file, prep.tiles.tile_width must be > 0");
+    if (has_tile_count && (has_tile_width || has_tile_height)) {
+        throw std::logic_error(
+            "error on config file, prep.tiles must use either tile_count or tile_width/tile_height, not both");
     }
-    if (config.tile_height <= 0) {
-        throw std::logic_error("error on config file, prep.tiles.tile_height must be > 0");
+
+    if (has_tile_count) {
+        config.tile_count = read_required_parameter_int(*tiles_parameters, "tile_count", kTilesContext);
+        if (*config.tile_count <= 0) {
+            throw std::logic_error("error on config file, prep.tiles.tile_count must be positive");
+        }
+    } else {
+        config.tile_width = read_required_parameter_int(*tiles_parameters, "tile_width", kTilesContext);
+        config.tile_height = read_required_parameter_int(*tiles_parameters, "tile_height", kTilesContext);
+
+        if (config.tile_width <= 0) {
+            throw std::logic_error("error on config file, prep.tiles.tile_width must be > 0");
+        }
+        if (config.tile_height <= 0) {
+            throw std::logic_error("error on config file, prep.tiles.tile_height must be > 0");
+        }
     }
+
+    config.overlap_x = read_required_parameter_int(*tiles_parameters, "overlap_x", kTilesContext);
+    config.overlap_y = read_required_parameter_int(*tiles_parameters, "overlap_y", kTilesContext);
+
     if (config.overlap_x < 0) {
         throw std::logic_error("error on config file, prep.tiles.overlap_x must be >= 0");
     }
     if (config.overlap_y < 0) {
         throw std::logic_error("error on config file, prep.tiles.overlap_y must be >= 0");
     }
-    if (config.overlap_x >= config.tile_width) {
+    if (!config.tile_count.has_value() && config.overlap_x >= config.tile_width) {
         throw std::logic_error("error on config file, prep.tiles.overlap_x must be < tile_width");
     }
-    if (config.overlap_y >= config.tile_height) {
+    if (!config.tile_count.has_value() && config.overlap_y >= config.tile_height) {
         throw std::logic_error("error on config file, prep.tiles.overlap_y must be < tile_height");
     }
 
