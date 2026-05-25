@@ -152,8 +152,9 @@ int bytes_per_pixel_for_frame(const cv::Mat &frame) {
 
 namespace dp1v2 {
 
-UriFileFrameSource::UriFileFrameSource(std::string link)
-    : link_(expand_environment_placeholders(std::move(link))) {
+UriFileFrameSource::UriFileFrameSource(std::string link, const int camera_id)
+    : link_(expand_environment_placeholders(std::move(link))),
+      camera_id_(camera_id) {
     const bool image_sequence = has_printf_integer_placeholder(link_) && has_image_extension(link_);
     if (image_sequence) {
         source_kind_ = SourceKind::ImageSequence;
@@ -228,6 +229,9 @@ SourceReadResult UriFileFrameSource::read_next() {
     envelope.header_hint.bit_depth = bit_depth_for_frame(normalized);
     envelope.header_hint.bytes_per_pixel = bytes_per_pixel_for_frame(normalized);
     envelope.header_hint.frame_id = next_frame_id_++;
+    if (camera_id_ >= 0) {
+        envelope.header_hint.camera_id = camera_id_;
+    }
     envelope.received_steady_ts = std::chrono::steady_clock::now();
 
     return SourceReadResult{

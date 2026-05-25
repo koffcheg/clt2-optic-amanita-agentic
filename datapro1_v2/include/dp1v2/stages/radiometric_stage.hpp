@@ -12,8 +12,11 @@
 #include "dp1v2/stages/radiometric_stage.inverse_median.hpp"
 #include "dp1v2/stages/stage_capabilities.hpp"
 #include "dp1v2/stages/stage_outcome.hpp"
+#include "dp1v2/stages/tile_radiometric_state_store.hpp"
 
 namespace dp1v2 {
+
+struct PrepTilesOutput;
 
 /// Full-frame radiometric input. The raw frame is read-only for this stage.
 struct RadiometricFullFrameInput {
@@ -59,7 +62,6 @@ public:
     virtual StageOutcome<RadiometricTileOutput> process(
         const RadiometricTileInput &input,
         TileContext &tile_context,
-        FrameContext &frame_context,
         const StageConfig &config) = 0;
 };
 
@@ -80,18 +82,29 @@ public:
     StageOutcome<RadiometricTileOutput> process(
         const RadiometricTileInput &input,
         TileContext &tile_context,
-        FrameContext &frame_context,
         const StageConfig &config) override;
+
+    std::optional<std::string> prepareTileStates(
+        const PrepTilesOutput& prep_output,
+        const StageConfig& config,
+        cv::Size frame_size_after_stage0,
+        int binning_factor);
 
 private:
     std::optional<StageOutcome<RadiometricFullFrameOutput>> validateInverseMedianFullFrameConfig(
         const StageConfig &config) const;
+    std::optional<std::string> validateInverseMedianTileConfig(const StageConfig& config);
     StageOutcome<RadiometricFullFrameOutput> makeInverseMedianFullFrameOutcome(
         const CanonicalFrame &input_frame,
         const InverseMedianResult &result) const;
+    StageOutcome<RadiometricTileOutput> makeInverseMedianTileOutcome(
+        const TileRawView& input_tile,
+        const InverseMedianResult& result) const;
 
     std::optional<InverseMedianParametersConfig> inverse_median_config_;
     std::optional<InverseMedianFilter> inverse_median_;
+    TileRadiometricStateStore tile_state_store_;
+    int prepared_tile_binning_factor_ = 1;
 };
 
 } // namespace dp1v2

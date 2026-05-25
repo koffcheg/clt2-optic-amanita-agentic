@@ -65,7 +65,6 @@ public:
     virtual StageOutcome<MeasurementTileOutput> process(
         const MeasurementTileInput &input,
         TileContext &tile_context,
-        FrameContext &frame_context,
         const StageConfig &config) = 0;
 };
 

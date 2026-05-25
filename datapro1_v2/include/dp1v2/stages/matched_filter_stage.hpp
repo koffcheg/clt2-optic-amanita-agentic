@@ -52,7 +52,6 @@ public:
     virtual StageOutcome<MatchedFilterTileOutput> process(
         const MatchedFilterTileInput &input,
         TileContext &tile_context,
-        FrameContext &frame_context,
         const StageConfig &config) = 0;
 };
 

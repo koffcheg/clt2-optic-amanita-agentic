@@ -24,9 +24,8 @@ private:
 namespace dp1v2 {
 
 std::unique_ptr<IFrameSource> create_frame_source(const SourceConfig &config, const int cam_index) {
-    (void)cam_index;
     if (config.mode == FrameSourceMode::File) {
-        return std::make_unique<UriFileFrameSource>(config.file.path);
+        return std::make_unique<UriFileFrameSource>(config.file.path, cam_index);
     }
 
     return std::make_unique<UnsupportedFrameSource>("unsupported_canonical_source_mode");

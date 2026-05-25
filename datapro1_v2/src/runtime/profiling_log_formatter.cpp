@@ -10,9 +10,6 @@
 namespace dp1v2 {
 namespace {
 
-constexpr std::string_view kPrepTilesDownstreamNotConnectedCode =
-    "prep.tiles.downstream_not_connected";
-
 const char *stage_status_to_cstr(const StageStatusCode status) {
     switch (status) {
     case StageStatusCode::NotStarted:
@@ -63,41 +60,6 @@ const char *pixel_format_to_cstr(const PixelFormat pixel_format) {
     return "unknown";
 }
 
-std::string diagnostic_code_to_reason(const std::string_view code) {
-    std::string reason;
-    reason.reserve(code.size());
-    for (const char ch : code) {
-        reason.push_back(ch == '.' ? '_' : ch);
-    }
-    return sanitize_log_field(reason);
-}
-
-bool has_diagnostic_code(
-    const FrameContextSnapshot &frame,
-    const std::string_view diagnostic_code) {
-    for (const DiagnosticMessage &diagnostic : frame.diagnostics) {
-        if (diagnostic.code == diagnostic_code) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool is_tiles_downstream_controlled_failure(const SingleFramePipelineResult &result) {
-    if (has_diagnostic_code(result.frame, kPrepTilesDownstreamNotConnectedCode)) {
-        return true;
-    }
-
-    for (const StageStatus &status : result.frame.stage_statuses) {
-        if (status.stage_key == "radiometric_correction" &&
-            status.status == StageStatusCode::NotStarted &&
-            status.route == "tiles") {
-            return result.lifecycle.status == FrameTerminalStatus::Failed;
-        }
-    }
-    return false;
-}
-
 double ns_to_ms(const std::int64_t duration_ns) {
     return static_cast<double>(duration_ns) / 1000000.0;
 }
@@ -142,18 +104,14 @@ std::string format_stage_routes(const std::vector<StageStatus> &stage_statuses) 
     return stream.str();
 }
 
-std::string frame_reason(const SingleFramePipelineResult &result, const bool controlled) {
-    if (controlled && has_diagnostic_code(result.frame, kPrepTilesDownstreamNotConnectedCode)) {
-        return diagnostic_code_to_reason(kPrepTilesDownstreamNotConnectedCode);
-    }
+std::string frame_reason(const SingleFramePipelineResult &result) {
     return sanitize_log_field(result.lifecycle.reason);
 }
 
 } // namespace
 
 std::string format_frame_profile_log(const SingleFramePipelineResult &result) {
-    const bool controlled = is_tiles_downstream_controlled_failure(result);
-    const std::string reason = frame_reason(result, controlled);
+    const std::string reason = frame_reason(result);
 
     std::ostringstream stream;
     stream << "event=frame_profile"
@@ -165,9 +123,6 @@ std::string format_frame_profile_log(const SingleFramePipelineResult &result) {
     stream << " status=" << frame_status_to_cstr(result.lifecycle.status);
     if (!reason.empty()) {
         stream << " reason=" << reason;
-    }
-    if (controlled) {
-        stream << " controlled=true";
     }
     stream << " total_duration_ms=" << std::fixed << std::setprecision(3)
            << ns_to_ms(result.frame.profiling.frame_duration_ns)

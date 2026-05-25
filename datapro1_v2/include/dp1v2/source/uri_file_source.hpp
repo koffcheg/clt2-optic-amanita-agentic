@@ -11,7 +11,7 @@ namespace dp1v2 {
 
 class UriFileFrameSource final : public IFrameSource {
 public:
-    explicit UriFileFrameSource(std::string link);
+    explicit UriFileFrameSource(std::string link, int camera_id = -1);
 
     [[nodiscard]] bool is_open() const;
     SourceReadResult read_next() override;
@@ -24,6 +24,7 @@ private:
     };
 
     std::string link_;
+    int camera_id_ = -1;
     SourceKind source_kind_ = SourceKind::Video;
     cv::VideoCapture capture_;
     std::uint64_t next_frame_id_ = 0;

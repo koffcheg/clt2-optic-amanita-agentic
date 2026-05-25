@@ -304,6 +304,20 @@ const dp1v2::ParameterMap *require_parameter_object(const dp1v2::ParameterMap &p
     return object->get();
 }
 
+const dp1v2::ParameterMap *optional_parameter_object(const dp1v2::ParameterMap &parameters,
+                                                     const std::string &key,
+                                                     const std::string &context) {
+    const auto it = parameters.find(key);
+    if (it == parameters.end()) {
+        return nullptr;
+    }
+    const auto *object = std::get_if<dp1v2::ParameterValue::MapPtr>(&it->second.value);
+    if (object == nullptr || !(*object)) {
+        throw std::logic_error("error on config file, " + context + "." + key + " must be object");
+    }
+    return object->get();
+}
+
 bool read_optional_parameter_bool(const dp1v2::ParameterMap &parameters,
                                   const std::string &key,
                                   const bool default_value,
@@ -527,6 +541,42 @@ dp1v2::InverseMedianOutputMode parse_inverse_median_output_mode(const std::strin
         return dp1v2::InverseMedianOutputMode::ClipToInputRange;
     }
     throw std::logic_error("error on config file, unsupported inverse_median.output_dynamic_range_mode: " + value);
+}
+
+dp1v2::TileFrameStatusPolicy parse_tile_frame_status_policy(
+    const std::string &value,
+    const std::string &field) {
+    if (value == "failed_if_any_required_tile_failed") {
+        return dp1v2::TileFrameStatusPolicy::FailedIfAnyRequiredTileFailed;
+    }
+    if (value == "partial_if_some_tiles_failed") {
+        return dp1v2::TileFrameStatusPolicy::PartialIfSomeTilesFailed;
+    }
+    throw std::logic_error("error on config file, unsupported " + field + ": " + value);
+}
+
+dp1v2::TileAggregationMode parse_tile_aggregation_mode(
+    const std::string &value,
+    const std::string &field) {
+    if (value == "measurements_only") {
+        return dp1v2::TileAggregationMode::MeasurementsOnly;
+    }
+    if (value == "measurements_and_debug_merge") {
+        return dp1v2::TileAggregationMode::MeasurementsAndDebugMerge;
+    }
+    throw std::logic_error("error on config file, unsupported " + field + ": " + value);
+}
+
+dp1v2::TileOutputCoordinateSpace parse_tile_output_coordinate_space(
+    const std::string &value,
+    const std::string &field) {
+    if (value == "frame_global") {
+        return dp1v2::TileOutputCoordinateSpace::FrameGlobal;
+    }
+    if (value == "source_frame_global") {
+        return dp1v2::TileOutputCoordinateSpace::SourceFrameGlobal;
+    }
+    throw std::logic_error("error on config file, unsupported " + field + ": " + value);
 }
 
 bool is_valid_level(const std::string &value) {
@@ -794,41 +844,121 @@ dp1v2::InputRouteConfig parse_input_route(const json_t *route_json) {
 }
 
 dp1v2::PrepTilesParametersConfig resolve_prep_tiles_parameters(const dp1v2::ParameterMap &parameters) {
+    constexpr const char *kTilesContext = "pipeline.pipeline.prep.parameters.tiles";
     const auto *tiles_parameters = require_parameter_object(
         parameters, "tiles", "pipeline.pipeline.prep.parameters");
 
     reject_unknown_parameter_keys(
         *tiles_parameters,
-        {"tile_width", "tile_height", "overlap_x", "overlap_y"},
-        "pipeline.pipeline.prep.parameters.tiles");
+        {"tile_count", "tile_width", "tile_height", "overlap_x", "overlap_y", "execution", "aggregation"},
+        kTilesContext);
 
     dp1v2::PrepTilesParametersConfig config{};
-    config.tile_width = read_required_parameter_int(
-        *tiles_parameters, "tile_width", "pipeline.pipeline.prep.parameters.tiles");
-    config.tile_height = read_required_parameter_int(
-        *tiles_parameters, "tile_height", "pipeline.pipeline.prep.parameters.tiles");
-    config.overlap_x = read_required_parameter_int(
-        *tiles_parameters, "overlap_x", "pipeline.pipeline.prep.parameters.tiles");
-    config.overlap_y = read_required_parameter_int(
-        *tiles_parameters, "overlap_y", "pipeline.pipeline.prep.parameters.tiles");
+    const bool has_tile_count = tiles_parameters->contains("tile_count");
+    const bool has_tile_width = tiles_parameters->contains("tile_width");
+    const bool has_tile_height = tiles_parameters->contains("tile_height");
 
-    if (config.tile_width <= 0) {
-        throw std::logic_error("error on config file, prep.tiles.tile_width must be > 0");
+    if (has_tile_count && (has_tile_width || has_tile_height)) {
+        throw std::logic_error(
+            "error on config file, prep.tiles must use either tile_count or tile_width/tile_height, not both");
     }
-    if (config.tile_height <= 0) {
-        throw std::logic_error("error on config file, prep.tiles.tile_height must be > 0");
+
+    if (has_tile_count) {
+        config.tile_count = read_required_parameter_int(*tiles_parameters, "tile_count", kTilesContext);
+        if (*config.tile_count <= 0) {
+            throw std::logic_error("error on config file, prep.tiles.tile_count must be positive");
+        }
+    } else {
+        config.tile_width = read_required_parameter_int(*tiles_parameters, "tile_width", kTilesContext);
+        config.tile_height = read_required_parameter_int(*tiles_parameters, "tile_height", kTilesContext);
+
+        if (config.tile_width <= 0) {
+            throw std::logic_error("error on config file, prep.tiles.tile_width must be > 0");
+        }
+        if (config.tile_height <= 0) {
+            throw std::logic_error("error on config file, prep.tiles.tile_height must be > 0");
+        }
     }
+
+    config.overlap_x = read_required_parameter_int(*tiles_parameters, "overlap_x", kTilesContext);
+    config.overlap_y = read_required_parameter_int(*tiles_parameters, "overlap_y", kTilesContext);
+
     if (config.overlap_x < 0) {
         throw std::logic_error("error on config file, prep.tiles.overlap_x must be >= 0");
     }
     if (config.overlap_y < 0) {
         throw std::logic_error("error on config file, prep.tiles.overlap_y must be >= 0");
     }
-    if (config.overlap_x >= config.tile_width) {
+    if (!config.tile_count.has_value() && config.overlap_x >= config.tile_width) {
         throw std::logic_error("error on config file, prep.tiles.overlap_x must be < tile_width");
     }
-    if (config.overlap_y >= config.tile_height) {
+    if (!config.tile_count.has_value() && config.overlap_y >= config.tile_height) {
         throw std::logic_error("error on config file, prep.tiles.overlap_y must be < tile_height");
+    }
+
+    const auto *execution_parameters = optional_parameter_object(
+        *tiles_parameters, "execution", "pipeline.pipeline.prep.parameters.tiles");
+    if (execution_parameters != nullptr) {
+        reject_unknown_parameter_keys(
+            *execution_parameters,
+            {"num_threads", "opencv_num_threads", "frame_status_policy"},
+            "pipeline.pipeline.prep.parameters.tiles.execution");
+        config.execution.num_threads = read_optional_parameter_int(
+            *execution_parameters,
+            "num_threads",
+            config.execution.num_threads,
+            "pipeline.pipeline.prep.parameters.tiles.execution");
+        config.execution.opencv_num_threads = read_optional_parameter_int(
+            *execution_parameters,
+            "opencv_num_threads",
+            config.execution.opencv_num_threads,
+            "pipeline.pipeline.prep.parameters.tiles.execution");
+        config.execution.frame_status_policy = parse_tile_frame_status_policy(
+            read_optional_parameter_string(
+                *execution_parameters,
+                "frame_status_policy",
+                "failed_if_any_required_tile_failed",
+                "pipeline.pipeline.prep.parameters.tiles.execution"),
+            "prep.tiles.execution.frame_status_policy");
+    }
+    if (config.execution.num_threads < 0) {
+        throw std::logic_error("error on config file, prep.tiles.execution.num_threads must be >= 0");
+    }
+    if (config.execution.opencv_num_threads < 0) {
+        throw std::logic_error("error on config file, prep.tiles.execution.opencv_num_threads must be >= 0");
+    }
+
+    const auto *aggregation_parameters = optional_parameter_object(
+        *tiles_parameters, "aggregation", "pipeline.pipeline.prep.parameters.tiles");
+    if (aggregation_parameters != nullptr) {
+        reject_unknown_parameter_keys(
+            *aggregation_parameters,
+            {"mode", "merge_enabled", "deduplicate_overlap", "output_coordinate_space"},
+            "pipeline.pipeline.prep.parameters.tiles.aggregation");
+        config.aggregation.mode = parse_tile_aggregation_mode(
+            read_optional_parameter_string(
+                *aggregation_parameters,
+                "mode",
+                "measurements_only",
+                "pipeline.pipeline.prep.parameters.tiles.aggregation"),
+            "prep.tiles.aggregation.mode");
+        config.aggregation.merge_enabled = read_optional_parameter_bool(
+            *aggregation_parameters,
+            "merge_enabled",
+            config.aggregation.merge_enabled,
+            "pipeline.pipeline.prep.parameters.tiles.aggregation");
+        config.aggregation.deduplicate_overlap = read_optional_parameter_bool(
+            *aggregation_parameters,
+            "deduplicate_overlap",
+            config.aggregation.deduplicate_overlap,
+            "pipeline.pipeline.prep.parameters.tiles.aggregation");
+        config.aggregation.output_coordinate_space = parse_tile_output_coordinate_space(
+            read_optional_parameter_string(
+                *aggregation_parameters,
+                "output_coordinate_space",
+                "frame_global",
+                "pipeline.pipeline.prep.parameters.tiles.aggregation"),
+            "prep.tiles.aggregation.output_coordinate_space");
     }
 
     return config;

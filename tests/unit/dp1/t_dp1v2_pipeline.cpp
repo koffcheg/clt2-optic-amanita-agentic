@@ -10,6 +10,7 @@
 #include "dp1v2/frame/frame_context.hpp"
 #include "dp1v2/runtime/pipeline.hpp"
 #include "dp1v2/runtime/runtime_profiling_aggregator.hpp"
+#include "dp1v2/runtime/runtime_threading.hpp"
 
 namespace dp1v2 {
 
@@ -25,9 +26,6 @@ ResultSinkOutcome publish_result_to_sinks(const TDataRes &)
 } // namespace dp1v2
 
 namespace {
-
-constexpr std::string_view kTilesDownstreamNotConnectedReason =
-    "prep tiles layout is built, but downstream tile pipeline is not connected yet";
 
 dp1v2::PixelRange rangeU16()
 {
@@ -94,6 +92,18 @@ dp1v2::PrepResolvedConfig makePrepResolvedConfig()
     return config;
 }
 
+dp1v2::ResolvedPipelineConfig makeResolvedPipelineConfig()
+{
+    dp1v2::ResolvedPipelineConfig config{};
+    config.input_normalization = dp1v2::InputNormalizationResolvedConfig{
+        .binning_mode = dp1v2::BinningMode::None,
+        .bin_factor = 1,
+    };
+    config.prep = makePrepResolvedConfig();
+    config.radiometric = makeRadiometricResolvedConfig();
+    return config;
+}
+
 dp1v2::RawFrameEnvelope makeEnvelope()
 {
     cv::Mat image(4, 5, CV_16UC1);
@@ -106,6 +116,36 @@ dp1v2::RawFrameEnvelope makeEnvelope()
     envelope.header_hint.bit_depth = 16;
     envelope.received_steady_ts = std::chrono::steady_clock::now();
     return envelope;
+}
+
+dp1v2::SingleFramePipelineResult processTestFrame(
+    const dp1v2::RawFrameEnvelope &envelope,
+    const dp1v2::PipelineConfig &pipeline_config,
+    const dp1v2::ResolvedPipelineConfig &resolved_pipeline_config,
+    dp1v2::InputNormalizationStage &input_normalization_stage,
+    dp1v2::PrepStage &prep_stage,
+    dp1v2::RadiometricStage &radiometric_stage,
+    dp1v2::VisualizationSink &visualization_sink,
+    const int cam_index = 7)
+{
+    dp1v2::FullFramePipeline full_frame_pipeline(radiometric_stage, visualization_sink);
+    dp1v2::TileExecutor tile_executor;
+    dp1v2::TileFrameAggregator tile_aggregator;
+    dp1v2::TilePipeline tile_pipeline(
+        radiometric_stage,
+        tile_executor,
+        tile_aggregator,
+        visualization_sink);
+
+    return dp1v2::process_single_frame(
+        envelope,
+        cam_index,
+        pipeline_config,
+        resolved_pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        full_frame_pipeline,
+        tile_pipeline);
 }
 
 const dp1v2::StageStatus *findStageStatus(
@@ -160,27 +200,26 @@ bool hasDiagnostic(
 
 } // namespace
 
-TEST(PipelineTest, TilesPrepRouteBuildsLayoutThenStopsBeforeRadiometric)
+TEST(PipelineTest, TilesPrepRouteRunsRadiometricWarmUpThroughTilePipeline)
 {
     const dp1v2::PipelineConfig pipeline_config = makeTilesPipelineConfig();
-    const dp1v2::InputNormalizationStage input_normalization_stage({.binning_mode = dp1v2::BinningMode::None, .bin_factor = 1});
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
     dp1v2::PrepStage prep_stage(makePrepResolvedConfig());
-    dp1v2::RadiometricStage radiometric_stage;
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
     dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
 
-    const dp1v2::SingleFramePipelineResult result = dp1v2::process_single_frame(
+    const dp1v2::SingleFramePipelineResult result = processTestFrame(
         makeEnvelope(),
-        7,
         pipeline_config,
+        resolved_pipeline_config,
         input_normalization_stage,
         prep_stage,
         radiometric_stage,
         visualization_sink);
 
-    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Failed);
-    EXPECT_EQ(result.lifecycle.reason, kTilesDownstreamNotConnectedReason);
-    EXPECT_NE(result.sink.send_status, dp1v2::ResultSinkStatus::Accepted);
-    EXPECT_NE(result.sink.artifact_status, dp1v2::ResultSinkStatus::Accepted);
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+    EXPECT_EQ(result.lifecycle.reason, "test_result_sink_stub");
 
     const dp1v2::StageStatus *prep_status = findStageStatus(result.frame, "prep");
     ASSERT_NE(prep_status, nullptr);
@@ -196,15 +235,150 @@ TEST(PipelineTest, TilesPrepRouteBuildsLayoutThenStopsBeforeRadiometric)
     const dp1v2::StageStatus *radiometric_status =
         findStageStatus(result.frame, "radiometric_correction");
     ASSERT_NE(radiometric_status, nullptr);
-    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::NotStarted);
+    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Skipped);
     EXPECT_EQ(radiometric_status->variant, "inverse_median");
     EXPECT_EQ(radiometric_status->route, "tiles");
-    EXPECT_EQ(radiometric_status->reason, kTilesDownstreamNotConnectedReason);
+    EXPECT_NE(radiometric_status->reason.find("total_tiles=6"), std::string::npos);
+    EXPECT_NE(radiometric_status->reason.find("skipped_tiles=6"), std::string::npos);
+    EXPECT_NE(radiometric_status->reason.find("unsupported_tiles=0"), std::string::npos);
+    EXPECT_NE(radiometric_status->reason.find("measurements=0"), std::string::npos);
 
-    EXPECT_EQ(findStageTiming(result.frame, "radiometric_correction"), nullptr);
+    EXPECT_NE(findStageTiming(result.frame, "radiometric_correction"), nullptr);
     EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
-    EXPECT_TRUE(hasDiagnostic(result.frame, "prep.tiles.downstream_not_connected"));
-    EXPECT_TRUE(dp1v2::is_controlled_tiles_frame_failure(result));
+    EXPECT_FALSE(hasDiagnostic(result.frame, "prep.tiles.downstream_not_connected"));
+    EXPECT_TRUE(hasDiagnostic(result.frame, "tile_pipeline.summary"));
+}
+
+
+TEST(PipelineTest, TilesPrepRouteReachesRadiometricCompletedAfterWarmUp)
+{
+    const dp1v2::PipelineConfig pipeline_config = makeTilesPipelineConfig();
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage(makePrepResolvedConfig());
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    dp1v2::SingleFramePipelineResult result{};
+    for (int frame_index = 0; frame_index < 4; ++frame_index) {
+        dp1v2::RawFrameEnvelope envelope = makeEnvelope();
+        envelope.header_hint.frame_id = 42 + frame_index;
+        result = processTestFrame(
+            envelope,
+            pipeline_config,
+            resolved_pipeline_config,
+            input_normalization_stage,
+            prep_stage,
+            radiometric_stage,
+            visualization_sink);
+    }
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+    EXPECT_EQ(result.lifecycle.reason, "test_result_sink_stub");
+
+    const dp1v2::StageStatus *prep_status = findStageStatus(result.frame, "prep");
+    ASSERT_NE(prep_status, nullptr);
+    EXPECT_EQ(prep_status->status, dp1v2::StageStatusCode::Completed);
+    EXPECT_EQ(prep_status->route, "tiles");
+
+    const dp1v2::StageStatus *radiometric_status =
+        findStageStatus(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_status, nullptr);
+    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Completed);
+    EXPECT_EQ(radiometric_status->variant, "inverse_median");
+    EXPECT_EQ(radiometric_status->route, "tiles");
+
+    const dp1v2::StageTiming *radiometric_timing =
+        findStageTiming(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_timing, nullptr);
+    EXPECT_EQ(radiometric_timing->status, dp1v2::StageStatusCode::Completed);
+    EXPECT_EQ(radiometric_timing->input_format, dp1v2::PixelFormat::U16);
+    EXPECT_EQ(radiometric_timing->output_format, dp1v2::PixelFormat::S32);
+
+    EXPECT_EQ(result.frame.profiling.cardinality.tile_count, 6U);
+    EXPECT_NE(radiometric_status->reason.find("total_tiles=6"), std::string::npos);
+    EXPECT_EQ(radiometric_status->reason.find("tile_route_controlled_failure"), std::string::npos);
+}
+
+TEST(PipelineTest, TilesRouteFallsBackToCamIndexWhenEnvelopeCameraIdMissing)
+{
+    const dp1v2::PipelineConfig pipeline_config = makeTilesPipelineConfig();
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage(makePrepResolvedConfig());
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    dp1v2::RawFrameEnvelope envelope = makeEnvelope();
+    envelope.header_hint.camera_id.reset();
+
+    const dp1v2::SingleFramePipelineResult result = processTestFrame(
+        envelope,
+        pipeline_config,
+        resolved_pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        radiometric_stage,
+        visualization_sink,
+        7);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+    EXPECT_EQ(result.frame.camera_id, 7);
+}
+
+TEST(PipelineTest, TilesRoutePreservesSourceCameraIdWhenRuntimeCamIndexDiffers)
+{
+    const dp1v2::PipelineConfig pipeline_config = makeTilesPipelineConfig();
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage(makePrepResolvedConfig());
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    dp1v2::RawFrameEnvelope envelope = makeEnvelope();
+    envelope.header_hint.camera_id = 11;
+
+    const dp1v2::SingleFramePipelineResult result = processTestFrame(
+        envelope,
+        pipeline_config,
+        resolved_pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        radiometric_stage,
+        visualization_sink,
+        7);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+    EXPECT_EQ(result.frame.camera_id, 11);
+}
+
+TEST(PipelineTest, TileRouteAppliesOpenCvThreadLimitAtRuntimeBoundary)
+{
+    const int previous_threads = cv::getNumThreads();
+
+    dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    ASSERT_TRUE(resolved_pipeline_config.prep.tiles.has_value());
+    resolved_pipeline_config.prep.tiles->execution.opencv_num_threads = 1;
+
+    dp1v2::apply_tile_route_opencv_thread_limit(resolved_pipeline_config);
+    EXPECT_EQ(cv::getNumThreads(), 1);
+
+    cv::setNumThreads(previous_threads);
+}
+
+TEST(PipelineTest, TileRouteOpenCvThreadLimitZeroLeavesCurrentSetting)
+{
+    const int previous_threads = cv::getNumThreads();
+    cv::setNumThreads(2);
+
+    dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    ASSERT_TRUE(resolved_pipeline_config.prep.tiles.has_value());
+    resolved_pipeline_config.prep.tiles->execution.opencv_num_threads = 0;
+
+    dp1v2::apply_tile_route_opencv_thread_limit(resolved_pipeline_config);
+    EXPECT_EQ(cv::getNumThreads(), 2);
+
+    cv::setNumThreads(previous_threads);
 }
 
 
@@ -225,15 +399,16 @@ TEST(PipelineTest, FullFrameRouteUsesInputRouteForFramePacketMetadata)
     pipeline_config.stages.prep = stageConfig(true, "full_frame", "L0");
     pipeline_config.stages.radiometric = stageConfig(true, "inverse_median", "L0");
 
-    const dp1v2::InputNormalizationStage input_normalization_stage({.binning_mode = dp1v2::BinningMode::None, .bin_factor = 1});
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
     dp1v2::PrepStage prep_stage;
-    dp1v2::RadiometricStage radiometric_stage(makeRadiometricResolvedConfig());
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
     dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
 
-    const auto result = dp1v2::process_single_frame(
+    const auto result = processTestFrame(
         makeEnvelope(),
-        7,
         pipeline_config,
+        resolved_pipeline_config,
         input_normalization_stage,
         prep_stage,
         radiometric_stage,
@@ -263,15 +438,16 @@ TEST(PipelineTest, FullFrameRouteRecordsProfilingCollectionWhenReportsDisabled)
     profiling.reports.emit_frame_reports = true;
 
     const dp1v2::PipelineConfig pipeline_config = makeFullFramePipelineConfig();
-    const dp1v2::InputNormalizationStage input_normalization_stage({.binning_mode = dp1v2::BinningMode::None, .bin_factor = 1});
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
     dp1v2::PrepStage prep_stage;
-    dp1v2::RadiometricStage radiometric_stage(makeRadiometricResolvedConfig());
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
     dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
 
-    const dp1v2::SingleFramePipelineResult result = dp1v2::process_single_frame(
+    const dp1v2::SingleFramePipelineResult result = processTestFrame(
         makeEnvelope(),
-        7,
         pipeline_config,
+        resolved_pipeline_config,
         input_normalization_stage,
         prep_stage,
         radiometric_stage,

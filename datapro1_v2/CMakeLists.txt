@@ -3,6 +3,8 @@ project(datapro1_v2)
 
 include(FindPkgConfig)
 
+find_package(TBB REQUIRED)
+
 if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -38,10 +40,16 @@ target_sources(
         src/result/result_builder.cpp
         src/result/result_sink.cpp
         src/runtime/runtime.cpp
+        src/runtime/full_frame_pipeline.cpp
         src/runtime/pipeline.cpp
+        src/runtime/tile_pipeline.cpp
+        src/runtime/tile_frame_aggregator.cpp
+        src/runtime/tile_executor.cpp
+        src/runtime/tile_processor.cpp
         src/runtime/log_field_sanitizer.cpp
         src/runtime/profiling_log_formatter.cpp
         src/runtime/runtime_profiling_aggregator.cpp
+        src/runtime/runtime_threading.cpp
         src/runtime/cyclic_frame_buffer.cpp
         src/source/source.cpp
         src/source/uri_file_source.cpp
@@ -51,6 +59,7 @@ target_sources(
         src/stages/input_normalization_stage.cpp
         src/stages/prep_stage.cpp
         src/stages/radiometric_stage.inverse_median.cpp
+        src/stages/tile_radiometric_state_store.cpp
         src/stages/radiometric_stage.cpp
         src/visualization/visualization_sink.cpp
         ../datapro1/src/dp1_tr_res2dp2.cpp
@@ -91,6 +100,7 @@ target_link_libraries(
         PRIVATE
         Boost::headers
         Threads::Threads
+        TBB::tbb
         log4cxx
         model
         camera_frame
@@ -135,6 +145,10 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 ../tests/unit/dp1/t_dp1v2_input_normalization_stage.cpp
                 ../tests/unit/dp1/t_dp1v2_prep_stage.cpp
                 ../tests/unit/dp1/t_dp1v2_pipeline.cpp
+                ../tests/unit/dp1/t_dp1v2_tile_frame_aggregator.cpp
+                ../tests/unit/dp1/t_dp1v2_tile_executor.cpp
+                ../tests/unit/dp1/t_dp1v2_tile_pipeline.cpp
+                ../tests/unit/dp1/t_dp1v2_tile_radiometric_state_store.cpp
                 ../tests/unit/dp1/t_dp1v2_profiling_log_formatter.cpp
                 ../tests/unit/dp1/t_dp1v2_log_field_sanitizer.cpp
                 ../tests/unit/dp1/t_dp1v2_runtime_profiling_aggregator.cpp
@@ -146,13 +160,21 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 src/stages/input_normalization_stage.cpp
                 src/stages/prep_stage.cpp
                 src/stages/radiometric_stage.cpp
+                src/stages/tile_radiometric_state_store.cpp
                 src/result/result_builder.cpp
+                src/runtime/full_frame_pipeline.cpp
                 src/runtime/pipeline.cpp
+                src/runtime/tile_pipeline.cpp
+                src/runtime/tile_frame_aggregator.cpp
+                src/runtime/tile_executor.cpp
+                src/runtime/tile_processor.cpp
                 src/runtime/log_field_sanitizer.cpp
                 src/runtime/profiling_log_formatter.cpp
                 src/runtime/runtime_profiling_aggregator.cpp
+                src/runtime/runtime_threading.cpp
                 src/stages/radiometric_stage.inverse_median.cpp
                 src/source/uri_file_source.cpp
+                src/source/source_factory.cpp
         )
         target_include_directories(
                 dp1v2_unit_tests
@@ -174,6 +196,7 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 gtest
                 gtest_main
                 PkgConfig::jansson
+                TBB::tbb
         )
         gtest_discover_tests(dp1v2_unit_tests)
 
