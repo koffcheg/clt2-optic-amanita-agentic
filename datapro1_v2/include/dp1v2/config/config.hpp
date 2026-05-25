@@ -182,11 +182,6 @@ struct InverseMedianParametersConfig {
     InverseMedianOutputMode output_dynamic_range_mode = InverseMedianOutputMode::RawSigned;
 };
 
-enum class TileErrorPolicy {
-    Continue,
-    StopFrame,
-};
-
 enum class TileFrameStatusPolicy {
     FailedIfAnyRequiredTileFailed,
     PartialIfSomeTilesFailed,
@@ -195,7 +190,6 @@ enum class TileFrameStatusPolicy {
 struct TileExecutionConfig {
     int num_threads = 0;
     int opencv_num_threads = 0;
-    TileErrorPolicy on_tile_error = TileErrorPolicy::Continue;
     TileFrameStatusPolicy frame_status_policy =
         TileFrameStatusPolicy::FailedIfAnyRequiredTileFailed;
 };

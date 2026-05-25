@@ -266,13 +266,11 @@ json_t* makePrepTileCountParameters(
 json_t* makeTileExecutionParameters(
     const json_int_t num_threads,
     const json_int_t opencv_num_threads,
-    const char* on_tile_error,
     const char* frame_status_policy)
 {
     json_t* execution = json_object();
     EXPECT_EQ(json_object_set_new(execution, "num_threads", json_integer(num_threads)), 0);
     EXPECT_EQ(json_object_set_new(execution, "opencv_num_threads", json_integer(opencv_num_threads)), 0);
-    EXPECT_EQ(json_object_set_new(execution, "on_tile_error", json_string(on_tile_error)), 0);
     EXPECT_EQ(json_object_set_new(execution, "frame_status_policy", json_string(frame_status_policy)), 0);
     return execution;
 }
@@ -872,8 +870,6 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesParametersAreValid_ReturnsTypedPre
     EXPECT_EQ(config.resolved_pipeline.prep.tiles->overlap_y, 16);
     EXPECT_EQ(config.resolved_pipeline.prep.tiles->execution.num_threads, 0);
     EXPECT_EQ(config.resolved_pipeline.prep.tiles->execution.opencv_num_threads, 0);
-    EXPECT_EQ(config.resolved_pipeline.prep.tiles->execution.on_tile_error,
-              dp1v2::TileErrorPolicy::Continue);
     EXPECT_EQ(config.resolved_pipeline.prep.tiles->execution.frame_status_policy,
               dp1v2::TileFrameStatusPolicy::FailedIfAnyRequiredTileFailed);
     EXPECT_EQ(config.resolved_pipeline.prep.tiles->aggregation.mode,
@@ -914,7 +910,7 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionAndAggregationAreValid_Re
               {"pipeline", "prep", "parameters", "tiles"},
               "execution",
               makeTileExecutionParameters(
-                  4, 1, "stop_frame", "partial_if_some_tiles_failed"));
+                  4, 1, "partial_if_some_tiles_failed"));
     setObject(pipeline.get(),
               {"pipeline", "prep", "parameters", "tiles"},
               "aggregation",
@@ -927,7 +923,6 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionAndAggregationAreValid_Re
     const dp1v2::PrepTilesParametersConfig& tiles = *config.resolved_pipeline.prep.tiles;
     EXPECT_EQ(tiles.execution.num_threads, 4);
     EXPECT_EQ(tiles.execution.opencv_num_threads, 1);
-    EXPECT_EQ(tiles.execution.on_tile_error, dp1v2::TileErrorPolicy::StopFrame);
     EXPECT_EQ(tiles.execution.frame_status_policy,
               dp1v2::TileFrameStatusPolicy::PartialIfSomeTilesFailed);
     EXPECT_EQ(tiles.aggregation.mode, dp1v2::TileAggregationMode::MeasurementsAndDebugMerge);
@@ -935,6 +930,25 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionAndAggregationAreValid_Re
     EXPECT_TRUE(tiles.aggregation.deduplicate_overlap);
     EXPECT_EQ(tiles.aggregation.output_coordinate_space,
               dp1v2::TileOutputCoordinateSpace::SourceFrameGlobal);
+}
+
+TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionOnTileErrorFieldIsPresent_ThrowsConfigError)
+{
+    JsonPtr application = makeApplicationConfig();
+    JsonPtr pipeline = makePipelineConfig();
+    setString(pipeline.get(), {"pipeline", "prep"}, "variant", "tiles");
+    setString(pipeline.get(), {"pipeline", "prep"}, "level", "L1");
+    setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 16, 16));
+
+    json_t* execution = makeTileExecutionParameters(
+        1, 1, "failed_if_any_required_tile_failed");
+    ASSERT_EQ(json_object_set_new(execution, "on_tile_error", json_string("continue")), 0);
+    setObject(pipeline.get(),
+              {"pipeline", "prep", "parameters", "tiles"},
+              "execution",
+              execution);
+
+    EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
 }
 
 TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionBackendFieldIsPresent_ThrowsConfigError)
@@ -946,7 +960,7 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionBackendFieldIsPresent_Thr
     setObject(pipeline.get(), {"pipeline", "prep"}, "parameters", makePrepTilesParameters(256, 256, 16, 16));
 
     json_t* execution = makeTileExecutionParameters(
-        1, 1, "continue", "failed_if_any_required_tile_failed");
+        1, 1, "failed_if_any_required_tile_failed");
     ASSERT_EQ(json_object_set_new(execution, "backend", json_string("serial")), 0);
     setObject(pipeline.get(),
               {"pipeline", "prep", "parameters", "tiles"},
@@ -1114,7 +1128,7 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionNumThreadsIsNegative_Thro
               {"pipeline", "prep", "parameters", "tiles"},
               "execution",
               makeTileExecutionParameters(
-                  -1, 1, "continue", "failed_if_any_required_tile_failed"));
+                  -1, 1, "failed_if_any_required_tile_failed"));
 
     EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
 }
@@ -1129,7 +1143,7 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionOpenCvNumThreadsIsNegativ
               {"pipeline", "prep", "parameters", "tiles"},
               "execution",
               makeTileExecutionParameters(
-                  4, -1, "continue", "failed_if_any_required_tile_failed"));
+                  4, -1, "failed_if_any_required_tile_failed"));
 
     EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
 }
@@ -1144,7 +1158,7 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionHasBackendKey_ThrowsConfi
               {"pipeline", "prep", "parameters", "tiles"},
               "execution",
               makeTileExecutionParameters(
-                  4, 1, "continue", "failed_if_any_required_tile_failed"));
+                  4, 1, "failed_if_any_required_tile_failed"));
     setString(pipeline.get(), {"pipeline", "prep", "parameters", "tiles", "execution"}, "backend", "one_tbb");
 
     EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
@@ -1160,7 +1174,7 @@ TEST_F(ConfigTest, LoadDp1Config_WhenPrepTilesExecutionHasUnknownKey_ThrowsConfi
               {"pipeline", "prep", "parameters", "tiles"},
               "execution",
               makeTileExecutionParameters(
-                  4, 1, "continue", "failed_if_any_required_tile_failed"));
+                  4, 1, "failed_if_any_required_tile_failed"));
     setBool(pipeline.get(), {"pipeline", "prep", "parameters", "tiles", "execution"}, "debug_timing", true);
 
     EXPECT_THROW(loadDp1(application, pipeline), std::logic_error);
