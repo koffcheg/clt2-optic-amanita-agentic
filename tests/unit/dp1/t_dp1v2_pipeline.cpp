@@ -249,6 +249,50 @@ TEST(PipelineTest, TilesPrepRouteRunsRadiometricWarmUpThroughTilePipeline)
     EXPECT_TRUE(hasDiagnostic(result.frame, "tile_pipeline.summary"));
 }
 
+
+TEST(PipelineTest, TilesPrepRouteReachesRadiometricCompletedAfterWarmUp)
+{
+    const dp1v2::PipelineConfig pipeline_config = makeTilesPipelineConfig();
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage(makePrepResolvedConfig());
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    dp1v2::SingleFramePipelineResult result{};
+    for (int frame_index = 0; frame_index < 4; ++frame_index) {
+        dp1v2::RawFrameEnvelope envelope = makeEnvelope();
+        envelope.header_hint.frame_id = 42 + frame_index;
+        result = processTestFrame(
+            envelope,
+            pipeline_config,
+            resolved_pipeline_config,
+            input_normalization_stage,
+            prep_stage,
+            radiometric_stage,
+            visualization_sink);
+    }
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+    EXPECT_EQ(result.lifecycle.reason, "test_result_sink_stub");
+
+    const dp1v2::StageStatus *prep_status = findStageStatus(result.frame, "prep");
+    ASSERT_NE(prep_status, nullptr);
+    EXPECT_EQ(prep_status->status, dp1v2::StageStatusCode::Completed);
+    EXPECT_EQ(prep_status->route, "tiles");
+
+    const dp1v2::StageStatus *radiometric_status =
+        findStageStatus(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_status, nullptr);
+    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Completed);
+    EXPECT_EQ(radiometric_status->variant, "inverse_median");
+    EXPECT_EQ(radiometric_status->route, "tiles");
+
+    EXPECT_EQ(result.frame.profiling.cardinality.tile_count, 6U);
+    EXPECT_NE(radiometric_status->reason.find("total_tiles=6"), std::string::npos);
+    EXPECT_EQ(radiometric_status->reason.find("tile_route_controlled_failure"), std::string::npos);
+}
+
 TEST(PipelineTest, TilesRouteFallsBackToCamIndexWhenEnvelopeCameraIdMissing)
 {
     const dp1v2::PipelineConfig pipeline_config = makeTilesPipelineConfig();
