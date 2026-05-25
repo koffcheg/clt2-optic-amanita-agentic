@@ -33,6 +33,7 @@ target_sources(
         ../datapro1_v2/src/runtime/runtime_profiling_aggregator.cpp
         ../datapro1_v2/src/stages/radiometric_stage.inverse_median.cpp
         ../datapro1_v2/src/source/uri_file_source.cpp
+        ../datapro1_v2/src/source/source_factory.cpp
 )
 
 target_include_directories(

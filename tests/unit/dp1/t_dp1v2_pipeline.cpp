@@ -125,7 +125,8 @@ dp1v2::SingleFramePipelineResult processTestFrame(
     dp1v2::InputNormalizationStage &input_normalization_stage,
     dp1v2::PrepStage &prep_stage,
     dp1v2::RadiometricStage &radiometric_stage,
-    dp1v2::VisualizationSink &visualization_sink)
+    dp1v2::VisualizationSink &visualization_sink,
+    const int cam_index = 7)
 {
     dp1v2::FullFramePipeline full_frame_pipeline(radiometric_stage, visualization_sink);
     dp1v2::TileExecutor tile_executor;
@@ -138,7 +139,7 @@ dp1v2::SingleFramePipelineResult processTestFrame(
 
     return dp1v2::process_single_frame(
         envelope,
-        7,
+        cam_index,
         pipeline_config,
         resolved_pipeline_config,
         input_normalization_stage,
@@ -246,6 +247,58 @@ TEST(PipelineTest, TilesPrepRouteRunsRadiometricWarmUpThroughTilePipeline)
     EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
     EXPECT_FALSE(hasDiagnostic(result.frame, "prep.tiles.downstream_not_connected"));
     EXPECT_TRUE(hasDiagnostic(result.frame, "tile_pipeline.summary"));
+}
+
+TEST(PipelineTest, TilesRouteFallsBackToCamIndexWhenEnvelopeCameraIdMissing)
+{
+    const dp1v2::PipelineConfig pipeline_config = makeTilesPipelineConfig();
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage(makePrepResolvedConfig());
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    dp1v2::RawFrameEnvelope envelope = makeEnvelope();
+    envelope.header_hint.camera_id.reset();
+
+    const dp1v2::SingleFramePipelineResult result = processTestFrame(
+        envelope,
+        pipeline_config,
+        resolved_pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        radiometric_stage,
+        visualization_sink,
+        7);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+    EXPECT_EQ(result.frame.camera_id, 7);
+}
+
+TEST(PipelineTest, TilesRoutePreservesSourceCameraIdWhenRuntimeCamIndexDiffers)
+{
+    const dp1v2::PipelineConfig pipeline_config = makeTilesPipelineConfig();
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage(makePrepResolvedConfig());
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    dp1v2::RawFrameEnvelope envelope = makeEnvelope();
+    envelope.header_hint.camera_id = 11;
+
+    const dp1v2::SingleFramePipelineResult result = processTestFrame(
+        envelope,
+        pipeline_config,
+        resolved_pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        radiometric_stage,
+        visualization_sink,
+        7);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+    EXPECT_EQ(result.frame.camera_id, 11);
 }
 
 TEST(PipelineTest, TileRouteAppliesOpenCvThreadLimitAtRuntimeBoundary)

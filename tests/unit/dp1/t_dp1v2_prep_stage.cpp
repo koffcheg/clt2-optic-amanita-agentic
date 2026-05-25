@@ -276,6 +276,25 @@ TEST(PrepStageTest, TileViewsAreNonOwningRoiViews)
     }
 }
 
+TEST(PrepStageTest, TileViewsKeepCameraIdAlignedWithFrameContext)
+{
+    cv::Mat image(4, 5, CV_16UC1);
+    image.setTo(cv::Scalar(1024));
+    const dp1v2::CanonicalFrame frame = makeCanonicalFrame(image);
+    dp1v2::FrameContext context{};
+    context.frame_id = frame.frame_id;
+    context.camera_id = frame.camera_id;
+    dp1v2::PrepStage stage(resolvedTilesConfig(3, 2, 1, 1));
+
+    const auto outcome = stage.process(dp1v2::PrepTilesInput{.frame = frame}, context, tilesConfig());
+
+    ASSERT_EQ(outcome.status, dp1v2::StageExecutionStatus::Completed);
+    ASSERT_FALSE(outcome.output.tile_views.empty());
+    for (const dp1v2::TileRawView &view : outcome.output.tile_views) {
+        EXPECT_EQ(view.camera_id, context.camera_id);
+    }
+}
+
 TEST(PrepStageTest, TilesRejectInvalidCanonicalFrame)
 {
     dp1v2::PrepStage stage(resolvedTilesConfig(2, 2, 0, 0));

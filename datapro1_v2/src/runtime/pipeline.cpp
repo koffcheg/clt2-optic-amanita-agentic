@@ -95,9 +95,13 @@ SingleFramePipelineResult process_single_frame(
     TilePipeline& tile_pipeline) {
     const auto frame_start = std::chrono::steady_clock::now();
     const auto input_start = frame_start;
+    FrameHeaderHint header_hint = envelope.header_hint;
+    if (!header_hint.camera_id.has_value() && cam_index >= 0) {
+        header_hint.camera_id = cam_index;
+    }
     const auto packet_result = make_frame_packet(
         envelope.frame,
-        envelope.header_hint,
+        header_hint,
         pipeline_config.input_route,
         envelope.received_steady_ts);
     if (!packet_result.ok()) {

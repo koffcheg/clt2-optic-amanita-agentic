@@ -174,6 +174,7 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 src/runtime/runtime_threading.cpp
                 src/stages/radiometric_stage.inverse_median.cpp
                 src/source/uri_file_source.cpp
+                src/source/source_factory.cpp
         )
         target_include_directories(
                 dp1v2_unit_tests

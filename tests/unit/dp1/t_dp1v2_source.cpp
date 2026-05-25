@@ -3,12 +3,14 @@
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include <opencv2/imgcodecs.hpp>
 
 #include "dp1v2/frame/frame_packet_builder.hpp"
+#include "dp1v2/source/source_factory.hpp"
 #include "dp1v2/source/uri_file_source.hpp"
 
 namespace {
@@ -130,6 +132,61 @@ TEST_F(SourceTest, UriFileFrameSource_WhenPrintfImageSequenceRead_UsesZeroBasedI
     EXPECT_EQ(second.envelope.frame.type(), CV_16UC1);
     EXPECT_EQ(first.envelope.frame.at<std::uint16_t>(0, 0), 17);
     EXPECT_EQ(second.envelope.frame.at<std::uint16_t>(0, 0), 12345);
+}
+
+TEST_F(SourceTest, UriFileFrameSource_WhenLogicalCameraIdProvided_EmitsHeaderHintCameraId)
+{
+    const std::filesystem::path path = temp_dir_ / "frame.tiff";
+    ASSERT_TRUE(cv::imwrite(path.string(), makeU16Image()));
+
+    dp1v2::UriFileFrameSource source(path.string(), 0);
+    ASSERT_TRUE(source.is_open());
+
+    const dp1v2::SourceReadResult result = source.read_next();
+
+    ASSERT_EQ(result.status, dp1v2::SourceReadStatus::FrameReady) << result.reason;
+    ASSERT_TRUE(result.envelope.header_hint.camera_id.has_value());
+    EXPECT_EQ(*result.envelope.header_hint.camera_id, 0);
+}
+
+TEST_F(SourceTest, CreateFrameSource_WhenFileSourceUsesCamIndex_EmitsHeaderHintCameraId)
+{
+    const std::filesystem::path path = temp_dir_ / "frame.tiff";
+    ASSERT_TRUE(cv::imwrite(path.string(), makeU16Image()));
+
+    dp1v2::SourceConfig config{};
+    config.mode = dp1v2::FrameSourceMode::File;
+    config.file.path = path.string();
+
+    std::unique_ptr<dp1v2::IFrameSource> source = dp1v2::create_frame_source(config, 0);
+    ASSERT_NE(source, nullptr);
+
+    const dp1v2::SourceReadResult result = source->read_next();
+
+    ASSERT_EQ(result.status, dp1v2::SourceReadStatus::FrameReady) << result.reason;
+    ASSERT_TRUE(result.envelope.header_hint.camera_id.has_value());
+    EXPECT_EQ(*result.envelope.header_hint.camera_id, 0);
+}
+
+TEST_F(SourceTest, MakeFramePacket_AfterFileSourceRead_UsesLogicalCameraId)
+{
+    const std::filesystem::path path = temp_dir_ / "frame.tiff";
+    ASSERT_TRUE(cv::imwrite(path.string(), makeU16Image()));
+
+    dp1v2::UriFileFrameSource source(path.string(), 0);
+    ASSERT_TRUE(source.is_open());
+
+    const dp1v2::SourceReadResult read_result = source.read_next();
+    ASSERT_EQ(read_result.status, dp1v2::SourceReadStatus::FrameReady) << read_result.reason;
+
+    const dp1v2::FramePacketBuildResult packet_result = dp1v2::make_frame_packet(
+        read_result.envelope.frame,
+        read_result.envelope.header_hint,
+        u16InputRoute(),
+        read_result.envelope.received_steady_ts);
+
+    ASSERT_TRUE(packet_result.ok()) << dp1v2::frame_packet_error_to_cstr(packet_result.error);
+    EXPECT_EQ(packet_result.packet.camera_id, 0);
 }
 
 TEST_F(SourceTest, MakeFramePacket_WhenU8FrameUsesU16InputRoute_ReturnsHeaderMatConflict)
