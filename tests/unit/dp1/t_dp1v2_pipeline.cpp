@@ -138,6 +138,7 @@ dp1v2::SingleFramePipelineResult processTestFrame(
     dp1v2::TileFrameAggregator tile_aggregator;
     dp1v2::TilePipeline tile_pipeline(
         radiometric_stage,
+        stage2_boundary_adapter,
         tile_executor,
         tile_aggregator,
         visualization_sink);
@@ -265,6 +266,44 @@ TEST(PipelineTest, TilesPrepRouteRunsRadiometricWarmUpThroughTilePipeline)
     EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
     EXPECT_FALSE(hasDiagnostic(result.frame, "prep.tiles.downstream_not_connected"));
     EXPECT_TRUE(hasDiagnostic(result.frame, "tile_pipeline.summary"));
+}
+
+TEST(PipelineTest, TilesDisabledRadiometricU16RecordsStage2BoundaryU8Output)
+{
+    dp1v2::PipelineConfig pipeline_config = makeTilesPipelineConfig();
+    pipeline_config.stages.radiometric.enabled = false;
+
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(
+        resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage(makePrepResolvedConfig());
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    const dp1v2::SingleFramePipelineResult result = processTestFrame(
+        makeEnvelope(),
+        pipeline_config,
+        resolved_pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        radiometric_stage,
+        visualization_sink);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+
+    const dp1v2::StageStatus *radiometric_status =
+        findStageStatus(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_status, nullptr);
+    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Disabled);
+    EXPECT_EQ(radiometric_status->route, "tiles");
+
+    const dp1v2::StageTiming *radiometric_timing =
+        findStageTiming(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_timing, nullptr);
+    EXPECT_EQ(radiometric_timing->status, dp1v2::StageStatusCode::Disabled);
+    EXPECT_EQ(radiometric_timing->input_format, dp1v2::PixelFormat::U16);
+    EXPECT_EQ(radiometric_timing->output_format, dp1v2::PixelFormat::U8);
+    EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
 }
 
 

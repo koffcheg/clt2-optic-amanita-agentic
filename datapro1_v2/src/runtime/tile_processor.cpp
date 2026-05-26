@@ -2,9 +2,11 @@
 
 #include <chrono>
 #include <exception>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include "dp1v2/domain/tile_context.hpp"
 
@@ -120,7 +122,8 @@ void appendTileStageStatus(
     stage_status.level = config.level;
     stage_status.route = std::string(kTileRoute);
     stage_status.reason = std::string(reason);
-    tile_context.stage_statuses.push_back(std::move(stage_status));
+    tile_context.stage_statuses.resize(tile_context.stage_statuses.size() + 1);
+    tile_context.stage_statuses.back() = std::move(stage_status);
 }
 
 void appendTileStageTiming(
@@ -145,7 +148,8 @@ void appendTileStageTiming(
     timing.duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
         end_time - start_time).count();
     timing.reason = std::string(reason);
-    tile_context.stage_timings.push_back(std::move(timing));
+    tile_context.stage_timings.resize(tile_context.stage_timings.size() + 1);
+    tile_context.stage_timings.back() = std::move(timing);
 }
 
 void moveTileContextToResult(TileContext& tile_context, TileResult& result)
@@ -161,10 +165,12 @@ TileResult makeInvalidTaskResult(const TileTask& task, const std::string_view re
     result.status = TileResultStatus::Failed;
     result.error_code = "invalid_tile_task";
     result.reason = std::string(reason);
-    result.diagnostics.push_back(DiagnosticMessage{
-        .code = "tile.invalid_task",
-        .message = result.reason,
-    });
+    result.diagnostics = std::vector<DiagnosticMessage>{
+        {
+            .code = "tile.invalid_task",
+            .message = result.reason,
+        },
+    };
     return result;
 }
 
@@ -172,13 +178,17 @@ TileResult makeInvalidTaskResult(const TileTask& task, const std::string_view re
 
 TileProcessor::TileProcessor(
     RadiometricStage& radiometric_stage,
+    Stage2BoundaryAdapter& stage2_boundary_adapter,
     const PipelineConfig& pipeline_config)
     : radiometric_stage_(radiometric_stage),
+      stage2_boundary_adapter_(stage2_boundary_adapter),
       pipeline_config_(pipeline_config)
 {
 }
 
-TileResult TileProcessor::process(const TileTask& task) const
+TileResult TileProcessor::process(
+    const TileTask& task,
+    Stage2BoundaryWorkspace& stage2_workspace) const
 {
     TileResult result = makeInitialResult(task);
 
@@ -202,9 +212,25 @@ TileResult TileProcessor::process(const TileTask& task) const
             radiometric_config);
         const auto radiometric_end = std::chrono::steady_clock::now();
 
+        std::optional<Stage2TileSelection> stage2_selection;
+        switch (outcome.status) {
+        case StageExecutionStatus::Completed:
+        case StageExecutionStatus::Disabled:
+        case StageExecutionStatus::Skipped:
+            stage2_selection = stage2_boundary_adapter_.selectTileOutput(
+                task.task_index,
+                *task.raw_view,
+                outcome,
+                stage2_workspace);
+            break;
+        case StageExecutionStatus::Failed:
+        case StageExecutionStatus::Unsupported:
+            break;
+        }
+
         const StageStatusCode stage_status = toStageStatusCode(outcome.status);
-        const PixelFormat output_format = outcome.status == StageExecutionStatus::Completed
-            ? outcome.output.frame.pixel_format
+        const PixelFormat output_format = stage2_selection.has_value()
+            ? stage2_selection->frame.pixel_format
             : task.raw_view->pixel_format;
         appendTileStageTiming(
             tile_context,

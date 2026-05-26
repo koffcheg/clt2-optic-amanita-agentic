@@ -219,6 +219,7 @@ RuntimeLoopResult run_bounded_runtime_loop(const StartupContext &context, IFrame
     TileFrameAggregator tile_aggregator;
     TilePipeline tile_pipeline(
         radiometric_stage,
+        stage2_boundary_adapter,
         tile_executor,
         tile_aggregator,
         visualization_sink);

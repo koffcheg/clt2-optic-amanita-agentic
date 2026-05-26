@@ -178,13 +178,15 @@ cv::Size inferFrameSizeAfterStage0(const PrepTilesOutput& output)
     return cv::Size(width, height);
 }
 
-std::optional<PixelFormat> findCompletedTileOutputFormat(
+std::optional<PixelFormat> findSelectableTileOutputFormat(
     const std::vector<TileResult>& results)
 {
     for (const TileResult& result : results) {
         for (const StageTiming& timing : result.stage_timings) {
             if (timing.stage_key == kRadiometricStageKey
-                && timing.status == StageStatusCode::Completed) {
+                && (timing.status == StageStatusCode::Completed
+                    || timing.status == StageStatusCode::Disabled
+                    || timing.status == StageStatusCode::Skipped)) {
                 return timing.output_format;
             }
         }
@@ -208,7 +210,8 @@ void recordTileSummary(
     const StageStatusCode status = aggregateStageStatus(aggregation);
     const std::string reason = makeTileSummaryReason(execution, aggregation);
 
-    const PixelFormat output_format = findCompletedTileOutputFormat(results).value_or(context.input_format);
+    const PixelFormat output_format =
+        findSelectableTileOutputFormat(results).value_or(context.input_format);
 
     record_stage_timing(
         context,
@@ -238,10 +241,12 @@ void recordTileSummary(
 
 TilePipeline::TilePipeline(
     RadiometricStage& radiometric_stage,
+    Stage2BoundaryAdapter& stage2_boundary_adapter,
     TileExecutor& executor,
     TileFrameAggregator& aggregator,
     VisualizationSink& visualization_sink)
     : radiometric_stage_(radiometric_stage),
+      stage2_boundary_adapter_(stage2_boundary_adapter),
       executor_(executor),
       aggregator_(aggregator),
       visualization_sink_(visualization_sink)
@@ -280,13 +285,19 @@ TilePipelineResult TilePipeline::process(const TilePipelineArgs& args)
 
     const std::vector<TileTask> tasks = buildTileTasks(args);
     std::vector<TileResult> results(tasks.size());
+    Stage2BoundaryWorkspace stage2_workspace;
+    stage2_workspace.tile_bypass_u8_by_task.resize(tasks.size());
 
-    TileProcessor processor(radiometric_stage_, args.pipeline_config);
+    TileProcessor processor(
+        radiometric_stage_,
+        stage2_boundary_adapter_,
+        args.pipeline_config);
 
     const auto execution_start = std::chrono::steady_clock::now();
     const TileExecutionSummary execution_summary = executor_.execute(
         tasks,
         results,
+        stage2_workspace,
         processor,
         args.tiles_config.execution);
     const auto execution_end = std::chrono::steady_clock::now();

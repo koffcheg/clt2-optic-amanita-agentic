@@ -6,6 +6,7 @@
 #include "dp1v2/domain/frame_context.hpp"
 #include "dp1v2/result/result_sink.hpp"
 #include "dp1v2/runtime/runtime.hpp"
+#include "dp1v2/runtime/stage2_boundary_adapter.hpp"
 #include "dp1v2/runtime/tile_executor.hpp"
 #include "dp1v2/runtime/tile_frame_aggregator.hpp"
 #include "dp1v2/runtime/tile_processor.hpp"
@@ -38,6 +39,7 @@ class TilePipeline final {
 public:
     TilePipeline(
         RadiometricStage& radiometric_stage,
+        Stage2BoundaryAdapter& stage2_boundary_adapter,
         TileExecutor& executor,
         TileFrameAggregator& aggregator,
         VisualizationSink& visualization_sink);
@@ -46,6 +48,7 @@ public:
 
 private:
     RadiometricStage& radiometric_stage_;
+    Stage2BoundaryAdapter& stage2_boundary_adapter_;
     TileExecutor& executor_;
     TileFrameAggregator& aggregator_;
     VisualizationSink& visualization_sink_;
