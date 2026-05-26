@@ -151,6 +151,32 @@ TEST(Stage2BoundaryAdapterTest, DisabledFullFrameU8BypassUsesShallowImage)
     EXPECT_DOUBLE_EQ(selection.frame.value_range.max_value, input.pixel_range.max_value);
 }
 
+
+TEST(Stage2BoundaryAdapterTest, DisabledFullFrameU8BypassPreservesInputPixelRange)
+{
+    cv::Mat input_image(2, 2, CV_8UC1);
+    const dp1v2::PixelRange custom_range{
+        .min_value = -12.5,
+        .max_value = 301.0,
+        .black_level = -4.0,
+        .saturation_level = 290.0,
+    };
+    const dp1v2::CanonicalFrame input =
+        makeCanonicalFrame(input_image, dp1v2::PixelFormat::U8, custom_range);
+
+    dp1v2::Stage2BoundaryWorkspace workspace{};
+    const dp1v2::Stage2BoundaryAdapter adapter;
+    const dp1v2::Stage2FullFrameSelection selection = adapter.selectFullFrameOutput(
+        input,
+        fullFrameOutcome(dp1v2::StageExecutionStatus::Disabled),
+        workspace);
+
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.min_value, custom_range.min_value);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.max_value, custom_range.max_value);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.black_level, custom_range.black_level);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.saturation_level, custom_range.saturation_level);
+}
+
 TEST(Stage2BoundaryAdapterTest, DisabledFullFrameU16BypassScalesIntoWorkspace)
 {
     cv::Mat input_image(1, 3, CV_16UC1);
@@ -176,6 +202,10 @@ TEST(Stage2BoundaryAdapterTest, DisabledFullFrameU16BypassScalesIntoWorkspace)
     EXPECT_EQ(selection.frame.image.at<std::uint8_t>(0, 2), 255U);
     EXPECT_EQ(selection.frame.pixel_format, dp1v2::PixelFormat::U8);
     EXPECT_EQ(selection.frame.processing_domain, dp1v2::ProcessingDomain::RawIntensity);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.min_value, 0.0);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.max_value, 255.0);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.black_level, 0.0);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.saturation_level, 255.0);
 }
 
 TEST(Stage2BoundaryAdapterTest, SkippedFullFrameU16BypassScalesIntoWorkspace)
@@ -202,6 +232,10 @@ TEST(Stage2BoundaryAdapterTest, SkippedFullFrameU16BypassScalesIntoWorkspace)
     EXPECT_EQ(selection.frame.image.at<std::uint8_t>(0, 1), 128U);
     EXPECT_EQ(selection.frame.image.at<std::uint8_t>(0, 2), 255U);
     EXPECT_EQ(selection.frame.processing_domain, dp1v2::ProcessingDomain::RawIntensity);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.min_value, 0.0);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.max_value, 255.0);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.black_level, 0.0);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.saturation_level, 255.0);
 }
 
 TEST(Stage2BoundaryAdapterTest, FullFrameU16BypassScalesUsingPixelRange)
@@ -274,6 +308,10 @@ TEST(Stage2BoundaryAdapterTest, SkippedTileU16BypassScalesIntoTaskWorkspace)
     EXPECT_EQ(selection.frame.image.at<std::uint8_t>(0, 0), 0U);
     EXPECT_EQ(selection.frame.image.at<std::uint8_t>(0, 1), 255U);
     EXPECT_TRUE(workspace.tile_bypass_u8_by_task[0].empty());
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.min_value, 0.0);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.max_value, 255.0);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.black_level, 0.0);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.saturation_level, 255.0);
 }
 
 TEST(Stage2BoundaryAdapterTest, ValidTileTaskIndexWritesOnlySelectedWorkspaceBuffer)
@@ -299,6 +337,10 @@ TEST(Stage2BoundaryAdapterTest, ValidTileTaskIndexWritesOnlySelectedWorkspaceBuf
     EXPECT_EQ(selection.frame.image.data, workspace.tile_bypass_u8_by_task[2].data);
     EXPECT_EQ(selection.frame.pixel_format, dp1v2::PixelFormat::U8);
     EXPECT_EQ(selection.frame.processing_domain, dp1v2::ProcessingDomain::RawIntensity);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.min_value, 0.0);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.max_value, 255.0);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.black_level, 0.0);
+    EXPECT_DOUBLE_EQ(selection.frame.value_range.saturation_level, 255.0);
 }
 
 TEST(Stage2BoundaryAdapterTest, FailedAndUnsupportedOutcomesThrow)
