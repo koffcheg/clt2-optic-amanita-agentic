@@ -104,3 +104,4 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0084` - DP1 v2 PrepStage tile_count tile layout - completed
 - `AMNT-0085` - DP1 v2 Stage 2 boundary adapter - completed
 - `AMNT-0086` - DP1 v2 Stage 2 boundary artifact registration - completed
+- `AMNT-0087` - DP1 v2 full-frame Stage 2 boundary adapter integration - completed

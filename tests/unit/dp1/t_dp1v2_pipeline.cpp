@@ -11,6 +11,7 @@
 #include "dp1v2/runtime/pipeline.hpp"
 #include "dp1v2/runtime/runtime_profiling_aggregator.hpp"
 #include "dp1v2/runtime/runtime_threading.hpp"
+#include "dp1v2/runtime/stage2_boundary_adapter.hpp"
 
 namespace dp1v2 {
 
@@ -128,7 +129,11 @@ dp1v2::SingleFramePipelineResult processTestFrame(
     dp1v2::VisualizationSink &visualization_sink,
     const int cam_index = 7)
 {
-    dp1v2::FullFramePipeline full_frame_pipeline(radiometric_stage, visualization_sink);
+    dp1v2::Stage2BoundaryAdapter stage2_boundary_adapter;
+    dp1v2::FullFramePipeline full_frame_pipeline(
+        radiometric_stage,
+        stage2_boundary_adapter,
+        visualization_sink);
     dp1v2::TileExecutor tile_executor;
     dp1v2::TileFrameAggregator tile_aggregator;
     dp1v2::TilePipeline tile_pipeline(
@@ -505,6 +510,13 @@ TEST(PipelineTest, FullFrameRouteRegistersStage2BoundaryArtifactForDisabledBypas
         findStageStatus(result.frame, "radiometric_correction");
     ASSERT_NE(radiometric_status, nullptr);
     EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Disabled);
+
+    const dp1v2::StageTiming *radiometric_timing =
+        findStageTiming(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_timing, nullptr);
+    EXPECT_EQ(radiometric_timing->status, dp1v2::StageStatusCode::Disabled);
+    EXPECT_EQ(radiometric_timing->input_format, dp1v2::PixelFormat::U16);
+    EXPECT_EQ(radiometric_timing->output_format, dp1v2::PixelFormat::U8);
 
     const dp1v2::FrameArtifactRef *artifact =
         findArtifact(result.frame, "stage2.processing_frame");

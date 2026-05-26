@@ -10,6 +10,8 @@
 
 namespace dp1v2 {
 
+class Stage2BoundaryAdapter;
+
 struct FullFramePipelineArgs {
     const CanonicalFrame &frame;
     FrameContext &frame_context;
@@ -25,12 +27,14 @@ class FullFramePipeline final {
 public:
     FullFramePipeline(
         RadiometricStage &radiometric_stage,
+        Stage2BoundaryAdapter &stage2_boundary_adapter,
         VisualizationSink &visualization_sink);
 
     FullFramePipelineResult process(const FullFramePipelineArgs &args);
 
 private:
     RadiometricStage &radiometric_stage_;
+    Stage2BoundaryAdapter &stage2_boundary_adapter_;
     VisualizationSink &visualization_sink_;
 };
 
