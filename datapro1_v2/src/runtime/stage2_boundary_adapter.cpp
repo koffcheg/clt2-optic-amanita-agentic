@@ -162,7 +162,7 @@ TileProcessingFrame Stage2BoundaryAdapter::makeBypassTileFrame(
     Stage2BoundaryWorkspace& workspace) const
 {
     if (task_index >= workspace.tile_bypass_u8_by_task.size()) {
-        throw std::logic_error("stage2 boundary tile bypass task index is outside workspace");
+        throw std::out_of_range("stage2 boundary tile bypass task index is outside workspace");
     }
 
     TileProcessingFrame frame{};

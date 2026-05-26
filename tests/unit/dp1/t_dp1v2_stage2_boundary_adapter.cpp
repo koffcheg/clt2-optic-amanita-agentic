@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <stdexcept>
 
 #include <opencv2/core.hpp>
 
@@ -18,7 +19,20 @@ dp1v2::PixelRange rawRange()
     };
 }
 
-dp1v2::CanonicalFrame makeCanonicalFrame(const cv::Mat& image, const dp1v2::PixelFormat format)
+dp1v2::PixelRange rawRange12Bit()
+{
+    return dp1v2::PixelRange{
+        .min_value = 0.0,
+        .max_value = 4095.0,
+        .black_level = 0.0,
+        .saturation_level = 4095.0,
+    };
+}
+
+dp1v2::CanonicalFrame makeCanonicalFrame(
+    const cv::Mat& image,
+    const dp1v2::PixelFormat format,
+    const dp1v2::PixelRange& range = rawRange())
 {
     dp1v2::CanonicalFrame frame{};
     frame.frame_id = 42;
@@ -30,13 +44,16 @@ dp1v2::CanonicalFrame makeCanonicalFrame(const cv::Mat& image, const dp1v2::Pixe
     frame.bit_depth = format == dp1v2::PixelFormat::U8
         ? dp1v2::InputBitDepth::Bit8
         : dp1v2::InputBitDepth::Bit16;
-    frame.pixel_range = rawRange();
+    frame.pixel_range = range;
     frame.geometry = dp1v2::FrameGeometry{.width = image.cols, .height = image.rows};
     frame.coordinate_space = dp1v2::CoordinateSpace::FrameGlobal;
     return frame;
 }
 
-dp1v2::TileRawView makeTileRawView(const cv::Mat& image, const dp1v2::PixelFormat format)
+dp1v2::TileRawView makeTileRawView(
+    const cv::Mat& image,
+    const dp1v2::PixelFormat format,
+    const dp1v2::PixelRange& range = rawRange())
 {
     dp1v2::TileRawView tile{};
     tile.frame_id = 42;
@@ -47,7 +64,7 @@ dp1v2::TileRawView makeTileRawView(const cv::Mat& image, const dp1v2::PixelForma
     tile.bit_depth = format == dp1v2::PixelFormat::U8
         ? dp1v2::InputBitDepth::Bit8
         : dp1v2::InputBitDepth::Bit16;
-    tile.pixel_range = rawRange();
+    tile.pixel_range = range;
     tile.geometry = dp1v2::FrameGeometry{.width = image.cols, .height = image.rows};
     tile.origin_in_frame = cv::Point{4, 6};
     tile.valid_area = cv::Rect{1, 1, image.cols - 1, image.rows - 1};
@@ -107,6 +124,7 @@ TEST(Stage2BoundaryAdapterTest, CompletedFullFrameSelectsRadiometricOutput)
     EXPECT_EQ(selection.frame.frame_id, 99U);
     EXPECT_EQ(selection.frame.image.data, radiometric_image.data);
     EXPECT_EQ(selection.frame.pixel_format, dp1v2::PixelFormat::F32);
+    EXPECT_EQ(selection.frame.processing_domain, dp1v2::ProcessingDomain::RadiometricResidual);
 }
 
 TEST(Stage2BoundaryAdapterTest, DisabledFullFrameU8BypassUsesShallowImage)
@@ -133,6 +151,33 @@ TEST(Stage2BoundaryAdapterTest, DisabledFullFrameU8BypassUsesShallowImage)
     EXPECT_DOUBLE_EQ(selection.frame.value_range.max_value, input.pixel_range.max_value);
 }
 
+TEST(Stage2BoundaryAdapterTest, DisabledFullFrameU16BypassScalesIntoWorkspace)
+{
+    cv::Mat input_image(1, 3, CV_16UC1);
+    input_image.at<std::uint16_t>(0, 0) = 100;
+    input_image.at<std::uint16_t>(0, 1) = 600;
+    input_image.at<std::uint16_t>(0, 2) = 1100;
+    const dp1v2::CanonicalFrame input = makeCanonicalFrame(input_image, dp1v2::PixelFormat::U16);
+
+    dp1v2::Stage2BoundaryWorkspace workspace{};
+    const dp1v2::Stage2BoundaryAdapter adapter;
+    const dp1v2::Stage2FullFrameSelection selection = adapter.selectFullFrameOutput(
+        input,
+        fullFrameOutcome(dp1v2::StageExecutionStatus::Disabled),
+        workspace);
+
+    EXPECT_TRUE(selection.is_bypass);
+    EXPECT_EQ(selection.source, dp1v2::Stage2BoundarySource::RawBypassFromDisabledRadiometric);
+    EXPECT_EQ(selection.frame.image.data, workspace.full_frame_bypass_u8.data);
+    EXPECT_NE(selection.frame.image.data, input.image.data);
+    ASSERT_EQ(selection.frame.image.type(), CV_8UC1);
+    EXPECT_EQ(selection.frame.image.at<std::uint8_t>(0, 0), 0U);
+    EXPECT_EQ(selection.frame.image.at<std::uint8_t>(0, 1), 128U);
+    EXPECT_EQ(selection.frame.image.at<std::uint8_t>(0, 2), 255U);
+    EXPECT_EQ(selection.frame.pixel_format, dp1v2::PixelFormat::U8);
+    EXPECT_EQ(selection.frame.processing_domain, dp1v2::ProcessingDomain::RawIntensity);
+}
+
 TEST(Stage2BoundaryAdapterTest, SkippedFullFrameU16BypassScalesIntoWorkspace)
 {
     cv::Mat input_image(1, 3, CV_16UC1);
@@ -157,6 +202,30 @@ TEST(Stage2BoundaryAdapterTest, SkippedFullFrameU16BypassScalesIntoWorkspace)
     EXPECT_EQ(selection.frame.image.at<std::uint8_t>(0, 1), 128U);
     EXPECT_EQ(selection.frame.image.at<std::uint8_t>(0, 2), 255U);
     EXPECT_EQ(selection.frame.processing_domain, dp1v2::ProcessingDomain::RawIntensity);
+}
+
+TEST(Stage2BoundaryAdapterTest, FullFrameU16BypassScalesUsingPixelRange)
+{
+    cv::Mat input_image(1, 3, CV_16UC1);
+    input_image.at<std::uint16_t>(0, 0) = 0;
+    input_image.at<std::uint16_t>(0, 1) = 2048;
+    input_image.at<std::uint16_t>(0, 2) = 4095;
+    const dp1v2::CanonicalFrame input = makeCanonicalFrame(
+        input_image,
+        dp1v2::PixelFormat::U16,
+        rawRange12Bit());
+
+    dp1v2::Stage2BoundaryWorkspace workspace{};
+    const dp1v2::Stage2BoundaryAdapter adapter;
+    const dp1v2::Stage2FullFrameSelection selection = adapter.selectFullFrameOutput(
+        input,
+        fullFrameOutcome(dp1v2::StageExecutionStatus::Disabled),
+        workspace);
+
+    ASSERT_EQ(selection.frame.image.type(), CV_8UC1);
+    EXPECT_EQ(selection.frame.image.at<std::uint8_t>(0, 0), 0U);
+    EXPECT_NEAR(static_cast<int>(selection.frame.image.at<std::uint8_t>(0, 1)), 128, 1);
+    EXPECT_EQ(selection.frame.image.at<std::uint8_t>(0, 2), 255U);
 }
 
 TEST(Stage2BoundaryAdapterTest, DisabledTileU8BypassUsesShallowImage)
@@ -207,6 +276,31 @@ TEST(Stage2BoundaryAdapterTest, SkippedTileU16BypassScalesIntoTaskWorkspace)
     EXPECT_TRUE(workspace.tile_bypass_u8_by_task[0].empty());
 }
 
+TEST(Stage2BoundaryAdapterTest, ValidTileTaskIndexWritesOnlySelectedWorkspaceBuffer)
+{
+    cv::Mat input_image(1, 2, CV_16UC1);
+    input_image.at<std::uint16_t>(0, 0) = 100;
+    input_image.at<std::uint16_t>(0, 1) = 1100;
+    const dp1v2::TileRawView input = makeTileRawView(input_image, dp1v2::PixelFormat::U16);
+
+    dp1v2::Stage2BoundaryWorkspace workspace{};
+    workspace.tile_bypass_u8_by_task.resize(3);
+    const dp1v2::Stage2BoundaryAdapter adapter;
+    const dp1v2::Stage2TileSelection selection = adapter.selectTileOutput(
+        2,
+        input,
+        tileOutcome(dp1v2::StageExecutionStatus::Disabled),
+        workspace);
+
+    EXPECT_TRUE(selection.is_bypass);
+    EXPECT_TRUE(workspace.tile_bypass_u8_by_task[0].empty());
+    EXPECT_TRUE(workspace.tile_bypass_u8_by_task[1].empty());
+    ASSERT_FALSE(workspace.tile_bypass_u8_by_task[2].empty());
+    EXPECT_EQ(selection.frame.image.data, workspace.tile_bypass_u8_by_task[2].data);
+    EXPECT_EQ(selection.frame.pixel_format, dp1v2::PixelFormat::U8);
+    EXPECT_EQ(selection.frame.processing_domain, dp1v2::ProcessingDomain::RawIntensity);
+}
+
 TEST(Stage2BoundaryAdapterTest, FailedAndUnsupportedOutcomesThrow)
 {
     cv::Mat input_image(1, 1, CV_8UC1);
@@ -245,7 +339,7 @@ TEST(Stage2BoundaryAdapterTest, FailedAndUnsupportedOutcomesThrow)
         std::logic_error);
 }
 
-TEST(Stage2BoundaryAdapterTest, TileBypassRequiresTaskWorkspaceSlot)
+TEST(Stage2BoundaryAdapterTest, TileBypassOutOfRangeTaskIndexThrowsOutOfRange)
 {
     cv::Mat input_image(1, 1, CV_16UC1);
     const dp1v2::TileRawView tile = makeTileRawView(input_image, dp1v2::PixelFormat::U16);
@@ -259,5 +353,5 @@ TEST(Stage2BoundaryAdapterTest, TileBypassRequiresTaskWorkspaceSlot)
             tile,
             tileOutcome(dp1v2::StageExecutionStatus::Skipped),
             workspace),
-        std::logic_error);
+        std::out_of_range);
 }

@@ -223,6 +223,7 @@ TEST(InverseMedianFilter, ProcessFrame_WhenFixedK3U16_ReturnsExactMedianAndF32Re
     ASSERT_NE(result->median_frame, nullptr);
     EXPECT_EQ(result->residual->type(), CV_32FC1);
     EXPECT_EQ(result->residual_view.pixel_format, dp1v2::InverseMedianPixelFormat::F32);
+    EXPECT_EQ(result->residual_view.range_policy, dp1v2::InverseMedianRangePolicy::SignedResidual);
     expectMatEqual(*result->median_frame, expected_median);
     expectMatEqual(*result->residual, expected_residual);
 }
@@ -378,6 +379,8 @@ TEST(InverseMedianFilter, ProcessFrame_WhenRawSignedResidualIsNegative_Preserves
     ASSERT_EQ(result->status, dp1v2::InverseMedianStatus::Valid);
     ASSERT_NE(result->residual, nullptr);
     ASSERT_EQ(result->residual->type(), CV_32FC1);
+    EXPECT_EQ(result->residual_view.pixel_format, dp1v2::InverseMedianPixelFormat::F32);
+    EXPECT_EQ(result->residual_view.range_policy, dp1v2::InverseMedianRangePolicy::SignedResidual);
     EXPECT_FLOAT_EQ(result->residual->at<float>(0, 0), -50.0F);
     EXPECT_EQ(result->converted_residual, nullptr);
 }
@@ -410,6 +413,8 @@ TEST(InverseMedianFilter, ProcessFrame_WhenClipToInputRange_ClampsNegativeAndKee
     ASSERT_NE(result->residual, nullptr);
     ASSERT_NE(result->converted_residual, nullptr);
     EXPECT_EQ(result->residual->type(), CV_32FC1);
+    EXPECT_EQ(result->residual_view.pixel_format, dp1v2::InverseMedianPixelFormat::F32);
+    EXPECT_EQ(result->residual_view.range_policy, dp1v2::InverseMedianRangePolicy::SignedResidual);
     EXPECT_FLOAT_EQ(result->residual->at<float>(0, 0), -50.0F);
     EXPECT_FLOAT_EQ(result->residual->at<float>(0, 1), 40.0F);
     EXPECT_EQ(result->converted_residual->type(), CV_8UC1);
@@ -448,6 +453,8 @@ TEST(InverseMedianFilter, ProcessFrame_WhenClipToInputRangeU16_ClampsNegativeAnd
     ASSERT_NE(result->residual, nullptr);
     ASSERT_NE(result->converted_residual, nullptr);
     EXPECT_EQ(result->residual->type(), CV_32FC1);
+    EXPECT_EQ(result->residual_view.pixel_format, dp1v2::InverseMedianPixelFormat::F32);
+    EXPECT_EQ(result->residual_view.range_policy, dp1v2::InverseMedianRangePolicy::SignedResidual);
     EXPECT_FLOAT_EQ(result->residual->at<float>(0, 0), -500.0F);
     EXPECT_FLOAT_EQ(result->residual->at<float>(0, 1), 400.0F);
     EXPECT_EQ(result->converted_residual->type(), CV_16UC1);

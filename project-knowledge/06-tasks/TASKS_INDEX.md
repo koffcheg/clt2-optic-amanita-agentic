@@ -107,3 +107,4 @@ Historical task cards are audit trail. They are not implementation sources, are 
 - `AMNT-0087` - DP1 v2 full-frame Stage 2 boundary adapter integration - completed
 - `AMNT-0088` - DP1 v2 tile Stage 2 boundary adapter integration - completed
 - `AMNT-0089` - DP1 v2 radiometric Stage 2 canonical F32 residual - completed
+- `AMNT-0090` - DP1 v2 Stage 2 boundary test coverage - completed
