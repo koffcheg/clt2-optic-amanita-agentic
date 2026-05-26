@@ -15,6 +15,7 @@
 #include "dp1v2/stages/prep_stage.hpp"
 #include "dp1v2/stages/radiometric_stage.hpp"
 #include "dp1v2/runtime/full_frame_pipeline.hpp"
+#include "dp1v2/runtime/stage2_boundary_adapter.hpp"
 #include "dp1v2/runtime/tile_executor.hpp"
 #include "dp1v2/runtime/tile_frame_aggregator.hpp"
 #include "dp1v2/runtime/tile_pipeline.hpp"
@@ -208,12 +209,17 @@ RuntimeLoopResult run_bounded_runtime_loop(const StartupContext &context, IFrame
         context.config.resolved_pipeline.input_normalization);
     PrepStage prep_stage(context.config.resolved_pipeline.prep);
     RadiometricStage radiometric_stage(context.config.resolved_pipeline.radiometric);
+    Stage2BoundaryAdapter stage2_boundary_adapter;
     VisualizationSink visualization_sink(context.config.application.visualization);
-    FullFramePipeline full_frame_pipeline(radiometric_stage, visualization_sink);
+    FullFramePipeline full_frame_pipeline(
+        radiometric_stage,
+        stage2_boundary_adapter,
+        visualization_sink);
     TileExecutor tile_executor;
     TileFrameAggregator tile_aggregator;
     TilePipeline tile_pipeline(
         radiometric_stage,
+        stage2_boundary_adapter,
         tile_executor,
         tile_aggregator,
         visualization_sink);

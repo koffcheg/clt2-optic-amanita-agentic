@@ -115,6 +115,59 @@ TEST(FrameContextTest, RegisterRadiometricArtifactIsStageOutputScopeMetadata)
     EXPECT_EQ(by_stage->status, dp1v2::FrameArtifactStatus::MetadataOnly);
 }
 
+TEST(FrameContextTest, RegisterProcessingFrameArtifactUsesCallerProvidedProvenance)
+{
+    const dp1v2::FramePacket packet = makeFramePacket();
+    const dp1v2::ProcessingFrame frame = makeRadiometricFrame();
+    dp1v2::FrameContext context = dp1v2::build_frame_context(packet, 99);
+
+    const dp1v2::FrameArtifactRef artifact =
+        dp1v2::register_processing_frame_artifact(
+            context,
+            frame,
+            "custom.processing_frame",
+            "custom.semantic",
+            "custom_stage",
+            "parent_frame");
+
+    EXPECT_EQ(artifact.id, "custom.processing_frame");
+    EXPECT_EQ(artifact.kind, dp1v2::FrameArtifactKind::ProcessingFrame);
+    EXPECT_EQ(artifact.domain, dp1v2::FrameArtifactDomain::Processing);
+    EXPECT_EQ(artifact.ownership, dp1v2::FrameArtifactOwnership::OwnedByStageOutput);
+    EXPECT_EQ(artifact.lifetime, dp1v2::FrameArtifactLifetime::StageOutputScope);
+    EXPECT_EQ(artifact.status, dp1v2::FrameArtifactStatus::MetadataOnly);
+    EXPECT_EQ(artifact.semantic_name, "custom.semantic");
+    EXPECT_EQ(artifact.producer_stage, "custom_stage");
+    EXPECT_EQ(artifact.parent_artifact_id, "parent_frame");
+    EXPECT_EQ(artifact.pixel_format, dp1v2::PixelFormat::S16);
+    EXPECT_EQ(artifact.bit_depth, dp1v2::InputBitDepth::Bit16);
+    EXPECT_EQ(artifact.geometry.width, 4);
+    EXPECT_EQ(artifact.geometry.height, 3);
+}
+
+TEST(FrameContextTest, RegisterStage2BoundaryArtifactUsesStableIdAndProducer)
+{
+    const dp1v2::FramePacket packet = makeFramePacket();
+    dp1v2::ProcessingFrame frame = makeRadiometricFrame();
+    frame.pixel_format = dp1v2::PixelFormat::U8;
+    frame.processing_domain = dp1v2::ProcessingDomain::RawIntensity;
+    dp1v2::FrameContext context = dp1v2::build_frame_context(packet, 99);
+
+    const dp1v2::FrameArtifactRef artifact =
+        dp1v2::register_stage2_boundary_processing_artifact(
+            context,
+            frame,
+            "radiometric_bypass",
+            "canonical_frame");
+
+    EXPECT_EQ(artifact.id, "stage2.processing_frame");
+    EXPECT_EQ(artifact.semantic_name, "stage2.processing_frame");
+    EXPECT_EQ(artifact.producer_stage, "radiometric_bypass");
+    EXPECT_EQ(artifact.parent_artifact_id, "canonical_frame");
+    EXPECT_EQ(artifact.status, dp1v2::FrameArtifactStatus::MetadataOnly);
+    EXPECT_EQ(artifact.pixel_format, dp1v2::PixelFormat::U8);
+}
+
 TEST(FrameContextTest, RegisterCanonicalFrameArtifactPassThroughKeepsBorrowedInputBoundaryAvailable)
 {
     const dp1v2::FramePacket packet = makeFramePacket();

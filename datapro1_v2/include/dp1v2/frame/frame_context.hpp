@@ -27,9 +27,21 @@ const FrameArtifactRef *find_frame_artifact_by_id(const FrameContext &context, s
 const FrameArtifactRef *find_frame_artifact_by_stage(
     const FrameContext &context,
     std::string_view producer_stage);
+FrameArtifactRef register_processing_frame_artifact(
+    FrameContext &context,
+    const ProcessingFrame &frame,
+    std::string_view artifact_id,
+    std::string_view semantic_name,
+    std::string_view producer_stage,
+    std::string_view parent_artifact_id);
 FrameArtifactRef register_radiometric_processing_artifact(
     FrameContext &context,
     const ProcessingFrame &frame);
+FrameArtifactRef register_stage2_boundary_processing_artifact(
+    FrameContext &context,
+    const ProcessingFrame &frame,
+    std::string_view producer_stage,
+    std::string_view parent_artifact_id);
 StageTiming record_stage_timing(
     FrameContext &context,
     std::string_view stage_key,

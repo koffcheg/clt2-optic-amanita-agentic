@@ -55,6 +55,7 @@ TileExecutionSummary summarizeResults(
 TileExecutionSummary TileExecutor::execute(
     const std::vector<TileTask>& tasks,
     std::vector<TileResult>& results,
+    Stage2BoundaryWorkspace& stage2_workspace,
     const TileProcessor& processor,
     const TileExecutionConfig& config) const
 {
@@ -67,7 +68,7 @@ TileExecutionSummary TileExecutor::execute(
             std::size_t{0},
             tasks.size(),
             [&](const std::size_t index) {
-                results[index] = processor.process(tasks[index]);
+                results[index] = processor.process(tasks[index], stage2_workspace);
             });
     } else {
         oneapi::tbb::task_arena arena(config.num_threads);
@@ -76,7 +77,7 @@ TileExecutionSummary TileExecutor::execute(
                 std::size_t{0},
                 tasks.size(),
                 [&](const std::size_t index) {
-                    results[index] = processor.process(tasks[index]);
+                    results[index] = processor.process(tasks[index], stage2_workspace);
                 });
         });
     }

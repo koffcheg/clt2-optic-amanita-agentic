@@ -11,6 +11,7 @@
 #include "dp1v2/runtime/pipeline.hpp"
 #include "dp1v2/runtime/runtime_profiling_aggregator.hpp"
 #include "dp1v2/runtime/runtime_threading.hpp"
+#include "dp1v2/runtime/stage2_boundary_adapter.hpp"
 
 namespace dp1v2 {
 
@@ -34,6 +35,16 @@ dp1v2::PixelRange rangeU16()
         .max_value = 65535.0,
         .black_level = 0.0,
         .saturation_level = 65535.0,
+    };
+}
+
+dp1v2::PixelRange rangeU8()
+{
+    return dp1v2::PixelRange{
+        .min_value = 0.0,
+        .max_value = 255.0,
+        .black_level = 0.0,
+        .saturation_level = 255.0,
     };
 }
 
@@ -118,6 +129,20 @@ dp1v2::RawFrameEnvelope makeEnvelope()
     return envelope;
 }
 
+dp1v2::RawFrameEnvelope makeU8Envelope()
+{
+    cv::Mat image(4, 5, CV_8UC1);
+    image.setTo(cv::Scalar(17));
+
+    dp1v2::RawFrameEnvelope envelope{};
+    envelope.frame = image;
+    envelope.header_hint.frame_id = 42;
+    envelope.header_hint.camera_id = 7;
+    envelope.header_hint.bit_depth = 8;
+    envelope.received_steady_ts = std::chrono::steady_clock::now();
+    return envelope;
+}
+
 dp1v2::SingleFramePipelineResult processTestFrame(
     const dp1v2::RawFrameEnvelope &envelope,
     const dp1v2::PipelineConfig &pipeline_config,
@@ -128,11 +153,16 @@ dp1v2::SingleFramePipelineResult processTestFrame(
     dp1v2::VisualizationSink &visualization_sink,
     const int cam_index = 7)
 {
-    dp1v2::FullFramePipeline full_frame_pipeline(radiometric_stage, visualization_sink);
+    dp1v2::Stage2BoundaryAdapter stage2_boundary_adapter;
+    dp1v2::FullFramePipeline full_frame_pipeline(
+        radiometric_stage,
+        stage2_boundary_adapter,
+        visualization_sink);
     dp1v2::TileExecutor tile_executor;
     dp1v2::TileFrameAggregator tile_aggregator;
     dp1v2::TilePipeline tile_pipeline(
         radiometric_stage,
+        stage2_boundary_adapter,
         tile_executor,
         tile_aggregator,
         visualization_sink);
@@ -184,6 +214,19 @@ bool hasArtifact(
         [id](const dp1v2::FrameArtifactRef &artifact) {
             return artifact.id == id;
         });
+}
+
+const dp1v2::FrameArtifactRef *findArtifact(
+    const dp1v2::FrameContextSnapshot &frame,
+    const std::string_view id)
+{
+    const auto artifact = std::find_if(
+        frame.artifacts.records.begin(),
+        frame.artifacts.records.end(),
+        [id](const dp1v2::FrameArtifactRef &record) {
+            return record.id == id;
+        });
+    return artifact == frame.artifacts.records.end() ? nullptr : &(*artifact);
 }
 
 bool hasDiagnostic(
@@ -249,6 +292,44 @@ TEST(PipelineTest, TilesPrepRouteRunsRadiometricWarmUpThroughTilePipeline)
     EXPECT_TRUE(hasDiagnostic(result.frame, "tile_pipeline.summary"));
 }
 
+TEST(PipelineTest, TilesDisabledRadiometricU16RecordsStage2BoundaryU8Output)
+{
+    dp1v2::PipelineConfig pipeline_config = makeTilesPipelineConfig();
+    pipeline_config.stages.radiometric.enabled = false;
+
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(
+        resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage(makePrepResolvedConfig());
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    const dp1v2::SingleFramePipelineResult result = processTestFrame(
+        makeEnvelope(),
+        pipeline_config,
+        resolved_pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        radiometric_stage,
+        visualization_sink);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+
+    const dp1v2::StageStatus *radiometric_status =
+        findStageStatus(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_status, nullptr);
+    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Disabled);
+    EXPECT_EQ(radiometric_status->route, "tiles");
+
+    const dp1v2::StageTiming *radiometric_timing =
+        findStageTiming(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_timing, nullptr);
+    EXPECT_EQ(radiometric_timing->status, dp1v2::StageStatusCode::Disabled);
+    EXPECT_EQ(radiometric_timing->input_format, dp1v2::PixelFormat::U16);
+    EXPECT_EQ(radiometric_timing->output_format, dp1v2::PixelFormat::U8);
+    EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
+}
+
 
 TEST(PipelineTest, TilesPrepRouteReachesRadiometricCompletedAfterWarmUp)
 {
@@ -293,7 +374,7 @@ TEST(PipelineTest, TilesPrepRouteReachesRadiometricCompletedAfterWarmUp)
     ASSERT_NE(radiometric_timing, nullptr);
     EXPECT_EQ(radiometric_timing->status, dp1v2::StageStatusCode::Completed);
     EXPECT_EQ(radiometric_timing->input_format, dp1v2::PixelFormat::U16);
-    EXPECT_EQ(radiometric_timing->output_format, dp1v2::PixelFormat::S32);
+    EXPECT_EQ(radiometric_timing->output_format, dp1v2::PixelFormat::F32);
 
     EXPECT_EQ(result.frame.profiling.cardinality.tile_count, 6U);
     EXPECT_NE(radiometric_status->reason.find("total_tiles=6"), std::string::npos);
@@ -427,6 +508,264 @@ TEST(PipelineTest, FullFrameRouteUsesInputRouteForFramePacketMetadata)
 
     EXPECT_EQ(result.lifecycle.reason.find("input_route bit_depth mismatch"), std::string::npos);
     EXPECT_EQ(result.lifecycle.reason.find("input_route pixel_range mismatch"), std::string::npos);
+}
+
+TEST(PipelineTest, FullFrameRouteRegistersStage2BoundaryArtifactForSkippedBypass)
+{
+    const dp1v2::PipelineConfig pipeline_config = makeFullFramePipelineConfig();
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage;
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    const dp1v2::SingleFramePipelineResult result = processTestFrame(
+        makeEnvelope(),
+        pipeline_config,
+        resolved_pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        radiometric_stage,
+        visualization_sink);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+
+    const dp1v2::StageStatus *radiometric_status =
+        findStageStatus(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_status, nullptr);
+    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Skipped);
+
+    const dp1v2::FrameArtifactRef *artifact =
+        findArtifact(result.frame, "stage2.processing_frame");
+    ASSERT_NE(artifact, nullptr);
+    EXPECT_EQ(artifact->kind, dp1v2::FrameArtifactKind::ProcessingFrame);
+    EXPECT_EQ(artifact->domain, dp1v2::FrameArtifactDomain::Processing);
+    EXPECT_EQ(artifact->status, dp1v2::FrameArtifactStatus::MetadataOnly);
+    EXPECT_EQ(artifact->producer_stage, "radiometric_bypass");
+    EXPECT_EQ(artifact->parent_artifact_id, "canonical_frame");
+    EXPECT_EQ(artifact->pixel_format, dp1v2::PixelFormat::U8);
+    EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
+}
+
+TEST(PipelineTest, FullFrameRouteRegistersStage2BoundaryArtifactForDisabledBypass)
+{
+    dp1v2::PipelineConfig pipeline_config = makeFullFramePipelineConfig();
+    pipeline_config.stages.radiometric.enabled = false;
+
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage;
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    const dp1v2::SingleFramePipelineResult result = processTestFrame(
+        makeEnvelope(),
+        pipeline_config,
+        resolved_pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        radiometric_stage,
+        visualization_sink);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+
+    const dp1v2::StageStatus *radiometric_status =
+        findStageStatus(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_status, nullptr);
+    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Disabled);
+
+    const dp1v2::StageTiming *radiometric_timing =
+        findStageTiming(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_timing, nullptr);
+    EXPECT_EQ(radiometric_timing->status, dp1v2::StageStatusCode::Disabled);
+    EXPECT_EQ(radiometric_timing->input_format, dp1v2::PixelFormat::U16);
+    EXPECT_EQ(radiometric_timing->output_format, dp1v2::PixelFormat::U8);
+
+    const dp1v2::FrameArtifactRef *artifact =
+        findArtifact(result.frame, "stage2.processing_frame");
+    ASSERT_NE(artifact, nullptr);
+    EXPECT_EQ(artifact->producer_stage, "radiometric_bypass");
+    EXPECT_EQ(artifact->parent_artifact_id, "canonical_frame");
+    EXPECT_EQ(artifact->pixel_format, dp1v2::PixelFormat::U8);
+    EXPECT_EQ(artifact->kind, dp1v2::FrameArtifactKind::ProcessingFrame);
+    EXPECT_EQ(artifact->domain, dp1v2::FrameArtifactDomain::Processing);
+    EXPECT_EQ(artifact->status, dp1v2::FrameArtifactStatus::MetadataOnly);
+    EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
+}
+
+TEST(PipelineTest, FullFrameRouteRegistersStage2BoundaryArtifactForDisabledU8Bypass)
+{
+    dp1v2::PipelineConfig pipeline_config = makeFullFramePipelineConfig();
+    pipeline_config.input_route = dp1v2::InputRouteConfig{
+        .pixel_format = dp1v2::PixelFormat::U8,
+        .bit_depth = dp1v2::InputBitDepth::Bit8,
+        .pixel_range = rangeU8(),
+    };
+    pipeline_config.stages.radiometric.enabled = false;
+
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(
+        resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage;
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    const dp1v2::SingleFramePipelineResult result = processTestFrame(
+        makeU8Envelope(),
+        pipeline_config,
+        resolved_pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        radiometric_stage,
+        visualization_sink);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+
+    const dp1v2::StageStatus *radiometric_status =
+        findStageStatus(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_status, nullptr);
+    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Disabled);
+
+    const dp1v2::StageTiming *radiometric_timing =
+        findStageTiming(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_timing, nullptr);
+    EXPECT_EQ(radiometric_timing->status, dp1v2::StageStatusCode::Disabled);
+    EXPECT_EQ(radiometric_timing->input_format, dp1v2::PixelFormat::U8);
+    EXPECT_EQ(radiometric_timing->output_format, dp1v2::PixelFormat::U8);
+
+    const dp1v2::FrameArtifactRef *artifact =
+        findArtifact(result.frame, "stage2.processing_frame");
+    ASSERT_NE(artifact, nullptr);
+    EXPECT_EQ(artifact->producer_stage, "radiometric_bypass");
+    EXPECT_EQ(artifact->parent_artifact_id, "canonical_frame");
+    EXPECT_EQ(artifact->pixel_format, dp1v2::PixelFormat::U8);
+    EXPECT_EQ(artifact->kind, dp1v2::FrameArtifactKind::ProcessingFrame);
+    EXPECT_EQ(artifact->domain, dp1v2::FrameArtifactDomain::Processing);
+    EXPECT_EQ(artifact->status, dp1v2::FrameArtifactStatus::MetadataOnly);
+    EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
+}
+
+TEST(PipelineTest, FullFrameRouteRegistersCompletedRadiometricAsStage2BoundaryArtifact)
+{
+    const dp1v2::PipelineConfig pipeline_config = makeFullFramePipelineConfig();
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage;
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    dp1v2::SingleFramePipelineResult result{};
+    for (int frame_index = 0; frame_index < 4; ++frame_index) {
+        dp1v2::RawFrameEnvelope envelope = makeEnvelope();
+        envelope.header_hint.frame_id = 42 + frame_index;
+        result = processTestFrame(
+            envelope,
+            pipeline_config,
+            resolved_pipeline_config,
+            input_normalization_stage,
+            prep_stage,
+            radiometric_stage,
+            visualization_sink);
+    }
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+
+    const dp1v2::StageStatus *radiometric_status =
+        findStageStatus(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_status, nullptr);
+    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Completed);
+
+    const dp1v2::FrameArtifactRef *artifact =
+        findArtifact(result.frame, "stage2.processing_frame");
+    ASSERT_NE(artifact, nullptr);
+    EXPECT_EQ(artifact->producer_stage, "radiometric_correction");
+    EXPECT_EQ(artifact->parent_artifact_id, "canonical_frame");
+    EXPECT_EQ(artifact->pixel_format, dp1v2::PixelFormat::F32);
+    EXPECT_EQ(artifact->kind, dp1v2::FrameArtifactKind::ProcessingFrame);
+    EXPECT_EQ(artifact->domain, dp1v2::FrameArtifactDomain::Processing);
+    EXPECT_EQ(artifact->status, dp1v2::FrameArtifactStatus::MetadataOnly);
+    EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
+}
+
+TEST(PipelineTest, FullFrameRouteDoesNotRegisterStage2BoundaryWhenRadiometricFails)
+{
+    const dp1v2::PipelineConfig pipeline_config = makeFullFramePipelineConfig();
+    dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    resolved_pipeline_config.radiometric.inverse_median.reset();
+
+    dp1v2::InputNormalizationStage input_normalization_stage(
+        resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage;
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    const dp1v2::SingleFramePipelineResult result = processTestFrame(
+        makeEnvelope(),
+        pipeline_config,
+        resolved_pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        radiometric_stage,
+        visualization_sink);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Failed);
+    EXPECT_EQ(result.lifecycle.reason, "radiometric_stage_failed");
+
+    const dp1v2::StageStatus *radiometric_status =
+        findStageStatus(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_status, nullptr);
+    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Failed);
+
+    const dp1v2::StageTiming *radiometric_timing =
+        findStageTiming(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_timing, nullptr);
+    EXPECT_EQ(radiometric_timing->status, dp1v2::StageStatusCode::Failed);
+
+    EXPECT_FALSE(hasArtifact(result.frame, "stage2.processing_frame"));
+    EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
+}
+
+TEST(PipelineTest, FullFrameCompletedRadiometricUsesF32CanonicalOutputWhenClipAuxiliaryExists)
+{
+    const dp1v2::PipelineConfig pipeline_config = makeFullFramePipelineConfig();
+    dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    ASSERT_TRUE(resolved_pipeline_config.radiometric.inverse_median.has_value());
+    resolved_pipeline_config.radiometric.inverse_median->output_dynamic_range_mode =
+        dp1v2::InverseMedianOutputMode::ClipToInputRange;
+
+    dp1v2::InputNormalizationStage input_normalization_stage(
+        resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage;
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    dp1v2::SingleFramePipelineResult result{};
+    for (int frame_index = 0; frame_index < 4; ++frame_index) {
+        dp1v2::RawFrameEnvelope envelope = makeEnvelope();
+        envelope.header_hint.frame_id = 42 + frame_index;
+        result = processTestFrame(
+            envelope,
+            pipeline_config,
+            resolved_pipeline_config,
+            input_normalization_stage,
+            prep_stage,
+            radiometric_stage,
+            visualization_sink);
+    }
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+
+    const dp1v2::StageTiming *radiometric_timing =
+        findStageTiming(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_timing, nullptr);
+    EXPECT_EQ(radiometric_timing->status, dp1v2::StageStatusCode::Completed);
+    EXPECT_EQ(radiometric_timing->output_format, dp1v2::PixelFormat::F32);
+
+    const dp1v2::FrameArtifactRef *artifact =
+        findArtifact(result.frame, "stage2.processing_frame");
+    ASSERT_NE(artifact, nullptr);
+    EXPECT_EQ(artifact->producer_stage, "radiometric_correction");
+    EXPECT_EQ(artifact->pixel_format, dp1v2::PixelFormat::F32);
 }
 
 TEST(PipelineTest, FullFrameRouteRecordsProfilingCollectionWhenReportsDisabled)

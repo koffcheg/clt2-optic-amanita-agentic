@@ -82,11 +82,13 @@ TEST(TilePipelineTest, TileAndViewCountMismatchReturnsControlledFailureBeforeExe
     context.camera_id = 7;
 
     dp1v2::RadiometricStage radiometric_stage;
+    dp1v2::Stage2BoundaryAdapter stage2_boundary_adapter;
     dp1v2::TileExecutor executor;
     dp1v2::TileFrameAggregator aggregator;
     dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
     dp1v2::TilePipeline pipeline(
         radiometric_stage,
+        stage2_boundary_adapter,
         executor,
         aggregator,
         visualization_sink);

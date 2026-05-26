@@ -22,6 +22,7 @@ target_sources(
         unit/dp1/t_dp1v2_tile_radiometric_state_store.cpp
         unit/dp1/t_dp1v2_profiling_log_formatter.cpp
         unit/dp1/t_dp1v2_runtime_profiling_aggregator.cpp
+        unit/dp1/t_dp1v2_stage2_boundary_adapter.cpp
         ../datapro1_v2/src/runtime/cyclic_frame_buffer.cpp
         ../datapro1_v2/src/config/config.cpp
         ../datapro1_v2/src/frame/frame_packet_builder.cpp
@@ -34,6 +35,7 @@ target_sources(
         ../datapro1_v2/src/result/result_builder.cpp
         ../datapro1_v2/src/runtime/full_frame_pipeline.cpp
         ../datapro1_v2/src/runtime/pipeline.cpp
+        ../datapro1_v2/src/runtime/stage2_boundary_adapter.cpp
         ../datapro1_v2/src/runtime/tile_pipeline.cpp
         ../datapro1_v2/src/runtime/tile_frame_aggregator.cpp
         ../datapro1_v2/src/runtime/tile_executor.cpp

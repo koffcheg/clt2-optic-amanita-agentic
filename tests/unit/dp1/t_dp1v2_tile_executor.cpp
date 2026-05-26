@@ -9,6 +9,7 @@
 #include "dp1v2/config/config.hpp"
 #include "dp1v2/domain/tile_desc.hpp"
 #include "dp1v2/domain/tile_raw_view.hpp"
+#include "dp1v2/runtime/stage2_boundary_adapter.hpp"
 #include "dp1v2/runtime/tile_executor.hpp"
 #include "dp1v2/stages/radiometric_stage.hpp"
 
@@ -106,12 +107,19 @@ TEST(TileExecutorTest, ExecuteFillsAllTaskSlots)
     TileFixture fixture = makeTileFixture(4);
     std::vector<dp1v2::TileResult> results = makeSentinelResults(fixture.tasks.size());
     dp1v2::RadiometricStage radiometric_stage;
+    dp1v2::Stage2BoundaryAdapter stage2_boundary_adapter;
+    dp1v2::Stage2BoundaryWorkspace stage2_workspace;
+    stage2_workspace.tile_bypass_u8_by_task.resize(fixture.tasks.size());
     const dp1v2::PipelineConfig config = pipelineConfig();
-    const dp1v2::TileProcessor processor(radiometric_stage, config);
+    const dp1v2::TileProcessor processor(
+        radiometric_stage,
+        stage2_boundary_adapter,
+        config);
 
     const dp1v2::TileExecutionSummary summary = dp1v2::TileExecutor{}.execute(
         fixture.tasks,
         results,
+        stage2_workspace,
         processor,
         dp1v2::TileExecutionConfig{});
 
@@ -133,8 +141,14 @@ TEST(TileExecutorTest, NumThreadsOneUsesExecutorPath)
     TileFixture fixture = makeTileFixture(2);
     std::vector<dp1v2::TileResult> results = makeSentinelResults(fixture.tasks.size());
     dp1v2::RadiometricStage radiometric_stage;
+    dp1v2::Stage2BoundaryAdapter stage2_boundary_adapter;
+    dp1v2::Stage2BoundaryWorkspace stage2_workspace;
+    stage2_workspace.tile_bypass_u8_by_task.resize(fixture.tasks.size());
     const dp1v2::PipelineConfig config = pipelineConfig();
-    const dp1v2::TileProcessor processor(radiometric_stage, config);
+    const dp1v2::TileProcessor processor(
+        radiometric_stage,
+        stage2_boundary_adapter,
+        config);
 
     dp1v2::TileExecutionConfig execution_config{};
     execution_config.num_threads = 1;
@@ -142,6 +156,7 @@ TEST(TileExecutorTest, NumThreadsOneUsesExecutorPath)
     const dp1v2::TileExecutionSummary summary = dp1v2::TileExecutor{}.execute(
         fixture.tasks,
         results,
+        stage2_workspace,
         processor,
         execution_config);
 
@@ -157,12 +172,19 @@ TEST(TileExecutorTest, FailedTileResultDoesNotBreakExecutor)
     fixture.tasks[1].raw_view = nullptr;
     std::vector<dp1v2::TileResult> results = makeSentinelResults(fixture.tasks.size());
     dp1v2::RadiometricStage radiometric_stage;
+    dp1v2::Stage2BoundaryAdapter stage2_boundary_adapter;
+    dp1v2::Stage2BoundaryWorkspace stage2_workspace;
+    stage2_workspace.tile_bypass_u8_by_task.resize(fixture.tasks.size());
     const dp1v2::PipelineConfig config = pipelineConfig();
-    const dp1v2::TileProcessor processor(radiometric_stage, config);
+    const dp1v2::TileProcessor processor(
+        radiometric_stage,
+        stage2_boundary_adapter,
+        config);
 
     const dp1v2::TileExecutionSummary summary = dp1v2::TileExecutor{}.execute(
         fixture.tasks,
         results,
+        stage2_workspace,
         processor,
         dp1v2::TileExecutionConfig{});
 
@@ -180,13 +202,20 @@ TEST(TileExecutorTest, RejectsResultsVectorWithWrongSize)
     TileFixture fixture = makeTileFixture(2);
     std::vector<dp1v2::TileResult> results(1);
     dp1v2::RadiometricStage radiometric_stage;
+    dp1v2::Stage2BoundaryAdapter stage2_boundary_adapter;
+    dp1v2::Stage2BoundaryWorkspace stage2_workspace;
+    stage2_workspace.tile_bypass_u8_by_task.resize(fixture.tasks.size());
     const dp1v2::PipelineConfig config = pipelineConfig();
-    const dp1v2::TileProcessor processor(radiometric_stage, config);
+    const dp1v2::TileProcessor processor(
+        radiometric_stage,
+        stage2_boundary_adapter,
+        config);
 
     EXPECT_THROW(
         dp1v2::TileExecutor{}.execute(
             fixture.tasks,
             results,
+            stage2_workspace,
             processor,
             dp1v2::TileExecutionConfig{}),
         std::logic_error);

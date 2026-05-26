@@ -42,6 +42,7 @@ target_sources(
         src/runtime/runtime.cpp
         src/runtime/full_frame_pipeline.cpp
         src/runtime/pipeline.cpp
+        src/runtime/stage2_boundary_adapter.cpp
         src/runtime/tile_pipeline.cpp
         src/runtime/tile_frame_aggregator.cpp
         src/runtime/tile_executor.cpp
@@ -152,6 +153,7 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 ../tests/unit/dp1/t_dp1v2_profiling_log_formatter.cpp
                 ../tests/unit/dp1/t_dp1v2_log_field_sanitizer.cpp
                 ../tests/unit/dp1/t_dp1v2_runtime_profiling_aggregator.cpp
+                ../tests/unit/dp1/t_dp1v2_stage2_boundary_adapter.cpp
                 src/runtime/cyclic_frame_buffer.cpp
                 src/config/config.cpp
                 src/frame/frame_packet_builder.cpp
@@ -164,6 +166,7 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
                 src/result/result_builder.cpp
                 src/runtime/full_frame_pipeline.cpp
                 src/runtime/pipeline.cpp
+                src/runtime/stage2_boundary_adapter.cpp
                 src/runtime/tile_pipeline.cpp
                 src/runtime/tile_frame_aggregator.cpp
                 src/runtime/tile_executor.cpp

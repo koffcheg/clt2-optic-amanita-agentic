@@ -27,6 +27,7 @@ struct PixelRange {
 };
 
 enum class ProcessingDomain {
+    RawIntensity,
     RadiometricResidual,
     RadiometricCorrected,
     EnhancedFrame,

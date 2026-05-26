@@ -40,23 +40,6 @@ InverseMedianInputRoute makeInverseMedianRoute(const CanonicalFrame& frame)
     return route;
 }
 
-PixelFormat processingPixelFormatFor(const cv::Mat& image)
-{
-    if (image.type() == CV_16SC1) {
-        return PixelFormat::S16;
-    }
-    if (image.type() == CV_32SC1) {
-        return PixelFormat::S32;
-    }
-    if (image.type() == CV_8UC1) {
-        return PixelFormat::U8;
-    }
-    if (image.type() == CV_16UC1) {
-        return PixelFormat::U16;
-    }
-    return PixelFormat::F32;
-}
-
 PixelRange signedResidualRangeFor(const CanonicalFrame& frame)
 {
     return PixelRange{
@@ -76,7 +59,7 @@ ProcessingFrame makeProcessingFrame(
     frame.frame_id = input_frame.frame_id;
     frame.source_frame_id = input_frame.frame_id;
     frame.image = output_image;
-    frame.pixel_format = processingPixelFormatFor(output_image);
+    frame.pixel_format = PixelFormat::F32;
     frame.value_range = range_policy == RangePolicy::SignedResidual ?
         signedResidualRangeFor(input_frame) : input_frame.pixel_range;
     frame.processing_domain = ProcessingDomain::RadiometricResidual;
@@ -105,7 +88,7 @@ TileProcessingFrame makeTileProcessingFrame(
     frame.frame_id = input_tile.frame_id;
     frame.tile_id = input_tile.tile_id;
     frame.image = output_image;
-    frame.pixel_format = processingPixelFormatFor(output_image);
+    frame.pixel_format = PixelFormat::F32;
     frame.value_range = range_policy == RangePolicy::SignedResidual
         ? signedResidualRangeFor(input_tile)
         : input_tile.pixel_range;
@@ -120,10 +103,6 @@ TileProcessingFrame makeTileProcessingFrame(
 
 const cv::Mat* selectOutputImage(const InverseMedianResult& result, RangePolicy& range_policy)
 {
-    if (result.converted_residual != nullptr) {
-        range_policy = RangePolicy::ClippedToInputRange;
-        return result.converted_residual;
-    }
     range_policy = RangePolicy::SignedResidual;
     return result.residual;
 }

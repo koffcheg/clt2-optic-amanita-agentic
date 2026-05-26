@@ -1,10 +1,12 @@
 #include "dp1v2/runtime/full_frame_pipeline.hpp"
 
 #include <chrono>
+#include <optional>
 #include <string_view>
 
 #include "dp1v2/frame/frame_context.hpp"
 #include "dp1v2/result/result_builder.hpp"
+#include "dp1v2/runtime/stage2_boundary_adapter.hpp"
 
 namespace dp1v2 {
 namespace {
@@ -12,6 +14,8 @@ namespace {
 constexpr std::string_view kPrepFullFrameVariant = "full_frame";
 constexpr std::string_view kRadiometricStageName = "radiometric";
 constexpr std::string_view kRadiometricCanonicalStageName = "radiometric_correction";
+constexpr std::string_view kRadiometricBypassProducerStage = "radiometric_bypass";
+constexpr std::string_view kCanonicalFrameArtifactId = "canonical_frame";
 
 StageStatusCode toStageStatusCode(const StageExecutionStatus status) {
     switch (status) {
@@ -50,8 +54,10 @@ void record_full_frame_stage_status(
 
 FullFramePipeline::FullFramePipeline(
     RadiometricStage &radiometric_stage,
+    Stage2BoundaryAdapter &stage2_boundary_adapter,
     VisualizationSink &visualization_sink)
     : radiometric_stage_(radiometric_stage),
+      stage2_boundary_adapter_(stage2_boundary_adapter),
       visualization_sink_(visualization_sink) {
 }
 
@@ -70,16 +76,26 @@ FullFramePipelineResult FullFramePipeline::process(const FullFramePipelineArgs &
             kRadiometricStageName,
             radiometric_result);
     }
-    if (radiometric_result.status == StageExecutionStatus::Completed) {
-        register_radiometric_processing_artifact(
-            args.frame_context,
-            radiometric_result.output.frame);
+
+    Stage2BoundaryWorkspace stage2_workspace;
+    std::optional<Stage2FullFrameSelection> stage2_selection;
+    switch (radiometric_result.status) {
+    case StageExecutionStatus::Completed:
+    case StageExecutionStatus::Disabled:
+    case StageExecutionStatus::Skipped:
+        stage2_selection = stage2_boundary_adapter_.selectFullFrameOutput(
+            args.frame,
+            radiometric_result,
+            stage2_workspace);
+        break;
+    case StageExecutionStatus::Failed:
+    case StageExecutionStatus::Unsupported:
+        break;
     }
 
-    const PixelFormat radiometric_output_format =
-        radiometric_result.status == StageExecutionStatus::Completed
-            ? radiometric_result.output.frame.pixel_format
-            : args.frame.pixel_format;
+    const PixelFormat radiometric_output_format = stage2_selection.has_value()
+        ? stage2_selection->frame.pixel_format
+        : args.frame.pixel_format;
     record_stage_timing(
         args.frame_context,
         kRadiometricCanonicalStageName,
@@ -107,6 +123,25 @@ FullFramePipelineResult FullFramePipeline::process(const FullFramePipelineArgs &
             .sink = ResultSinkOutcome{},
         };
     }
+
+    if (!stage2_selection.has_value()) {
+        return FullFramePipelineResult{
+            .lifecycle = FrameLifecycleResult{
+                .status = FrameTerminalStatus::Failed,
+                .reason = "stage2_boundary_selection_missing",
+            },
+            .sink = ResultSinkOutcome{},
+        };
+    }
+
+    const std::string_view producer_stage = stage2_selection->is_bypass
+        ? kRadiometricBypassProducerStage
+        : kRadiometricCanonicalStageName;
+    register_stage2_boundary_processing_artifact(
+        args.frame_context,
+        stage2_selection->frame,
+        producer_stage,
+        kCanonicalFrameArtifactId);
 
     const auto result = build_empty_result(args.frame_context);
     const auto sink = publish_result_to_sinks(result);

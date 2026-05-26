@@ -160,8 +160,12 @@ TEST(TileRadiometricStateStoreTest, TwoTilesDoNotShareInverseMedianHistory)
     ASSERT_EQ(right.status, dp1v2::StageExecutionStatus::Completed);
     ASSERT_FALSE(left.output.frame.image.empty());
     ASSERT_FALSE(right.output.frame.image.empty());
-    EXPECT_EQ(left.output.frame.image.at<std::int32_t>(0, 0), 10);
-    EXPECT_EQ(right.output.frame.image.at<std::int32_t>(0, 0), 100);
+    EXPECT_EQ(left.output.frame.image.type(), CV_32FC1);
+    EXPECT_EQ(right.output.frame.image.type(), CV_32FC1);
+    EXPECT_EQ(left.output.frame.pixel_format, dp1v2::PixelFormat::F32);
+    EXPECT_EQ(right.output.frame.pixel_format, dp1v2::PixelFormat::F32);
+    EXPECT_FLOAT_EQ(left.output.frame.image.at<float>(0, 0), 10.0F);
+    EXPECT_FLOAT_EQ(right.output.frame.image.at<float>(0, 0), 100.0F);
 }
 
 TEST(TileRadiometricStateStoreTest, TileStatePersistsAcrossFramesForSameTile)

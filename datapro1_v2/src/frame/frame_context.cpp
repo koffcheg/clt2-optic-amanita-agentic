@@ -12,6 +12,7 @@ constexpr const char *kCanonicalFrameArtifactId = "canonical_frame";
 constexpr const char *kInputNormalizationProducerStage = "input_normalization";
 constexpr const char *kRadiometricProcessingArtifactId = "radiometric.processing_frame";
 constexpr const char *kRadiometricProducerStage = "radiometric_correction";
+constexpr const char *kStage2BoundaryProcessingArtifactId = "stage2.processing_frame";
 
 FrameArtifactRef upsert_frame_artifact(FrameContext &context, const FrameArtifactRef &artifact) {
     const auto existing = std::find_if(
@@ -156,23 +157,53 @@ FrameArtifactRef register_canonical_frame_artifact(FrameContext &context, const 
     return upsert_frame_artifact(context, artifact);
 }
 
-FrameArtifactRef register_radiometric_processing_artifact(
+FrameArtifactRef register_processing_frame_artifact(
     FrameContext &context,
-    const ProcessingFrame &frame) {
+    const ProcessingFrame &frame,
+    const std::string_view artifact_id,
+    const std::string_view semantic_name,
+    const std::string_view producer_stage,
+    const std::string_view parent_artifact_id) {
     FrameArtifactRef artifact{};
-    artifact.id = kRadiometricProcessingArtifactId;
+    artifact.id = std::string(artifact_id);
     artifact.kind = FrameArtifactKind::ProcessingFrame;
     artifact.domain = FrameArtifactDomain::Processing;
     artifact.ownership = FrameArtifactOwnership::OwnedByStageOutput;
     artifact.lifetime = FrameArtifactLifetime::StageOutputScope;
     artifact.status = FrameArtifactStatus::MetadataOnly;
-    artifact.semantic_name = kRadiometricProcessingArtifactId;
-    artifact.producer_stage = kRadiometricProducerStage;
-    artifact.parent_artifact_id = kCanonicalFrameArtifactId;
+    artifact.semantic_name = std::string(semantic_name);
+    artifact.producer_stage = std::string(producer_stage);
+    artifact.parent_artifact_id = std::string(parent_artifact_id);
     artifact.pixel_format = frame.pixel_format;
     artifact.bit_depth = context.input_bit_depth;
     artifact.geometry = frame.geometry;
     return upsert_frame_artifact(context, artifact);
+}
+
+FrameArtifactRef register_radiometric_processing_artifact(
+    FrameContext &context,
+    const ProcessingFrame &frame) {
+    return register_processing_frame_artifact(
+        context,
+        frame,
+        kRadiometricProcessingArtifactId,
+        kRadiometricProcessingArtifactId,
+        kRadiometricProducerStage,
+        kCanonicalFrameArtifactId);
+}
+
+FrameArtifactRef register_stage2_boundary_processing_artifact(
+    FrameContext &context,
+    const ProcessingFrame &frame,
+    const std::string_view producer_stage,
+    const std::string_view parent_artifact_id) {
+    return register_processing_frame_artifact(
+        context,
+        frame,
+        kStage2BoundaryProcessingArtifactId,
+        kStage2BoundaryProcessingArtifactId,
+        producer_stage,
+        parent_artifact_id);
 }
 
 } // namespace dp1v2
