@@ -21,7 +21,12 @@ enum class Stage2BoundarySource {
     RawBypassFromSkippedRadiometric,
 };
 
-/// Owns temporary image buffers used while materializing the Stage 2 boundary.
+/// Owns temporary conversion buffers for one Stage 2 boundary execution (full-frame or tile).
+/// `FrameContext` stores only metadata/provenance and must not store image payload.
+/// `tile_bypass_u8_by_task` must be resized to the tile task count before parallel execution;
+/// each worker writes only to `tile_bypass_u8_by_task[task_index]` and must not push/emplace.
+/// U8 bypass reuses payload via shallow `cv::Mat` assignment.
+/// U16 bypass materializes one CV_8UC1 buffer per full-frame or per tile task.
 struct Stage2BoundaryWorkspace {
     cv::Mat full_frame_bypass_u8;
     std::vector<cv::Mat> tile_bypass_u8_by_task;

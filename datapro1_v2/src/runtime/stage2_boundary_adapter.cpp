@@ -32,6 +32,16 @@ void convertRawU16ToU8(const cv::Mat& input, const PixelRange& range, cv::Mat& o
     input.convertTo(output, CV_8U, alpha, beta);
 }
 
+PixelRange makeU8Range()
+{
+    return PixelRange{
+        .min_value = 0.0,
+        .max_value = 255.0,
+        .black_level = 0.0,
+        .saturation_level = 255.0,
+    };
+}
+
 const char* statusName(const StageExecutionStatus status)
 {
     switch (status) {
@@ -150,6 +160,7 @@ ProcessingFrame Stage2BoundaryAdapter::makeBypassFrame(
     case PixelFormat::U16:
         convertRawU16ToU8(input.image, input.pixel_range, workspace.full_frame_bypass_u8);
         frame.image = workspace.full_frame_bypass_u8;
+        frame.value_range = makeU8Range();
         return frame;
     default:
         throw std::logic_error("stage2 boundary bypass supports only U8 and U16 full-frame input");
@@ -188,6 +199,7 @@ TileProcessingFrame Stage2BoundaryAdapter::makeBypassTileFrame(
             input.pixel_range,
             workspace.tile_bypass_u8_by_task[task_index]);
         frame.image = workspace.tile_bypass_u8_by_task[task_index];
+        frame.value_range = makeU8Range();
         return frame;
     default:
         throw std::logic_error("stage2 boundary bypass supports only U8 and U16 tile input");
