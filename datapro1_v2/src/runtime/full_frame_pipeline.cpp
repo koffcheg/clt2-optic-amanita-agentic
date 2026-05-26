@@ -5,6 +5,7 @@
 
 #include "dp1v2/frame/frame_context.hpp"
 #include "dp1v2/result/result_builder.hpp"
+#include "dp1v2/runtime/stage2_boundary_adapter.hpp"
 
 namespace dp1v2 {
 namespace {
@@ -12,6 +13,8 @@ namespace {
 constexpr std::string_view kPrepFullFrameVariant = "full_frame";
 constexpr std::string_view kRadiometricStageName = "radiometric";
 constexpr std::string_view kRadiometricCanonicalStageName = "radiometric_correction";
+constexpr std::string_view kRadiometricBypassProducerStage = "radiometric_bypass";
+constexpr std::string_view kCanonicalFrameArtifactId = "canonical_frame";
 
 StageStatusCode toStageStatusCode(const StageExecutionStatus status) {
     switch (status) {
@@ -70,12 +73,6 @@ FullFramePipelineResult FullFramePipeline::process(const FullFramePipelineArgs &
             kRadiometricStageName,
             radiometric_result);
     }
-    if (radiometric_result.status == StageExecutionStatus::Completed) {
-        register_radiometric_processing_artifact(
-            args.frame_context,
-            radiometric_result.output.frame);
-    }
-
     const PixelFormat radiometric_output_format =
         radiometric_result.status == StageExecutionStatus::Completed
             ? radiometric_result.output.frame.pixel_format
@@ -107,6 +104,18 @@ FullFramePipelineResult FullFramePipeline::process(const FullFramePipelineArgs &
             .sink = ResultSinkOutcome{},
         };
     }
+
+    Stage2BoundaryAdapter stage2_boundary;
+    Stage2BoundaryWorkspace stage2_workspace;
+    const Stage2FullFrameSelection stage2_selection = stage2_boundary.selectFullFrameOutput(
+        args.frame,
+        radiometric_result,
+        stage2_workspace);
+    register_stage2_boundary_processing_artifact(
+        args.frame_context,
+        stage2_selection.frame,
+        stage2_selection.is_bypass ? kRadiometricBypassProducerStage : kRadiometricCanonicalStageName,
+        kCanonicalFrameArtifactId);
 
     const auto result = build_empty_result(args.frame_context);
     const auto sink = publish_result_to_sinks(result);

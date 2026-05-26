@@ -186,6 +186,19 @@ bool hasArtifact(
         });
 }
 
+const dp1v2::FrameArtifactRef *findArtifact(
+    const dp1v2::FrameContextSnapshot &frame,
+    const std::string_view id)
+{
+    const auto artifact = std::find_if(
+        frame.artifacts.records.begin(),
+        frame.artifacts.records.end(),
+        [id](const dp1v2::FrameArtifactRef &record) {
+            return record.id == id;
+        });
+    return artifact == frame.artifacts.records.end() ? nullptr : &(*artifact);
+}
+
 bool hasDiagnostic(
     const dp1v2::FrameContextSnapshot &frame,
     const std::string_view code)
@@ -427,6 +440,118 @@ TEST(PipelineTest, FullFrameRouteUsesInputRouteForFramePacketMetadata)
 
     EXPECT_EQ(result.lifecycle.reason.find("input_route bit_depth mismatch"), std::string::npos);
     EXPECT_EQ(result.lifecycle.reason.find("input_route pixel_range mismatch"), std::string::npos);
+}
+
+TEST(PipelineTest, FullFrameRouteRegistersStage2BoundaryArtifactForSkippedBypass)
+{
+    const dp1v2::PipelineConfig pipeline_config = makeFullFramePipelineConfig();
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage;
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    const dp1v2::SingleFramePipelineResult result = processTestFrame(
+        makeEnvelope(),
+        pipeline_config,
+        resolved_pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        radiometric_stage,
+        visualization_sink);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+
+    const dp1v2::StageStatus *radiometric_status =
+        findStageStatus(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_status, nullptr);
+    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Skipped);
+
+    const dp1v2::FrameArtifactRef *artifact =
+        findArtifact(result.frame, "stage2.processing_frame");
+    ASSERT_NE(artifact, nullptr);
+    EXPECT_EQ(artifact->kind, dp1v2::FrameArtifactKind::ProcessingFrame);
+    EXPECT_EQ(artifact->domain, dp1v2::FrameArtifactDomain::Processing);
+    EXPECT_EQ(artifact->status, dp1v2::FrameArtifactStatus::MetadataOnly);
+    EXPECT_EQ(artifact->producer_stage, "radiometric_bypass");
+    EXPECT_EQ(artifact->parent_artifact_id, "canonical_frame");
+    EXPECT_EQ(artifact->pixel_format, dp1v2::PixelFormat::U8);
+    EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
+}
+
+TEST(PipelineTest, FullFrameRouteRegistersStage2BoundaryArtifactForDisabledBypass)
+{
+    dp1v2::PipelineConfig pipeline_config = makeFullFramePipelineConfig();
+    pipeline_config.stages.radiometric.enabled = false;
+
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage;
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    const dp1v2::SingleFramePipelineResult result = processTestFrame(
+        makeEnvelope(),
+        pipeline_config,
+        resolved_pipeline_config,
+        input_normalization_stage,
+        prep_stage,
+        radiometric_stage,
+        visualization_sink);
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+
+    const dp1v2::StageStatus *radiometric_status =
+        findStageStatus(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_status, nullptr);
+    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Disabled);
+
+    const dp1v2::FrameArtifactRef *artifact =
+        findArtifact(result.frame, "stage2.processing_frame");
+    ASSERT_NE(artifact, nullptr);
+    EXPECT_EQ(artifact->producer_stage, "radiometric_bypass");
+    EXPECT_EQ(artifact->parent_artifact_id, "canonical_frame");
+    EXPECT_EQ(artifact->pixel_format, dp1v2::PixelFormat::U8);
+    EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
+}
+
+TEST(PipelineTest, FullFrameRouteRegistersCompletedRadiometricAsStage2BoundaryArtifact)
+{
+    const dp1v2::PipelineConfig pipeline_config = makeFullFramePipelineConfig();
+    const dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    dp1v2::InputNormalizationStage input_normalization_stage(resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage;
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    dp1v2::SingleFramePipelineResult result{};
+    for (int frame_index = 0; frame_index < 4; ++frame_index) {
+        dp1v2::RawFrameEnvelope envelope = makeEnvelope();
+        envelope.header_hint.frame_id = 42 + frame_index;
+        result = processTestFrame(
+            envelope,
+            pipeline_config,
+            resolved_pipeline_config,
+            input_normalization_stage,
+            prep_stage,
+            radiometric_stage,
+            visualization_sink);
+    }
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+
+    const dp1v2::StageStatus *radiometric_status =
+        findStageStatus(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_status, nullptr);
+    EXPECT_EQ(radiometric_status->status, dp1v2::StageStatusCode::Completed);
+
+    const dp1v2::FrameArtifactRef *artifact =
+        findArtifact(result.frame, "stage2.processing_frame");
+    ASSERT_NE(artifact, nullptr);
+    EXPECT_EQ(artifact->producer_stage, "radiometric_correction");
+    EXPECT_EQ(artifact->parent_artifact_id, "canonical_frame");
+    EXPECT_NE(artifact->pixel_format, dp1v2::PixelFormat::U8);
+    EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
 }
 
 TEST(PipelineTest, FullFrameRouteRecordsProfilingCollectionWhenReportsDisabled)

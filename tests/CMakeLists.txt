@@ -34,6 +34,7 @@ target_sources(
         ../datapro1_v2/src/result/result_builder.cpp
         ../datapro1_v2/src/runtime/full_frame_pipeline.cpp
         ../datapro1_v2/src/runtime/pipeline.cpp
+        ../datapro1_v2/src/runtime/stage2_boundary_adapter.cpp
         ../datapro1_v2/src/runtime/tile_pipeline.cpp
         ../datapro1_v2/src/runtime/tile_frame_aggregator.cpp
         ../datapro1_v2/src/runtime/tile_executor.cpp
