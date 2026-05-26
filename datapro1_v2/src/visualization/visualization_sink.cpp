@@ -126,6 +126,8 @@ std::string describeMatTypeMismatch(const ProcessingFrame& frame, const int expe
 
 const char* processingDomainToCstr(const ProcessingDomain domain) {
     switch (domain) {
+        case ProcessingDomain::RawIntensity:
+            return "RawIntensity";
         case ProcessingDomain::RadiometricResidual:
             return "RadiometricResidual";
         case ProcessingDomain::RadiometricCorrected:

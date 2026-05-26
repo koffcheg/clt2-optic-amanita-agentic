@@ -31,6 +31,7 @@ enum class ProcessingDomain {
     RadiometricCorrected,
     EnhancedFrame,
     DetectorResponse,
+    RawIntensity,
 };
 
 enum class RangePolicy {
