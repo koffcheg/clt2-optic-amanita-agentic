@@ -27,6 +27,7 @@ enum class InverseMedianPixelFormat {
     Unknown,
     U8,
     U16,
+    F32,
     S16,
     S32,
 };
@@ -78,6 +79,8 @@ struct InverseMedianResult {
     bool median_updated = false;
     // Views into buffers owned by InverseMedianFilter.
     // Valid until the next reset(), clear(), or processFrame().
+    // residual is the canonical CV_32FC1 RadiometricResidual output.
+    // converted_residual is an auxiliary representation for debug/export paths.
     const cv::Mat* residual = nullptr;
     const cv::Mat* converted_residual = nullptr;
     const cv::Mat* median_frame = nullptr;
@@ -94,9 +97,10 @@ struct InverseMedianResult {
 // processFrame() does not mutate input_frame and returns views into internal buffers.
 //
 // Output formats:
-// - residual: CV_16SC1 for CV_8UC1 input, CV_32SC1 for CV_16UC1 input.
+// - residual: canonical CV_32FC1 RadiometricResidual for CV_8UC1 or CV_16UC1 input.
 // - converted_residual: CV_8UC1 or CV_16UC1 when output_dynamic_range_mode
-//   is not RawSigned.
+//   is not RawSigned. This buffer is auxiliary and must not replace residual
+//   as the canonical pipeline output.
 // - median_frame: same type as the input frame when output_median_frame is true.
 //
 // Errors are reported with std::invalid_argument for invalid frame/configuration values and
@@ -149,7 +153,7 @@ private:
     template <typename Pixel>
     void recomputeMedianFrameK5Typed();
 
-    template <typename InputPixel, typename ResidualPixel>
+    template <typename InputPixel>
     void computeResidualTyped(const cv::Mat& input_frame);
 
     template <typename OutputPixel>

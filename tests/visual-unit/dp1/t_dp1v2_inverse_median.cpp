@@ -84,18 +84,17 @@ cv::Mat referenceResidual(const cv::Mat& input, const cv::Mat& median)
     CV_Assert(input.size() == median.size());
     CV_Assert(input.type() == median.type());
 
-    const int residual_type = input.type() == CV_8UC1 ? CV_16SC1 : CV_32SC1;
-    cv::Mat residual(input.size(), residual_type);
+    cv::Mat residual(input.size(), CV_32FC1);
     for (int y = 0; y < input.rows; ++y) {
         for (int x = 0; x < input.cols; ++x) {
             if (input.type() == CV_8UC1) {
-                residual.at<std::int16_t>(y, x) =
-                    static_cast<std::int16_t>(input.at<std::uint8_t>(y, x)) -
-                    static_cast<std::int16_t>(median.at<std::uint8_t>(y, x));
+                residual.at<float>(y, x) =
+                    static_cast<float>(input.at<std::uint8_t>(y, x)) -
+                    static_cast<float>(median.at<std::uint8_t>(y, x));
             } else {
-                residual.at<std::int32_t>(y, x) =
-                    static_cast<std::int32_t>(input.at<std::uint16_t>(y, x)) -
-                    static_cast<std::int32_t>(median.at<std::uint16_t>(y, x));
+                residual.at<float>(y, x) =
+                    static_cast<float>(input.at<std::uint16_t>(y, x)) -
+                    static_cast<float>(median.at<std::uint16_t>(y, x));
             }
         }
     }
@@ -122,6 +121,9 @@ void expectMatEqual(const cv::Mat& actual, const cv::Mat& expected)
                     break;
                 case CV_32SC1:
                     EXPECT_EQ(actual.at<std::int32_t>(y, x), expected.at<std::int32_t>(y, x));
+                    break;
+                case CV_32FC1:
+                    EXPECT_FLOAT_EQ(actual.at<float>(y, x), expected.at<float>(y, x));
                     break;
                 default:
                     FAIL() << "unsupported matrix type in test helper";
@@ -159,7 +161,7 @@ dp1v2::InverseMedianInputRoute makeU8Route(cv::Size size)
 
 }  // namespace
 
-TEST(InverseMedianFilter, ProcessFrame_WhenFixedK3U8Stride1_WarmsUpThenReturnsExactSignedResidual)
+TEST(InverseMedianFilter, ProcessFrame_WhenFixedK3U8Stride1_WarmsUpThenReturnsExactF32Residual)
 {
     const cv::Size size(2, 2);
     std::vector<cv::Mat> frames{
@@ -189,14 +191,14 @@ TEST(InverseMedianFilter, ProcessFrame_WhenFixedK3U8Stride1_WarmsUpThenReturnsEx
     EXPECT_TRUE(third.median_updated);
     ASSERT_NE(third.residual, nullptr);
     ASSERT_NE(third.median_frame, nullptr);
-    EXPECT_EQ(third.residual->type(), CV_16SC1);
-    EXPECT_EQ(third.residual_view.pixel_format, dp1v2::InverseMedianPixelFormat::S16);
+    EXPECT_EQ(third.residual->type(), CV_32FC1);
+    EXPECT_EQ(third.residual_view.pixel_format, dp1v2::InverseMedianPixelFormat::F32);
     EXPECT_EQ(third.residual_view.range_policy, dp1v2::InverseMedianRangePolicy::SignedResidual);
     expectMatEqual(*third.median_frame, expected_median);
     expectMatEqual(*third.residual, expected_residual);
 }
 
-TEST(InverseMedianFilter, ProcessFrame_WhenFixedK3U16_ReturnsExactMedianAndInt32Residual)
+TEST(InverseMedianFilter, ProcessFrame_WhenFixedK3U16_ReturnsExactMedianAndF32Residual)
 {
     const cv::Size size(2, 2);
     std::vector<cv::Mat> frames{
@@ -219,13 +221,13 @@ TEST(InverseMedianFilter, ProcessFrame_WhenFixedK3U16_ReturnsExactMedianAndInt32
     EXPECT_TRUE(result->median_updated);
     ASSERT_NE(result->residual, nullptr);
     ASSERT_NE(result->median_frame, nullptr);
-    EXPECT_EQ(result->residual->type(), CV_32SC1);
-    EXPECT_EQ(result->residual_view.pixel_format, dp1v2::InverseMedianPixelFormat::S32);
+    EXPECT_EQ(result->residual->type(), CV_32FC1);
+    EXPECT_EQ(result->residual_view.pixel_format, dp1v2::InverseMedianPixelFormat::F32);
     expectMatEqual(*result->median_frame, expected_median);
     expectMatEqual(*result->residual, expected_residual);
 }
 
-TEST(InverseMedianFilter, ProcessFrame_WhenFixedK5U8_ReturnsExactMedianAndInt16Residual)
+TEST(InverseMedianFilter, ProcessFrame_WhenFixedK5U8_ReturnsExactMedianAndF32Residual)
 {
     const cv::Size size(2, 2);
     std::vector<cv::Mat> frames{
@@ -250,13 +252,13 @@ TEST(InverseMedianFilter, ProcessFrame_WhenFixedK5U8_ReturnsExactMedianAndInt16R
     EXPECT_TRUE(result->median_updated);
     ASSERT_NE(result->residual, nullptr);
     ASSERT_NE(result->median_frame, nullptr);
-    EXPECT_EQ(result->residual->type(), CV_16SC1);
-    EXPECT_EQ(result->residual_view.pixel_format, dp1v2::InverseMedianPixelFormat::S16);
+    EXPECT_EQ(result->residual->type(), CV_32FC1);
+    EXPECT_EQ(result->residual_view.pixel_format, dp1v2::InverseMedianPixelFormat::F32);
     expectMatEqual(*result->median_frame, expected_median);
     expectMatEqual(*result->residual, expected_residual);
 }
 
-TEST(InverseMedianFilter, ProcessFrame_WhenFixedK5U16_ReturnsExactMedianAndInt32Residual)
+TEST(InverseMedianFilter, ProcessFrame_WhenFixedK5U16_ReturnsExactMedianAndF32Residual)
 {
     const cv::Size size(2, 2);
     std::vector<cv::Mat> frames{
@@ -281,8 +283,8 @@ TEST(InverseMedianFilter, ProcessFrame_WhenFixedK5U16_ReturnsExactMedianAndInt32
     EXPECT_TRUE(result->median_updated);
     ASSERT_NE(result->residual, nullptr);
     ASSERT_NE(result->median_frame, nullptr);
-    EXPECT_EQ(result->residual->type(), CV_32SC1);
-    EXPECT_EQ(result->residual_view.pixel_format, dp1v2::InverseMedianPixelFormat::S32);
+    EXPECT_EQ(result->residual->type(), CV_32FC1);
+    EXPECT_EQ(result->residual_view.pixel_format, dp1v2::InverseMedianPixelFormat::F32);
     expectMatEqual(*result->median_frame, expected_median);
     expectMatEqual(*result->residual, expected_residual);
 }
@@ -375,8 +377,8 @@ TEST(InverseMedianFilter, ProcessFrame_WhenRawSignedResidualIsNegative_Preserves
     ASSERT_NE(result, nullptr);
     ASSERT_EQ(result->status, dp1v2::InverseMedianStatus::Valid);
     ASSERT_NE(result->residual, nullptr);
-    ASSERT_EQ(result->residual->type(), CV_16SC1);
-    EXPECT_EQ(result->residual->at<std::int16_t>(0, 0), -50);
+    ASSERT_EQ(result->residual->type(), CV_32FC1);
+    EXPECT_FLOAT_EQ(result->residual->at<float>(0, 0), -50.0F);
     EXPECT_EQ(result->converted_residual, nullptr);
 }
 
@@ -407,6 +409,9 @@ TEST(InverseMedianFilter, ProcessFrame_WhenClipToInputRange_ClampsNegativeAndKee
     ASSERT_EQ(result->status, dp1v2::InverseMedianStatus::Valid);
     ASSERT_NE(result->residual, nullptr);
     ASSERT_NE(result->converted_residual, nullptr);
+    EXPECT_EQ(result->residual->type(), CV_32FC1);
+    EXPECT_FLOAT_EQ(result->residual->at<float>(0, 0), -50.0F);
+    EXPECT_FLOAT_EQ(result->residual->at<float>(0, 1), 40.0F);
     EXPECT_EQ(result->converted_residual->type(), CV_8UC1);
     EXPECT_EQ(result->converted_residual_view.pixel_format, dp1v2::InverseMedianPixelFormat::U8);
     EXPECT_EQ(result->converted_residual_view.range_policy, dp1v2::InverseMedianRangePolicy::ClippedToInputRange);
@@ -442,7 +447,9 @@ TEST(InverseMedianFilter, ProcessFrame_WhenClipToInputRangeU16_ClampsNegativeAnd
     ASSERT_EQ(result->status, dp1v2::InverseMedianStatus::Valid);
     ASSERT_NE(result->residual, nullptr);
     ASSERT_NE(result->converted_residual, nullptr);
-    EXPECT_EQ(result->residual->type(), CV_32SC1);
+    EXPECT_EQ(result->residual->type(), CV_32FC1);
+    EXPECT_FLOAT_EQ(result->residual->at<float>(0, 0), -500.0F);
+    EXPECT_FLOAT_EQ(result->residual->at<float>(0, 1), 400.0F);
     EXPECT_EQ(result->converted_residual->type(), CV_16UC1);
     EXPECT_EQ(result->converted_residual_view.pixel_format, dp1v2::InverseMedianPixelFormat::U16);
     EXPECT_EQ(result->converted_residual_view.range_policy, dp1v2::InverseMedianRangePolicy::ClippedToInputRange);

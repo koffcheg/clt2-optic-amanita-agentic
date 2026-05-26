@@ -350,7 +350,7 @@ TEST(PipelineTest, TilesPrepRouteReachesRadiometricCompletedAfterWarmUp)
     ASSERT_NE(radiometric_timing, nullptr);
     EXPECT_EQ(radiometric_timing->status, dp1v2::StageStatusCode::Completed);
     EXPECT_EQ(radiometric_timing->input_format, dp1v2::PixelFormat::U16);
-    EXPECT_EQ(radiometric_timing->output_format, dp1v2::PixelFormat::S32);
+    EXPECT_EQ(radiometric_timing->output_format, dp1v2::PixelFormat::F32);
 
     EXPECT_EQ(result.frame.profiling.cardinality.tile_count, 6U);
     EXPECT_NE(radiometric_status->reason.find("total_tiles=6"), std::string::npos);
@@ -601,8 +601,51 @@ TEST(PipelineTest, FullFrameRouteRegistersCompletedRadiometricAsStage2BoundaryAr
     ASSERT_NE(artifact, nullptr);
     EXPECT_EQ(artifact->producer_stage, "radiometric_correction");
     EXPECT_EQ(artifact->parent_artifact_id, "canonical_frame");
-    EXPECT_NE(artifact->pixel_format, dp1v2::PixelFormat::U8);
+    EXPECT_EQ(artifact->pixel_format, dp1v2::PixelFormat::F32);
     EXPECT_FALSE(hasArtifact(result.frame, "radiometric.processing_frame"));
+}
+
+TEST(PipelineTest, FullFrameCompletedRadiometricUsesF32CanonicalOutputWhenClipAuxiliaryExists)
+{
+    const dp1v2::PipelineConfig pipeline_config = makeFullFramePipelineConfig();
+    dp1v2::ResolvedPipelineConfig resolved_pipeline_config = makeResolvedPipelineConfig();
+    ASSERT_TRUE(resolved_pipeline_config.radiometric.inverse_median.has_value());
+    resolved_pipeline_config.radiometric.inverse_median->output_dynamic_range_mode =
+        dp1v2::InverseMedianOutputMode::ClipToInputRange;
+
+    dp1v2::InputNormalizationStage input_normalization_stage(
+        resolved_pipeline_config.input_normalization);
+    dp1v2::PrepStage prep_stage;
+    dp1v2::RadiometricStage radiometric_stage(resolved_pipeline_config.radiometric);
+    dp1v2::VisualizationSink visualization_sink(dp1v2::VisualizationConfig{});
+
+    dp1v2::SingleFramePipelineResult result{};
+    for (int frame_index = 0; frame_index < 4; ++frame_index) {
+        dp1v2::RawFrameEnvelope envelope = makeEnvelope();
+        envelope.header_hint.frame_id = 42 + frame_index;
+        result = processTestFrame(
+            envelope,
+            pipeline_config,
+            resolved_pipeline_config,
+            input_normalization_stage,
+            prep_stage,
+            radiometric_stage,
+            visualization_sink);
+    }
+
+    EXPECT_EQ(result.lifecycle.status, dp1v2::FrameTerminalStatus::Completed);
+
+    const dp1v2::StageTiming *radiometric_timing =
+        findStageTiming(result.frame, "radiometric_correction");
+    ASSERT_NE(radiometric_timing, nullptr);
+    EXPECT_EQ(radiometric_timing->status, dp1v2::StageStatusCode::Completed);
+    EXPECT_EQ(radiometric_timing->output_format, dp1v2::PixelFormat::F32);
+
+    const dp1v2::FrameArtifactRef *artifact =
+        findArtifact(result.frame, "stage2.processing_frame");
+    ASSERT_NE(artifact, nullptr);
+    EXPECT_EQ(artifact->producer_stage, "radiometric_correction");
+    EXPECT_EQ(artifact->pixel_format, dp1v2::PixelFormat::F32);
 }
 
 TEST(PipelineTest, FullFrameRouteRecordsProfilingCollectionWhenReportsDisabled)

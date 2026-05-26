@@ -4,7 +4,6 @@
 #include <chrono>
 #include <limits>
 #include <stdexcept>
-#include <type_traits>
 
 namespace dp1v2 {
 namespace {
@@ -86,11 +85,8 @@ const char* inputPixelFormatNameForDepth(int input_depth)
 
 InverseMedianPixelFormat residualPixelFormatForDepth(int input_depth)
 {
-    if (input_depth == CV_8U) {
-        return InverseMedianPixelFormat::S16;
-    }
-    if (input_depth == CV_16U) {
-        return InverseMedianPixelFormat::S32;
+    if (input_depth == CV_8U || input_depth == CV_16U) {
+        return InverseMedianPixelFormat::F32;
     }
     return InverseMedianPixelFormat::Unknown;
 }
@@ -336,11 +332,8 @@ int InverseMedianFilter::windowSize(InverseMedianMode mode)
 
 int InverseMedianFilter::residualDepthForInput(int input_depth)
 {
-    if (input_depth == CV_8U) {
-        return CV_16S;
-    }
-    if (input_depth == CV_16U) {
-        return CV_32S;
+    if (input_depth == CV_8U || input_depth == CV_16U) {
+        return CV_32F;
     }
     throw std::invalid_argument("inverse_median supports only CV_8U and CV_16U input depth");
 }
@@ -459,11 +452,11 @@ void InverseMedianFilter::recomputeMedianFrame()
 void InverseMedianFilter::computeResidual(const cv::Mat& input_frame)
 {
     if (input_depth_ == CV_8U) {
-        computeResidualTyped<std::uint8_t, std::int16_t>(input_frame);
+        computeResidualTyped<std::uint8_t>(input_frame);
         return;
     }
     if (input_depth_ == CV_16U) {
-        computeResidualTyped<std::uint16_t, std::int32_t>(input_frame);
+        computeResidualTyped<std::uint16_t>(input_frame);
         return;
     }
     throw std::logic_error("unsupported inverse_median input depth during residual computation");
@@ -544,16 +537,16 @@ void InverseMedianFilter::recomputeMedianFrameK5Typed()
     }
 }
 
-template <typename InputPixel, typename ResidualPixel>
+template <typename InputPixel>
 void InverseMedianFilter::computeResidualTyped(const cv::Mat& input_frame)
 {
     for (int y = 0; y < frame_size_.height; ++y) {
         const InputPixel* input_row = input_frame.ptr<InputPixel>(y);
         const InputPixel* median_row = median_frame_.ptr<InputPixel>(y);
-        ResidualPixel* residual_row = residual_.ptr<ResidualPixel>(y);
+        float* residual_row = residual_.ptr<float>(y);
 
         for (int x = 0; x < frame_size_.width; ++x) {
-            residual_row[x] = static_cast<ResidualPixel>(input_row[x]) - static_cast<ResidualPixel>(median_row[x]);
+            residual_row[x] = static_cast<float>(input_row[x]) - static_cast<float>(median_row[x]);
         }
     }
 }
@@ -561,14 +554,13 @@ void InverseMedianFilter::computeResidualTyped(const cv::Mat& input_frame)
 template <typename OutputPixel>
 void InverseMedianFilter::clipResidualToInputRange()
 {
-    using ResidualPixel = std::conditional_t<std::is_same_v<OutputPixel, std::uint8_t>, std::int16_t, std::int32_t>;
-
     for (int y = 0; y < frame_size_.height; ++y) {
-        const ResidualPixel* residual_row = residual_.ptr<ResidualPixel>(y);
+        const float* residual_row = residual_.ptr<float>(y);
         OutputPixel* output_row = converted_residual_.ptr<OutputPixel>(y);
 
         for (int x = 0; x < frame_size_.width; ++x) {
-            output_row[x] = clampToOutputRange<OutputPixel>(residual_row[x]);
+            output_row[x] = clampToOutputRange<OutputPixel>(
+                static_cast<std::int64_t>(residual_row[x]));
         }
     }
 }
